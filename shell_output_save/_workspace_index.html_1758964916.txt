@@ -1,0 +1,172 @@
+        const games = [
+            // 前20个游戏
+            {id: 1, title: "贪吃蛇", file: "snake.html", category: "动作游戏", description: "经典的贪吃蛇游戏，控制蛇吃食物并避免撞到自己", controls: "方向键控制移动"},
+            {id: 2, title: "俄罗斯方块", file: "tetris.html", category: "益智游戏", description: "经典的方块消除游戏，合理排列方块来消除行", controls: "方向键移动和旋转，空格键快速下落"},
+            {id: 3, title: "2048", file: "2048.html", category: "益智游戏", description: "数字合并游戏，相同数字相撞会合并成更大的数字", controls: "方向键移动数字方块"},
+            {id: 4, title: "记忆游戏", file: "memory.html", category: "记忆游戏", description: "翻转卡片找到相同的图案，训练你的记忆力", controls: "鼠标点击翻转卡片"},
+            {id: 5, title: "飞扬的小鸟", file: "flappy.html", category: "动作游戏", description: "控制小鸟飞行通过管道，不要撞到障碍物", controls: "空格键或鼠标点击控制飞行"},
+            {id: 6, title: "打砖块", file: "breakout.html", category: "动作游戏", description: "控制挡板反弹球来打破所有砖块", controls: "左右方向键移动挡板"},
+            {id: 7, title: "太空射击", file: "space_shooter.html", category: "射击游戏", description: "驾驶太空飞船射击敌人，保卫宇宙", controls: "方向键移动，空格键射击"},
+            {id: 8, title: "竞速游戏", file: "racing.html", category: "竞速游戏", description: "驾驶赛车在赛道上飞驰，避开障碍物", controls: "方向键控制赛车"},
+            {id: 9, title: "平台跳跃", file: "platformer.html", category: "动作游戏", description: "控制角色在平台间跳跃，收集物品", controls: "方向键移动，空格键跳跃"},
+            {id: 10, title: "拼图游戏", file: "puzzle.html", category: "益智游戏", description: "移动拼图块完成完整的图片", controls: "鼠标点击拼图块移动"},
+            {id: 11, title: "乒乓球", file: "pong.html", category: "体育游戏", description: "经典的乒乓球游戏，控制球拍击球", controls: "W/S键控制左球拍，上下方向键控制右球拍"},
+            {id: 12, title: "小行星", file: "asteroids.html", category: "射击游戏", description: "在太空中射击小行星，避免碰撞", controls: "方向键控制飞船，空格键射击"},
+            {id: 13, title: "迷宫吃豆", file: "pacmaze.html", category: "动作游戏", description: "在迷宫中收集所有豆子，避开敌人", controls: "方向键控制移动"},
+            {id: 14, title: "塔防游戏", file: "towerdefense.html", category: "策略游戏", description: "建造防御塔阻止敌人通过", controls: "鼠标点击建造和升级防御塔"},
+            {id: 15, title: "三消游戏", file: "match3.html", category: "益智游戏", description: "交换相邻物品创造三个或更多的匹配", controls: "鼠标拖拽交换物品"},
+            {id: 16, title: "数独", file: "sudoku.html", category: "益智游戏", description: "在9x9网格中填入数字，每行、列、宫内数字不重复", controls: "鼠标点击格子输入数字"},
+            {id: 17, title: "纸牌游戏", file: "solitaire.html", category: "卡牌游戏", description: "经典的单人纸牌游戏", controls: "鼠标拖拽移动纸牌"},
+            {id: 18, title: "扫雷", file: "minesweeper.html", category: "益智游戏", description: "找出所有地雷而不触发它们", controls: "左键点击翻开，右键标记地雷"},
+            {id: 19, title: "四子连珠", file: "connect4.html", category: "策略游戏", description: "与电脑对战，率先连成四子获胜", controls: "鼠标点击列投下棋子"},
+            {id: 20, title: "打地鼠", file: "whackmole.html", category: "动作游戏", description: "快速击打冒出来的地鼠，考验反应速度", controls: "鼠标点击地鼠"},
+            
+            // 21-30游戏
+            {id: 21, title: "国际象棋", file: "chess.html", category: "策略游戏", description: "经典的国际象棋游戏，与电脑对战", controls: "鼠标点击选择和移动棋子"},
+            {id: 22, title: "跳棋", file: "checkers.html", category: "策略游戏", description: "经典的跳棋游戏，吃掉对方所有棋子", controls: "鼠标点击选择和移动棋子"},
+            {id: 23, title: "双陆棋", file: "backgammon.html", category: "策略游戏", description: "古老的双陆棋游戏，掷骰子移动棋子", controls: "鼠标点击掷骰子和移动棋子"},
+            {id: 24, title: "五子棋", file: "go.html", category: "策略游戏", description: "经典的五子棋游戏，率先连成五子获胜", controls: "鼠标点击放置棋子"},
+            {id: 25, title: "黑白棋", file: "reversi.html", category: "策略游戏", description: "通过夹击翻转对方棋子，棋子多者获胜", controls: "鼠标点击放置棋子"},
+            {id: 26, title: "德州扑克", file: "poker.html", category: "卡牌游戏", description: "经典的德州扑克游戏，与电脑对战", controls: "鼠标点击下注和操作"},
+            {id: 27, title: "黑杰克", file: "blackjack.html", category: "卡牌游戏", description: "21点纸牌游戏，目标是接近21点而不超过", controls: "鼠标点击下注和操作"},
+            {id: 28, title: "宾果游戏", file: "bingo.html", category: "休闲游戏", description: "经典的宾果游戏，连成线获胜", controls: "鼠标点击标记数字"},
+            {id: 29, title: "老虎机", file: "slotmachine.html", category: "休闲游戏", description: "拉霸游戏，三个相同符号获得奖金", controls: "鼠标点击旋转按钮"},
+            {id: 30, title: "轮盘游戏", file: "roulette.html", category: "休闲游戏", description: "经典的轮盘赌游戏，预测球的落点", controls: "鼠标点击下注和旋转"},
+            
+            // 31-40游戏
+            {id: 31, title: "井字棋", file: "tictactoe.html", category: "策略游戏", description: "经典的井字棋游戏，率先连成三子获胜", controls: "鼠标点击格子放置符号"},
+            {id: 32, title: "海战棋", file: "battleship.html", category: "策略游戏", description: "海战游戏，击沉对方所有战舰", controls: "鼠标点击放置战舰和攻击"},
+            {id: 33, title: "麻将", file: "mahjong.html", category: "卡牌游戏", description: "经典的麻将消除游戏", controls: "鼠标点击相同图案的麻将牌"},
+            {id: 34, title: "填字游戏", file: "crossword.html", category: "文字游戏", description: "根据提示填写单词完成填字谜", controls: "鼠标点击格子输入字母"},
+            {id: 35, title: "找单词", file: "wordsearch.html", category: "文字游戏", description: "在字母网格中找到隐藏的单词", controls: "鼠标拖拽选择单词"},
+            {id: 36, title: "猜单词", file: "hangman.html", category: "文字游戏", description: "通过猜字母来猜出完整单词", controls: "鼠标点击字母"},
+            {id: 37, title: "拼字游戏", file: "scrabble.html", category: "文字游戏", description: "用字母拼出单词获得分数", controls: "拖拽字母到棋盘上"},
+            {id: 38, title: "打字游戏", file: "typing.html", category: "技能游戏", description: "测试你的打字速度和准确性", controls: "键盘输入显示的文字"},
+            {id: 39, title: "钢琴块", file: "39.html", category: "音乐游戏", description: "点击黑色钢琴块，不要碰白块", controls: "鼠标点击黑色方块"},
+            {id: 40, title: "西蒙说", file: "40.html", category: "记忆游戏", description: "记住并重复颜色序列", controls: "鼠标点击彩色按钮"},
+            
+            // 41-50游戏
+            {id: 41, title: "拼图游戏2", file: "41.html", category: "益智游戏", description: "把碎片拼成完整图片", controls: "拖拽拼图片到正确位置"},
+            {id: 42, title: "滑块游戏", file: "42.html", category: "益智游戏", description: "移动滑块重新排列数字", controls: "鼠标点击滑块移动"},
+            {id: 43, title: "魔方", file: "43.html", category: "益智游戏", description: "转动魔方使每面颜色统一", controls: "鼠标拖拽旋转魔方"},
+            {id: 44, title: "迷宫探险", file: "44.html", category: "冒险游戏", description: "在迷宫中找到出口", controls: "方向键控制角色移动"},
+            {id: 45, title: "地牢探索", file: "45.html", category: "角色扮演", description: "探索地牢，收集宝藏和战斗", controls: "方向键移动，空格键互动"},
+            {id: 46, title: "回合制战斗", file: "46.html", category: "角色扮演", description: "经典的回合制RPG战斗", controls: "鼠标点击选择技能和目标"},
+            {id: 47, title: "物理弹球模拟器", file: "47.html", category: "益智游戏", description: "真实的物理弹球模拟，操控重力和障碍物", controls: "鼠标点击控制重力和障碍"},
+            {id: 48, title: "电路连接大师", file: "48.html", category: "益智游戏", description: "连接电路组件，创建完整的电路", controls: "鼠标拖拽连接电路元件"},
+            {id: 49, title: "音乐节拍大师", file: "49.html", category: "音乐游戏", description: "跟随音乐节拍，点击正确的时机", controls: "键盘按键跟随节拍提示"},
+            {id: 50, title: "空间防御战", file: "50.html", category: "射击游戏", description: "在太空中建造防御阵地，抵御外星入侵", controls: "鼠标点击建造和射击"},
+            
+            // 51-60游戏
+            {id: 51, title: "翻牌记忆", file: "51.html", category: "记忆游戏", description: "记忆卡片位置，翻牌配对训练记忆力", controls: "鼠标点击翻转卡片"},
+            {id: 52, title: "数字停车场", file: "52.html", category: "益智游戏", description: "将数字方块停放到正确位置", controls: "鼠标拖拽移动数字方块"},
+            {id: 53, title: "超级马里奥跑酷", file: "53.html", category: "动作游戏", description: "经典的马里奥风格跑酷闯关游戏", controls: "方向键移动，空格键跳跃"},
+            {id: 54, title: "花园守护者", file: "54.html", category: "策略游戏", description: "在花园中建造防御塔保护花朵", controls: "鼠标点击建造和升级"},
+            {id: 55, title: "周期元素大冒险", file: "55.html", category: "教育游戏", description: "通过游戏学习化学元素周期表", controls: "鼠标点击选择元素"},
+            {id: 56, title: "保龄球", file: "56.html", category: "体育游戏", description: "保龄球游戏，争取全中", controls: "鼠标拖拽调整方向和力度"},
+            {id: 57, title: "飞镖", file: "57.html", category: "体育游戏", description: "飞镖游戏，瞄准靶心", controls: "鼠标点击投掷飞镖"},
+            {id: 58, title: "台球", file: "58.html", category: "体育游戏", description: "台球游戏，将球打进洞", controls: "鼠标拖拽瞄准击球"},
+            {id: 59, title: "气垫球", file: "59.html", category: "体育游戏", description: "气垫球游戏，防守并进攻", controls: "鼠标控制球拍"},
+            {id: 60, title: "乒乓球2", file: "60.html", category: "体育游戏", description: "升级版乒乓球游戏", controls: "鼠标控制球拍移动"},
+            
+            // 61-70游戏
+            {id: 61, title: "青蛙过河", file: "61.html", category: "动作游戏", description: "帮助青蛙安全过马路和河流", controls: "方向键控制青蛙移动"},
+            {id: 62, title: "蜈蚣", file: "62.html", category: "射击游戏", description: "射击蜈蚣和蘑菇", controls: "方向键移动，空格键射击"},
+            {id: 63, title: "小蜜蜂", file: "63.html", category: "射击游戏", description: "经典的小蜜蜂射击游戏", controls: "方向键移动，空格键射击"},
+            {id: 64, title: "导弹防御", file: "64.html", category: "射击游戏", description: "防御导弹攻击城市", controls: "鼠标点击发射防御导弹"},
+            {id: 65, title: "防卫者", file: "65.html", category: "射击游戏", description: "保卫人类免受外星人攻击", controls: "方向键移动，空格键射击"},
+            {id: 66, title: "吃豆人", file: "66.html", category: "动作游戏", description: "经典的吃豆人游戏", controls: "方向键控制移动"},
+            {id: 67, title: "大金刚", file: "67.html", category: "动作游戏", description: "爬梯子避开桶，救出公主", controls: "方向键移动和爬梯子"},
+            {id: 68, title: "马里奥", file: "68.html", category: "动作游戏", description: "经典的马里奥平台游戏", controls: "方向键移动，空格键跳跃"},
+            {id: 69, title: "索尼克", file: "69.html", category: "动作游戏", description: "高速奔跑收集金环", controls: "方向键控制移动和跳跃"},
+            {id: 70, title: "无限跑酷", file: "70.html", category: "动作游戏", description: "无限奔跑，避开障碍物", controls: "空格键跳跃，方向键移动"},
+            
+            // 71-80游戏
+            {id: 71, title: "跳跃游戏", file: "71.html", category: "动作游戏", description: "控制角色跳跃到更高平台", controls: "空格键跳跃"},
+            {id: 72, title: "躲避游戏", file: "72.html", category: "动作游戏", description: "躲避掉落的物体", controls: "方向键控制移动"},
+            {id: 73, title: "接球游戏", file: "73.html", category: "动作游戏", description: "接住掉落的好东西，避开坏东西", controls: "方向键控制移动"},
+            {id: 74, title: "泡泡射击", file: "74.html", category: "益智游戏", description: "射击泡泡消除相同颜色", controls: "鼠标瞄准发射泡泡"},
+            {id: 75, title: "宝石探索", file: "75.html", category: "益智游戏", description: "匹配宝石获得分数", controls: "鼠标拖拽交换宝石"},
+            {id: 76, title: "糖果粉碎", file: "76.html", category: "益智游戏", description: "消除糖果获得分数", controls: "鼠标拖拽交换糖果"},
+            {id: 77, title: "宝石迷阵", file: "77.html", category: "益智游戏", description: "交换宝石创造匹配", controls: "鼠标拖拽交换宝石"},
+            {id: 78, title: "祖玛", file: "78.html", category: "动作游戏", description: "射击彩球阻止它们到达终点", controls: "鼠标瞄准发射彩球"},
+            {id: 79, title: "点击游戏", file: "79.html", category: "休闲游戏", description: "不断点击获得更多饼干", controls: "鼠标点击获得分数"},
+            {id: 80, title: "放置游戏", file: "80.html", category: "休闲游戏", description: "自动化生产，升级设施", controls: "鼠标点击升级"},
+            
+            // 81-90游戏
+            {id: 81, title: "知识问答", file: "81.html", category: "知识游戏", description: "回答各种知识问题", controls: "鼠标点击选择答案"},
+            {id: 82, title: "数学测试", file: "82.html", category: "教育游戏", description: "解决数学问题提高技能", controls: "键盘输入答案"},
+            {id: 83, title: "地理测试", file: "83.html", category: "教育游戏", description: "测试你的地理知识", controls: "鼠标点击选择答案"},
+            {id: 84, title: "历史测试", file: "84.html", category: "教育游戏", description: "学习和测试历史知识", controls: "鼠标点击选择答案"},
+            {id: 85, title: "科学测试", file: "85.html", category: "教育游戏", description: "探索科学知识", controls: "鼠标点击选择答案"},
+            {id: 86, title: "颜色匹配", file: "86.html", category: "技能游戏", description: "快速匹配相同颜色", controls: "鼠标点击匹配颜色"},
+            {id: 87, title: "反应测试", file: "87.html", category: "技能游戏", description: "测试你的反应速度", controls: "看到提示立即点击"},
+            {id: 88, title: "记忆训练", file: "88.html", category: "记忆游戏", description: "训练和提高记忆力", controls: "记住序列并重复"},
+            {id: 89, title: "脑筋急转弯", file: "89.html", category: "益智游戏", description: "解决各种脑筋急转弯", controls: "鼠标点击选择答案"},
+            {id: 90, title: "水果忍者", file: "90.html", category: "动作游戏", description: "切割飞舞的水果，避开炸弹", controls: "鼠标拖拽切割水果"},
+            
+            // 91-100游戏
+            {id: 91, title: "太空挖矿", file: "91.html", category: "模拟游戏", description: "在太空中挖掘稀有矿物和资源", controls: "鼠标点击挖掘和收集"},
+            {id: 92, title: "图案游戏", file: "92.html", category: "记忆游戏", description: "记住并重复图案序列", controls: "鼠标点击重复图案"},
+            {id: 93, title: "序列游戏", file: "93.html", category: "记忆游戏", description: "记住数字或颜色序列", controls: "按顺序点击元素"},
+            {id: 94, title: "时机游戏", file: "94.html", category: "技能游戏", description: "在正确时机点击", controls: "在指示时点击"},
+            {id: 95, title: "魔法塔防传奇", file: "95.html", category: "策略游戏", description: "使用魔法塔防守抵御邪恶势力", controls: "鼠标点击建造魔法塔"},
+            {id: 96, title: "节奏游戏", file: "96.html", category: "音乐游戏", description: "跟随节拍点击", controls: "按节拍点击按钮"},
+            {id: 97, title: "舞蹈游戏", file: "97.html", category: "音乐游戏", description: "跟随指示做出舞蹈动作", controls: "方向键跟随指示"},
+            {id: 98, title: "卡拉OK", file: "98.html", category: "音乐游戏", description: "跟着旋律唱歌", controls: "键盘输入歌词"},
+            {id: 99, title: "鼓点", file: "99.html", category: "音乐游戏", description: "打击鼓点创造节奏", controls: "鼠标点击不同鼓"},
+            {id: 100, title: "终极挑战", file: "100.html", category: "综合游戏", description: "第100个游戏，包含多种小游戏挑战", controls: "根据游戏类型使用不同操作"}
+        ];
+
+        let currentGames = [...games]; // 当前显示的游戏（显示所有100个游戏）
+        let filteredGames = [...currentGames]; // 过滤后的游戏
+        let itemsPerPage = 24; // 每页显示24个游戏
+        let currentPage = 1;
+        let displayedCount = 24; // 当前显示的游戏数量
+
+        // DOM元素
+        const searchBox = document.getElementById('searchBox');
+        const categoryFilter = document.getElementById('categoryFilter');
+        const gamesGrid = document.getElementById('gamesGrid');
+        const noResults = document.getElementById('noResults');
+        const visibleGamesSpan = document.getElementById('visibleGames');
+        const loadMoreBtn = document.getElementById('loadMore');
+
+        // 初始化
+        function init() {
+            filteredGames = [...currentGames];
+            displayedCount = Math.min(itemsPerPage, filteredGames.length);
+            displayGames();
+            updateStats();
+            bindEvents();
+            updateLoadMoreButton();
+        }
+
+        // 绑定事件
+        function bindEvents() {
+            searchBox.addEventListener('input', filterGames);
+            categoryFilter.addEventListener('change', filterGames);
+            
+            // 分类标签点击事件
+            document.querySelectorAll('.category-tag').forEach(tag => {
+                tag.addEventListener('click', function() {
+                    document.querySelectorAll('.category-tag').forEach(t => t.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const category = this.dataset.category;
+                    categoryFilter.value = category;
+                    filterGames();
+                });
+            });
+        }
+
+        // 显示游戏
+        function displayGames() {
+            gamesGrid.innerHTML = '';
+            
+            if (filteredGames.length === 0) {
+                noResults.style.display = 'block';
+                loadMoreBtn.style.display = 'none';
+                return;
+            }
+            
