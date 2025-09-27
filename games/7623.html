@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>终极数字 7623</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #DDA0DD, #FF6B6B);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #96CEB4, #98D8C8);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #333;
+        }
+        
+        
+        #gameBoard {
+            display: grid;
+            grid-template-columns: repeat(5, 80px);
+            grid-template-rows: repeat(5, 80px);
+            gap: 5px;
+            margin: 20px auto;
+            width: fit-content;
+        }
+        
+        .number-tile {
+            width: 80px;
+            height: 80px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        .number-tile:hover {
+            transform: scale(1.1);
+        }
+        
+        .selected {
+            background: #ffeb3b !important;
+        }
+        
+        .correct {
+            background: #4caf50 !important;
+            color: white;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>终极数字 7623</h1>
+        
+        <div id="gameBoard"></div>
+        <div class="score">目标: <span id="target">0</span></div>
+        <div class="score">当前: <span id="current">0</span></div>
+        <div class="score">步数: <span id="steps">0</span></div>
+        <button class="btn" onclick="newGame()">新游戏</button>
+        
+    </div>
+    
+    <script>
+        
+        let board = [];
+        let target = 0;
+        let current = 0;
+        let steps = 0;
+        let selectedTiles = [];
+        
+        function initGame() {
+            board = [];
+            for (let i = 0; i < 25; i++) {
+                board.push(Math.floor(Math.random() * 9) + 1);
+            }
+            
+            target = Math.floor(Math.random() * 50) + 10;
+            current = 0;
+            steps = 0;
+            selectedTiles = [];
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            const gameBoard = document.getElementById('gameBoard');
+            gameBoard.innerHTML = '';
+            
+            board.forEach((number, index) => {
+                const tile = document.createElement('div');
+                tile.className = 'number-tile';
+                tile.textContent = number;
+                tile.onclick = () => selectTile(index);
+                
+                if (selectedTiles.includes(index)) {
+                    tile.classList.add('selected');
+                }
+                
+                gameBoard.appendChild(tile);
+            });
+            
+            document.getElementById('target').textContent = target;
+            document.getElementById('current').textContent = current;
+            document.getElementById('steps').textContent = steps;
+        }
+        
+        function selectTile(index) {
+            if (selectedTiles.includes(index)) {
+                // Deselect
+                selectedTiles = selectedTiles.filter(i => i !== index);
+                current -= board[index];
+            } else {
+                // Select
+                selectedTiles.push(index);
+                current += board[index];
+            }
+            
+            steps++;
+            updateDisplay();
+            
+            if (current === target) {
+                setTimeout(() => {
+                    alert('恭喜！你达到了目标数字！步数: ' + steps);
+                    markCorrect();
+                }, 100);
+            } else if (current > target) {
+                setTimeout(() => {
+                    alert('超过了目标数字！请重新选择。');
+                    resetSelection();
+                }, 100);
+            }
+        }
+        
+        function markCorrect() {
+            selectedTiles.forEach(index => {
+                const tiles = document.querySelectorAll('.number-tile');
+                tiles[index].classList.add('correct');
+            });
+        }
+        
+        function resetSelection() {
+            selectedTiles = [];
+            current = 0;
+            updateDisplay();
+        }
+        
+        function newGame() {
+            initGame();
+        }
+        
+        initGame();
+        
+    </script>
+</body>
+</html>
