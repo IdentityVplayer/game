@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英雄赛车 8025</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #96CEB4, #FFEAA7);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #F7DC6F, #F7DC6F);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #333;
+        }
+        
+        
+        #gameCanvas {
+            border: 3px solid #333;
+            background: #666;
+            margin: 20px 0;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>英雄赛车 8025</h1>
+        
+        <canvas id="gameCanvas" width="400" height="600"></canvas>
+        <div class="score">得分: <span id="score">0</span></div>
+        <div class="score">速度: <span id="speed">0</span></div>
+        <button class="btn" onclick="startGame()">开始游戏</button>
+        <div style="margin-top: 10px; font-size: 14px;">
+            使用左右方向键控制
+        </div>
+        
+    </div>
+    
+    <script>
+        
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let player = {
+            x: canvas.width / 2 - 25,
+            y: canvas.height - 100,
+            width: 50,
+            height: 80,
+            speed: 5,
+            color: '#85C1E9'
+        };
+        
+        let obstacles = [];
+        let roadLines = [];
+        let score = 0;
+        let speed = 0;
+        let gameRunning = false;
+        let keys = {};
+        
+        function initGame() {
+            obstacles = [];
+            roadLines = [];
+            score = 0;
+            speed = 0;
+            
+            // Initialize road lines
+            for (let i = 0; i < 10; i++) {
+                roadLines.push({
+                    y: i * 80 - 400
+                });
+            }
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function update() {
+            speed = Math.min(speed + 0.01, 10);
+            score += Math.floor(speed);
+            
+            // Player movement
+            if (keys['ArrowLeft'] && player.x > 50) {
+                player.x -= player.speed;
+            }
+            if (keys['ArrowRight'] && player.x < canvas.width - 100) {
+                player.x += player.speed;
+            }
+            
+            // Update road lines
+            for (let line of roadLines) {
+                line.y += speed * 2;
+                if (line.y > canvas.height) {
+                    line.y -= 800;
+                }
+            }
+            
+            // Spawn obstacles
+            if (Math.random() < 0.02 + speed * 0.001) {
+                obstacles.push({
+                    x: 50 + Math.random() * (canvas.width - 150),
+                    y: -50,
+                    width: 50,
+                    height: 80,
+                    color: '#' + Math.floor(Math.random()*16777215).toString(16)
+                });
+            }
+            
+            // Update obstacles
+            for (let i = obstacles.length - 1; i >= 0; i--) {
+                obstacles[i].y += speed * 2;
+                
+                // Remove off-screen obstacles
+                if (obstacles[i].y > canvas.height) {
+                    obstacles.splice(i, 1);
+                    continue;
+                }
+                
+                // Collision detection
+                if (player.x < obstacles[i].x + obstacles[i].width &&
+                    player.x + player.width > obstacles[i].x &&
+                    player.y < obstacles[i].y + obstacles[i].height &&
+                    player.y + player.height > obstacles[i].y) {
+                    
+                    gameOver();
+                    return;
+                }
+            }
+            
+            updateUI();
+        }
+        
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = '#333';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw road
+            ctx.fillStyle = '#555';
+            ctx.fillRect(50, 0, canvas.width - 100, canvas.height);
+            
+            // Draw road lines
+            ctx.fillStyle = '#fff';
+            for (let line of roadLines) {
+                ctx.fillRect(canvas.width / 2 - 2, line.y, 4, 40);
+            }
+            
+            // Draw road edges
+            ctx.fillStyle = '#ffff00';
+            ctx.fillRect(48, 0, 4, canvas.height);
+            ctx.fillRect(canvas.width - 52, 0, 4, canvas.height);
+            
+            // Draw player car
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            
+            // Draw player car details
+            ctx.fillStyle = '#000';
+            ctx.fillRect(player.x + 10, player.y + 10, 30, 20);
+            ctx.fillRect(player.x + 10, player.y + 50, 30, 20);
+            
+            // Draw obstacles
+            for (let obstacle of obstacles) {
+                ctx.fillStyle = obstacle.color;
+                ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+                
+                // Draw obstacle details
+                ctx.fillStyle = '#000';
+                ctx.fillRect(obstacle.x + 10, obstacle.y + 10, 30, 20);
+                ctx.fillRect(obstacle.x + 10, obstacle.y + 50, 30, 20);
+            }
+        }
+        
+        function updateUI() {
+            document.getElementById('score').textContent = Math.floor(score);
+            document.getElementById('speed').textContent = Math.floor(speed);
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            alert('游戏结束！得分: ' + Math.floor(score));
+        }
+        
+        function startGame() {
+            initGame();
+            gameRunning = true;
+            gameLoop();
+        }
+        
+        // Keyboard event listeners
+        document.addEventListener('keydown', function(e) {
+            keys[e.code] = true;
+        });
+        
+        document.addEventListener('keyup', function(e) {
+            keys[e.code] = false;
+        });
+        
+        updateUI();
+        
+    </script>
+</body>
+</html>
