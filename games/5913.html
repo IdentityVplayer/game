@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>王者策略 5913</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #FF6B6B, #FF6B6B);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #96CEB4, #F7DC6F);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #333;
+        }
+        
+        
+        #gameBoard {
+            display: grid;
+            grid-template-columns: repeat(8, 50px);
+            grid-template-rows: repeat(8, 50px);
+            gap: 2px;
+            margin: 20px auto;
+            width: fit-content;
+            background: #333;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        .cell {
+            width: 50px;
+            height: 50px;
+            background: #4caf50;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .cell:hover {
+            background: #66bb6a;
+        }
+        
+        .cell.player {
+            background: #2196f3;
+            color: white;
+        }
+        
+        .cell.ai {
+            background: #f44336;
+            color: white;
+        }
+        
+        .cell.possible {
+            background: #ffeb3b;
+        }
+        
+        #currentPlayer {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #333;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>王者策略 5913</h1>
+        
+        <div id="gameBoard"></div>
+        <div class="score">玩家: <span id="playerScore">0</span></div>
+        <div class="score">电脑: <span id="aiScore">0</span></div>
+        <div id="currentPlayer">玩家回合</div>
+        <button class="btn" onclick="newGame()">新游戏</button>
+        
+    </div>
+    
+    <script>
+        
+        const BOARD_SIZE = 8;
+        let board = [];
+        let currentPlayer = 1; // 1 = player, 2 = AI
+        let playerScore = 0;
+        let aiScore = 0;
+        let gameActive = true;
+        
+        function initGame() {
+            board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+            
+            // Initial setup
+            board[3][3] = 1;
+            board[4][4] = 1;
+            board[3][4] = 2;
+            board[4][3] = 2;
+            
+            currentPlayer = 1;
+            gameActive = true;
+            updateScore();
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            const gameBoard = document.getElementById('gameBoard');
+            gameBoard.innerHTML = '';
+            
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    if (board[i][j] === 1) {
+                        cell.classList.add('player');
+                        cell.textContent = '●';
+                    } else if (board[i][j] === 2) {
+                        cell.classList.add('ai');
+                        cell.textContent = '●';
+                    } else if (isValidMove(i, j, currentPlayer)) {
+                        cell.classList.add('possible');
+                        cell.onclick = () => makeMove(i, j);
+                    }
+                    
+                    gameBoard.appendChild(cell);
+                }
+            }
+            
+            document.getElementById('currentPlayer').textContent = 
+                currentPlayer === 1 ? '玩家回合' : 'AI回合';
+            
+            updateScore();
+        }
+        
+        function isValidMove(row, col, player) {
+            if (board[row][col] !== 0) return false;
+            
+            const directions = [
+                [-1, -1], [-1, 0], [-1, 1],
+                [0, -1],           [0, 1],
+                [1, -1],  [1, 0],  [1, 1]
+            ];
+            
+            for (let [dx, dy] of directions) {
+                if (canFlip(row, col, dx, dy, player)) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+        
+        function canFlip(row, col, dx, dy, player) {
+            let x = row + dx;
+            let y = col + dy;
+            let hasOpponent = false;
+            
+            while (x >= 0 && x < BOARD_SIZE && y >= 0 && y < BOARD_SIZE) {
+                if (board[x][y] === 0) return false;
+                if (board[x][y] === player) {
+                    return hasOpponent;
+                }
+                hasOpponent = true;
+                x += dx;
+                y += dy;
+            }
+            
+            return false;
+        }
+        
+        function makeMove(row, col) {
+            if (!gameActive || !isValidMove(row, col, currentPlayer)) return;
+            
+            board[row][col] = currentPlayer;
+            flipPieces(row, col, currentPlayer);
+            
+            currentPlayer = currentPlayer === 1 ? 2 : 1;
+            
+            if (!hasValidMoves(currentPlayer)) {
+                currentPlayer = currentPlayer === 1 ? 2 : 1;
+                if (!hasValidMoves(currentPlayer)) {
+                    endGame();
+                    return;
+                }
+            }
+            
+            updateDisplay();
+            
+            if (currentPlayer === 2 && gameActive) {
+                setTimeout(makeAIMove, 1000);
+            }
+        }
+        
+        function flipPieces(row, col, player) {
+            const directions = [
+                [-1, -1], [-1, 0], [-1, 1],
+                [0, -1],           [0, 1],
+                [1, -1],  [1, 0],  [1, 1]
+            ];
+            
+            for (let [dx, dy] of directions) {
+                if (canFlip(row, col, dx, dy, player)) {
+                    let x = row + dx;
+                    let y = col + dy;
+                    
+                    while (board[x][y] !== player) {
+                        board[x][y] = player;
+                        x += dx;
+                        y += dy;
+                    }
+                }
+            }
+        }
+        
+        function hasValidMoves(player) {
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (isValidMove(i, j, player)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        function makeAIMove() {
+            if (!gameActive) return;
+            
+            const validMoves = [];
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (isValidMove(i, j, 2)) {
+                        validMoves.push({row: i, col: j});
+                    }
+                }
+            }
+            
+            if (validMoves.length > 0) {
+                const randomMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+                makeMove(randomMove.row, randomMove.col);
+            }
+        }
+        
+        function updateScore() {
+            playerScore = 0;
+            aiScore = 0;
+            
+            for (let i = 0; i < BOARD_SIZE; i++) {
+                for (let j = 0; j < BOARD_SIZE; j++) {
+                    if (board[i][j] === 1) playerScore++;
+                    else if (board[i][j] === 2) aiScore++;
+                }
+            }
+            
+            document.getElementById('playerScore').textContent = playerScore;
+            document.getElementById('aiScore').textContent = aiScore;
+        }
+        
+        function endGame() {
+            gameActive = false;
+            let message = '游戏结束！\n';
+            message += '玩家: ' + playerScore + '\n';
+            message += 'AI: ' + aiScore + '\n';
+            
+            if (playerScore > aiScore) {
+                message += '玩家获胜！';
+            } else if (aiScore > playerScore) {
+                message += 'AI获胜！';
+            } else {
+                message += '平局！';
+            }
+            
+            alert(message);
+        }
+        
+        function newGame() {
+            initGame();
+        }
+        
+        initGame();
+        
+    </script>
+</body>
+</html>
