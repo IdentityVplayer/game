@@ -1,0 +1,30 @@
+# Game Development Project - Clean .gitignore
+
+# Deployment and sensitive files
+*.py
+deploy.sh
+*deploy*
+*token*
+*pat*
+*key*
+shell_output_save/
+
+# Development files
+.vscode/
+.idea/
+*.log
+*.tmp
+
+# Archives and backups
+*.tar.gz
+*.zip
+.backups/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Keep only essential game and documentation files
+!README.md
+!index.html
+!games/*.html
