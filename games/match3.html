@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Match-3 - 三消游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            border: 3px solid #ffd700;
+            border-radius: 15px;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.5);
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            padding: 20px;
+        }
+
+        canvas {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            display: block;
+            border-radius: 10px;
+            border: 2px solid white;
+        }
+
+        .ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 18px;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .progress-bar {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00ff87, #60efff);
+            width: 0%;
+            border-radius: 10px;
+            transition: width 0.3s ease;
+        }
+
+        .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 12px;
+        }
+
+        .start-btn {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+
+        .start-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.4);
+        }
+
+        .gem-hint {
+            position: absolute;
+            top: 50%;
+            right: -150px;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 14px;
+            width: 120px;
+        }
+
+        .gem-types {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .gem-type {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .gem-icon {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                width: 95vw;
+                height: 80vh;
+                padding: 10px;
+            }
+            
+            .ui {
+                font-size: 14px;
+                padding: 10px;
+            }
+            
+            .gem-hint {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="480" height="640"></canvas>
+        
+        <div class="ui">
+            <div>🏆 得分: <span id="score">0</span></div>
+            <div>🎯 目标: <span id="target">1000</span></div>
+            <div>⏰ 时间: <span id="time">60</span>s</div>
+            <div>🔥 连击: <span id="combo">0</span></div>
+        </div>
+        
+        <div class="progress-bar">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        
+        <div class="gem-hint">
+            <h4>宝石类型</h4>
+            <div class="gem-types">
+                <div class="gem-type">
+                    <div class="gem-icon" style="background: linear-gradient(45deg, #ff0000, #ff6b6b);"></div>
+                    <span>红宝石</span>
+                </div>
+                <div class="gem-type">
+                    <div class="gem-icon" style="background: linear-gradient(45deg, #0000ff, #4169e1);"></div>
+                    <span>蓝宝石</span>
+                </div>
+                <div class="gem-type">
+                    <div class="gem-icon" style="background: linear-gradient(45deg, #00ff00, #32cd32);"></div>
+                    <span>绿宝石</span>
+                </div>
+                <div class="gem-type">
+                    <div class="gem-icon" style="background: linear-gradient(45deg, #ffff00, #ffd700);"></div>
+                    <span>黄宝石</span>
+                </div>
+                <div class="gem-type">
+                    <div class="gem-icon" style="background: linear-gradient(45deg, #800080, #9370db);"></div>
+                    <span>紫宝石</span>
+                </div>
+                <div class="gem-type">
+                    <div class="gem-icon" style="background: linear-gradient(45deg, #ffa500, #ff8c00);"></div>
+                    <span>橙宝石</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="start-screen" id="startScreen">
+            <h1 style="font-size: 48px; background: linear-gradient(45deg, #ffd700, #ff6b6b); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 20px;">MATCH-3</h1>
+            <p style="font-size: 18px; margin-bottom: 10px;">三消宝石游戏</p>
+            <p style="font-size: 14px; color: #bdc3c7; margin-bottom: 20px;">连接三个或更多相同宝石消除得分！</p>
+            <button class="start-btn" onclick="startGame()">开始游戏</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // 游戏配置
+        const GRID_WIDTH = 8;
+        const GRID_HEIGHT = 10;
+        const GEM_SIZE = 50;
+        const GEM_PADDING = 10;
+
+        // 游戏状态
+        let gameRunning = false;
+        let score = 0;
+        let targetScore = 1000;
+        let timeLeft = 60;
+        let combo = 0;
+        let level = 1;
+
+        // 游戏数据
+        let grid = [];
+        let selectedGem = null;
+        let isSwapping = false;
+        let particles = [];
+        let animatingGems = [];
+
+        // 宝石类型和颜色
+        const gemTypes = [
+            { color: '#ff0000', gradient: ['#ff0000', '#ff6b6b'] }, // 红
+            { color: '#0000ff', gradient: ['#0000ff', '#4169e1'] }, // 蓝
+            { color: '#00ff00', gradient: ['#00ff00', '#32cd32'] }, // 绿
+            { color: '#ffff00', gradient: ['#ffff00', '#ffd700'] }, // 黄
+            { color: '#800080', gradient: ['#800080', '#9370db'] }, // 紫
+            { color: '#ffa500', gradient: ['#ffa500', '#ff8c00'] }  // 橙
+        ];
+
+        function startGame() {
+            gameRunning = true;
+            document.getElementById('startScreen').style.display = 'none';
+            
+            // 重置游戏状态
+            score = 0;
+            targetScore = 1000;
+            timeLeft = 60;
+            combo = 0;
+            level = 1;
+            selectedGem = null;
+            isSwapping = false;
+            
+            // 初始化网格
+            initGrid();
+            
+            // 开始计时器
+            startTimer();
+            
+            // 开始游戏循环
+            gameLoop();
+        }
+
+        function initGrid() {
+            grid = [];
+            for (let row = 0; row < GRID_HEIGHT; row++) {
+                grid[row] = [];
+                for (let col = 0; col < GRID_WIDTH; col++) {
+                    let type;
+                    do {
+                        type = Math.floor(Math.random() * gemTypes.length);
+                    } while (wouldCreateMatch(row, col, type));
+                    
+                    grid[row][col] = {
+                        type: type,
+                        x: col * (GEM_SIZE + GEM_PADDING) + GEM_PADDING,
+                        y: row * (GEM_SIZE + GEM_PADDING) + GEM_PADDING,
+                        scale: 1,
+                        selected: false
+                    };
+                }
+            }
+        }
+
+        function wouldCreateMatch(row, col, type) {
+            // 检查水平匹配
+            let count = 1;
+            if (col >= 1 && grid[row][col - 1] && grid[row][col - 1].type === type) count++;
+            if (col >= 2 && grid[row][col - 2] && grid[row][col - 2].type === type) count++;
+            if (count >= 3) return true;
+
+            // 检查垂直匹配
+            count = 1;
+            if (row >= 1 && grid[row - 1][col] && grid[row - 1][col].type === type) count++;
+            if (row >= 2 && grid[row - 2][col] && grid[row - 2][col].type === type) count++;
+            if (count >= 3) return true;
+
+            return false;
+        }
+
+        function startTimer() {
+            const timer = setInterval(() => {
+                if (!gameRunning) {
+                    clearInterval(timer);
+                    return;
+                }
+                
+                timeLeft--;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    endGame();
+                }
+                updateUI();
+            }, 1000);
+        }
+
+        function getGemAt(x, y) {
+            const col = Math.floor((x - GEM_PADDING) / (GEM_SIZE + GEM_PADDING));
+            const row = Math.floor((y - GEM_PADDING) / (GEM_SIZE + GEM_PADDING));
+            
+            if (row >= 0 && row < GRID_HEIGHT && col >= 0 && col < GRID_WIDTH) {
+                return { row, col };
+            }
+            return null;
+        }
+
+        function swapGems(row1, col1, row2, col2) {
+            if (isSwapping) return false;
+            
+            // 检查是否相邻
+            const dx = Math.abs(col1 - col2);
+            const dy = Math.abs(row1 - row2);
+            if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
+                // 临时交换
+                const temp = grid[row1][col1].type;
+                grid[row1][col1].type = grid[row2][col2].type;
+                grid[row2][col2].type = temp;
+                
+                // 检查是否产生匹配
+                const matches1 = findMatches(row1, col1);
+                const matches2 = findMatches(row2, col2);
+                
+                if (matches1.length > 0 || matches2.length > 0) {
+                    // 有效交换，处理匹配
+                    isSwapping = true;
+                    setTimeout(() => {
+                        processMatches();
+                        isSwapping = false;
+                    }, 200);
+                    return true;
+                } else {
+                    // 无效交换，恢复
+                    grid[row1][col1].type = grid[row2][col2].type;
+                    grid[row2][col2].type = temp;
+                    return false;
+                }
+            }
+            return false;
+        }
+
+        function findMatches(row, col) {
+            const type = grid[row][col].type;
+            const matches = [];
+            
+            // 水平匹配
+            let horizontalMatches = [{ row, col }];
+            
+            // 向左检查
+            for (let c = col - 1; c >= 0 && grid[row][c].type === type; c--) {
+                horizontalMatches.unshift({ row, col: c });
+            }
+            
+            // 向右检查
+            for (let c = col + 1; c < GRID_WIDTH && grid[row][c].type === type; c++) {
+                horizontalMatches.push({ row, col: c });
+            }
+            
+            if (horizontalMatches.length >= 3) {
+                matches.push(...horizontalMatches);
+            }
+            
+            // 垂直匹配
+            let verticalMatches = [{ row, col }];
+            
+            // 向上检查
+            for (let r = row - 1; r >= 0 && grid[r][col].type === type; r--) {
+                verticalMatches.unshift({ row: r, col });
+            }
+            
+            // 向下检查
+            for (let r = row + 1; r < GRID_HEIGHT && grid[r][col].type === type; r++) {
+                verticalMatches.push({ row: r, col });
+            }
+            
+            if (verticalMatches.length >= 3) {
+                matches.push(...verticalMatches);
+            }
+            
+            // 去重
+            const uniqueMatches = [];
+            const seen = new Set();
+            for (const match of matches) {
+                const key = `${match.row},${match.col}`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    uniqueMatches.push(match);
+                }
+            }
+            
+            return uniqueMatches;
+        }
+
+        function findAllMatches() {
+            const allMatches = [];
+            const processed = new Set();
+            
+            for (let row = 0; row < GRID_HEIGHT; row++) {
+                for (let col = 0; col < GRID_WIDTH; col++) {
+                    const key = `${row},${col}`;
+                    if (!processed.has(key)) {
+                        const matches = findMatches(row, col);
+                        if (matches.length >= 3) {
+                            for (const match of matches) {
+                                const matchKey = `${match.row},${match.col}`;
+                                processed.add(matchKey);
+                                allMatches.push(match);
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return allMatches;
+        }
+
+        function processMatches() {
+            const matches = findAllMatches();
+            
+            if (matches.length > 0) {
+                // 计算得分
+                const baseScore = matches.length * 10;
+                const comboScore = baseScore * (1 + combo * 0.5);
+                score += Math.floor(comboScore);
+                combo++;
+                
+                // 创建粒子效果
+                for (const match of matches) {
+                    const gem = grid[match.row][match.col];
+                    createParticles(gem.x + GEM_SIZE / 2, gem.y + GEM_SIZE / 2, gemTypes[gem.type].color);
+                    
+                    // 移除宝石
+                    grid[match.row][match.col] = null;
+                }
+                
+                // 下落动画
+                setTimeout(() => {
+                    dropGems();
+                    fillEmptySpaces();
+                    
+                    setTimeout(() => {
+                        processMatches(); // 递归处理新的匹配
+                    }, 300);
+                }, 200);
+            } else {
+                // 没有更多匹配，重置连击
+                combo = 0;
+            }
+            
+            updateUI();
+        }
+
+        function createParticles(x, y, color) {
+            for (let i = 0; i < 10; i++) {
+                particles.push({
+                    x: x,
+                    y: y,
+                    velX: (Math.random() - 0.5) * 8,
+                    velY: (Math.random() - 0.5) * 8,
+                    life: 30,
+                    color: color,
+                    size: Math.random() * 4 + 2
+                });
+            }
+        }
+
+        function dropGems() {
+            for (let col = 0; col < GRID_WIDTH; col++) {
+                let writeIndex = GRID_HEIGHT - 1;
+                
+                for (let row = GRID_HEIGHT - 1; row >= 0; row--) {
+                    if (grid[row][col] !== null) {
+                        if (writeIndex !== row) {
+                            grid[writeIndex][col] = grid[row][col];
+                            grid[row][col] = null;
+                            
+                            // 更新位置
+                            grid[writeIndex][col].y = writeIndex * (GEM_SIZE + GEM_PADDING) + GEM_PADDING;
+                        }
+                        writeIndex--;
+                    }
+                }
+            }
+        }
+
+        function fillEmptySpaces() {
+            for (let col = 0; col < GRID_WIDTH; col++) {
+                for (let row = 0; row < GRID_HEIGHT; row++) {
+                    if (grid[row][col] === null) {
+                        let type;
+                        do {
+                            type = Math.floor(Math.random() * gemTypes.length);
+                        } while (wouldCreateMatch(row, col, type));
+                        
+                        grid[row][col] = {
+                            type: type,
+                            x: col * (GEM_SIZE + GEM_PADDING) + GEM_PADDING,
+                            y: row * (GEM_SIZE + GEM_PADDING) + GEM_PADDING,
+                            scale: 0.5,
+                            selected: false
+                        };
+                        
+                        // 缩放动画
+                        animateGem(grid[row][col]);
+                    }
+                }
+            }
+        }
+
+        function animateGem(gem) {
+            const startTime = Date.now();
+            const duration = 300;
+            
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                gem.scale = 0.5 + progress * 0.5;
+                
+                if (progress < 1) {
+                    requestAnimationFrame(animate);
+                }
+            }
+            
+            animate();
+        }
+
+        function updateParticles() {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const particle = particles[i];
+                
+                particle.x += particle.velX;
+                particle.y += particle.velY;
+                particle.life--;
+                particle.velY += 0.2; // 重力
+                
+                if (particle.life <= 0) {
+                    particles.splice(i, 1);
+                }
+            }
+        }
+
+        function checkWinCondition() {
+            if (score >= targetScore) {
+                level++;
+                targetScore += 1000;
+                timeLeft += 30;
+                
+                // 显示升级信息
+                createText(canvas.width / 2, canvas.height / 2, "LEVEL UP!", "#ffd700", 48);
+            }
+        }
+
+        function createText(x, y, text, color, size) {
+            particles.push({
+                x: x,
+                y: y,
+                velX: 0,
+                velY: -2,
+                life: 60,
+                color: color,
+                text: text,
+                size: size
+            });
+        }
+
+        function endGame() {
+            gameRunning = false;
+            const startScreen = document.getElementById('startScreen');
+            startScreen.style.display = 'flex';
+            
+            const result = score >= targetScore ? '恭喜通关！' : '时间到！';
+            const resultColor = score >= targetScore ? '#00ff00' : '#ff0000';
+            
+            startScreen.innerHTML = `
+                <h1 style="font-size: 48px; color: ${resultColor}; margin-bottom: 20px;">${result}</h1>
+                <p style="font-size: 24px; margin-bottom: 10px;">最终得分: ${score}</p>
+                <p style="font-size: 18px; margin-bottom: 10px;">达到等级: ${level}</p>
+                <p style="font-size: 16px; margin-bottom: 20px;">最高连击: ${combo}</p>
+                <button class="start-btn" onclick="startGame()">重新开始</button>
+            `;
+        }
+
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('target').textContent = targetScore;
+            document.getElementById('time').textContent = timeLeft;
+            document.getElementById('combo').textContent = combo;
+            
+            // 更新进度条
+            const progress = Math.min(score / targetScore * 100, 100);
+            document.getElementById('progressFill').style.width = progress + '%';
+        }
+
+        function draw() {
+            // 清空画布
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // 绘制网格背景
+            for (let row = 0; row < GRID_HEIGHT; row++) {
+                for (let col = 0; col < GRID_WIDTH; col++) {
+                    const x = col * (GEM_SIZE + GEM_PADDING) + GEM_PADDING;
+                    const y = row * (GEM_SIZE + GEM_PADDING) + GEM_PADDING;
+                    
+                    ctx.fillStyle = 'rgba(255, 255, 255, 0.1)';
+                    ctx.fillRect(x, y, GEM_SIZE, GEM_SIZE);
+                }
+            }
+            
+            // 绘制宝石
+            for (let row = 0; row < GRID_HEIGHT; row++) {
+                for (let col = 0; col < GRID_WIDTH; col++) {
+                    const gem = grid[row][col];
+                    if (gem) {
+                        drawGem(gem);
+                    }
+                }
+            }
+            
+            // 绘制粒子
+            for (const particle of particles) {
+                if (particle.text) {
+                    ctx.fillStyle = particle.color;
+                    ctx.font = `${particle.size}px Arial`;
+                    ctx.textAlign = 'center';
+                    ctx.fillText(particle.text, particle.x, particle.y);
+                } else {
+                    const alpha = particle.life / 30;
+                    ctx.fillStyle = particle.color + Math.floor(alpha * 255).toString(16).padStart(2, '0');
+                    ctx.beginPath();
+                    ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+        }
+
+        function drawGem(gem) {
+            const centerX = gem.x + GEM_SIZE / 2;
+            const centerY = gem.y + GEM_SIZE / 2;
+            const radius = (GEM_SIZE / 2 - 5) * gem.scale;
+            
+            // 创建渐变
+            const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius);
+            gradient.addColorStop(0, gemTypes[gem.type].gradient[0]);
+            gradient.addColorStop(1, gemTypes[gem.type].gradient[1]);
+            
+            // 绘制宝石
+            ctx.fillStyle = gradient;
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, radius, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 高光效果
+            const highlightGradient = ctx.createRadialGradient(
+                centerX - radius * 0.3, centerY - radius * 0.3, 0,
+                centerX - radius * 0.3, centerY - radius * 0.3, radius * 0.6
+            );
+            highlightGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+            highlightGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.fillStyle = highlightGradient;
+            ctx.beginPath();
+            ctx.arc(centerX - radius * 0.3, centerY - radius * 0.3, radius * 0.6, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 选中效果
+            if (gem.selected) {
+                ctx.strokeStyle = '#ffd700';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius + 5, 0, Math.PI * 2);
+                ctx.stroke();
+            }
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            updateParticles();
+            checkWinCondition();
+            draw();
+            
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 鼠标/触摸事件
+        canvas.addEventListener('click', (e) => {
+            if (!gameRunning || isSwapping) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const pos = getGemAt(x, y);
+            if (pos) {
+                if (selectedGem === null) {
+                    // 选择第一个宝石
+                    selectedGem = pos;
+                    grid[pos.row][pos.col].selected = true;
+                } else if (selectedGem.row === pos.row && selectedGem.col === pos.col) {
+                    // 取消选择
+                    grid[selectedGem.row][selectedGem.col].selected = false;
+                    selectedGem = null;
+                } else {
+                    // 尝试交换
+                    const success = swapGems(selectedGem.row, selectedGem.col, pos.row, pos.col);
+                    
+                    // 重置选择状态
+                    grid[selectedGem.row][selectedGem.col].selected = false;
+                    selectedGem = null;
+                }
+            }
+        });
+
+        // 响应式调整
+        function resizeCanvas() {
+            if (window.innerWidth <= 768) {
+                canvas.width = Math.min(360, window.innerWidth - 80);
+                canvas.height = Math.min(480, window.innerHeight - 200);
+            } else {
+                canvas.width = 480;
+                canvas.height = 640;
+            }
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 初始化
+        updateUI();
+    </script>
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pong - 经典弹球游戏</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0f0f23, #1a1a2e);
+            color: white;
+            font-family: 'Courier New', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            border: 3px solid #00ff00;
+            border-radius: 10px;
+            box-shadow: 0 0 20px #00ff00;
+        }
+
+        canvas {
+            background: #000;
+            display: block;
+            border-radius: 7px;
+        }
+
+        .ui {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 24px;
+            color: #00ff00;
+            text-shadow: 0 0 10px #00ff00;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: -60px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14px;
+            color: #888;
+        }
+
+        .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 7px;
+        }
+
+        .start-btn {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #00ff00;
+            color: #000;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            margin-top: 20px;
+            transition: all 0.3s;
+        }
+
+        .start-btn:hover {
+            background: #00cc00;
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                width: 95vw;
+                height: 60vh;
+            }
+            
+            .ui {
+                font-size: 18px;
+            }
+            
+            .controls {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        
+        <div class="ui">
+            <div id="score">玩家: 0 | 电脑: 0</div>
+        </div>
+        
+        <div class="controls">
+            <div>使用 W/S 键或点击屏幕控制左侧球拍</div>
+        </div>
+        
+        <div class="start-screen" id="startScreen">
+            <h1 style="font-size: 48px; color: #00ff00; text-shadow: 0 0 20px #00ff00; margin-bottom: 20px;">PONG</h1>
+            <p style="font-size: 18px; margin-bottom: 10px;">经典弹球游戏</p>
+            <p style="font-size: 14px; color: #888; margin-bottom: 20px;">第一个达到5分的玩家获胜</p>
+            <button class="start-btn" onclick="startGame()">开始游戏</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const scoreElement = document.getElementById('score');
+        const startScreen = document.getElementById('startScreen');
+
+        // 游戏状态
+        let gameRunning = false;
+        let playerScore = 0;
+        let computerScore = 0;
+
+        // 游戏对象
+        const paddle1 = {
+            x: 20,
+            y: canvas.height / 2 - 50,
+            width: 10,
+            height: 100,
+            speed: 7
+        };
+
+        const paddle2 = {
+            x: canvas.width - 30,
+            y: canvas.height / 2 - 50,
+            width: 10,
+            height: 100,
+            speed: 6
+        };
+
+        const ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 8,
+            speedX: 5,
+            speedY: 3
+        };
+
+        // 按键状态
+        const keys = {};
+
+        // 事件监听
+        document.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+        });
+
+        document.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        // 触摸控制
+        let touchY = 0;
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            touchY = e.touches[0].clientY;
+        });
+
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const newTouchY = e.touches[0].clientY;
+            const deltaY = newTouchY - touchY;
+            
+            paddle1.y += deltaY * 0.5;
+            paddle1.y = Math.max(0, Math.min(canvas.height - paddle1.height, paddle1.y));
+            
+            touchY = newTouchY;
+        });
+
+        // 鼠标控制
+        canvas.addEventListener('mousemove', (e) => {
+            if (gameRunning) {
+                const rect = canvas.getBoundingClientRect();
+                const mouseY = e.clientY - rect.top;
+                paddle1.y = mouseY - paddle1.height / 2;
+                paddle1.y = Math.max(0, Math.min(canvas.height - paddle1.height, paddle1.y));
+            }
+        });
+
+        function startGame() {
+            gameRunning = true;
+            startScreen.style.display = 'none';
+            playerScore = 0;
+            computerScore = 0;
+            resetBall();
+            gameLoop();
+        }
+
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.speedX = (Math.random() > 0.5 ? 1 : -1) * (4 + Math.random() * 2);
+            ball.speedY = (Math.random() - 0.5) * 6;
+        }
+
+        function updatePaddles() {
+            // 玩家控制
+            if (keys['w'] && paddle1.y > 0) {
+                paddle1.y -= paddle1.speed;
+            }
+            if (keys['s'] && paddle1.y < canvas.height - paddle1.height) {
+                paddle1.y += paddle1.speed;
+            }
+
+            // 电脑AI
+            const ballCenterY = ball.y;
+            const paddle2CenterY = paddle2.y + paddle2.height / 2;
+            
+            if (ballCenterY < paddle2CenterY - 20) {
+                paddle2.y -= paddle2.speed;
+            } else if (ballCenterY > paddle2CenterY + 20) {
+                paddle2.y += paddle2.speed;
+            }
+
+            // 限制边界
+            paddle1.y = Math.max(0, Math.min(canvas.height - paddle1.height, paddle1.y));
+            paddle2.y = Math.max(0, Math.min(canvas.height - paddle2.height, paddle2.y));
+        }
+
+        function updateBall() {
+            ball.x += ball.speedX;
+            ball.y += ball.speedY;
+
+            // 上下边界碰撞
+            if (ball.y <= ball.radius || ball.y >= canvas.height - ball.radius) {
+                ball.speedY = -ball.speedY;
+            }
+
+            // 左侧球拍碰撞
+            if (ball.x <= paddle1.x + paddle1.width + ball.radius &&
+                ball.y >= paddle1.y &&
+                ball.y <= paddle1.y + paddle1.height &&
+                ball.speedX < 0) {
+                
+                ball.speedX = -ball.speedX;
+                ball.speedX *= 1.05; // 加速
+                
+                // 根据碰撞位置改变角度
+                const hitPos = (ball.y - paddle1.y) / paddle1.height;
+                ball.speedY = (hitPos - 0.5) * 8;
+            }
+
+            // 右侧球拍碰撞
+            if (ball.x >= paddle2.x - ball.radius &&
+                ball.y >= paddle2.y &&
+                ball.y <= paddle2.y + paddle2.height &&
+                ball.speedX > 0) {
+                
+                ball.speedX = -ball.speedX;
+                ball.speedX *= 1.05; // 加速
+                
+                // 根据碰撞位置改变角度
+                const hitPos = (ball.y - paddle2.y) / paddle2.height;
+                ball.speedY = (hitPos - 0.5) * 8;
+            }
+
+            // 得分检测
+            if (ball.x < 0) {
+                computerScore++;
+                resetBall();
+                if (computerScore >= 5) {
+                    endGame('电脑获胜！');
+                }
+            } else if (ball.x > canvas.width) {
+                playerScore++;
+                resetBall();
+                if (playerScore >= 5) {
+                    endGame('玩家获胜！');
+                }
+            }
+        }
+
+        function endGame(message) {
+            gameRunning = false;
+            startScreen.style.display = 'flex';
+            startScreen.innerHTML = `
+                <h1 style="font-size: 48px; color: #00ff00; text-shadow: 0 0 20px #00ff00; margin-bottom: 20px;">${message}</h1>
+                <p style="font-size: 18px; margin-bottom: 10px;">最终比分: ${playerScore} - ${computerScore}</p>
+                <button class="start-btn" onclick="startGame()">再玩一次</button>
+            `;
+        }
+
+        function draw() {
+            // 清空画布
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 绘制中线
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([10, 10]);
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 绘制球拍
+            ctx.fillStyle = '#00ff00';
+            ctx.fillRect(paddle1.x, paddle1.y, paddle1.width, paddle1.height);
+            ctx.fillRect(paddle2.x, paddle2.y, paddle2.width, paddle2.height);
+
+            // 绘制球
+            ctx.beginPath();
+            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // 更新分数显示
+            scoreElement.textContent = `玩家: ${playerScore} | 电脑: ${computerScore}`;
+        }
+
+        function gameLoop() {
+            if (!gameRunning) return;
+
+            updatePaddles();
+            updateBall();
+            draw();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        // 响应式调整
+        function resizeCanvas() {
+            const container = document.querySelector('.game-container');
+            const rect = container.getBoundingClientRect();
+            
+            if (window.innerWidth <= 768) {
+                canvas.width = Math.min(600, window.innerWidth - 40);
+                canvas.height = Math.min(300, window.innerHeight - 200);
+            } else {
+                canvas.width = 800;
+                canvas.height = 400;
+            }
+            
+            // 重新设置游戏对象位置
+            paddle1.y = canvas.height / 2 - 50;
+            paddle2.x = canvas.width - 30;
+            paddle2.y = canvas.height / 2 - 50;
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // 初始绘制
+        draw();
+    </script>
+</body>
+</html>

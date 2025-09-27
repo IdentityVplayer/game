@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Whack-a-Mole - 打地鼠</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            color: white;
+            font-family: 'Arial', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .game-container {
+            position: relative;
+            border: 5px solid #2ecc71;
+            border-radius: 20px;
+            box-shadow: 0 0 30px rgba(46, 204, 113, 0.5);
+            background: linear-gradient(145deg, #27ae60, #2ecc71);
+            padding: 25px;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            background: rgba(0, 0, 0, 0.3);
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: bold;
+        }
+
+        .score-display {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .score-number {
+            background: #e74c3c;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-family: 'Courier New', monospace;
+            min-width: 80px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .time-display {
+            background: #f39c12;
+            color: white;
+            padding: 8px 15px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-family: 'Courier New', monospace;
+            min-width: 80px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            grid-template-rows: repeat(3, 1fr);
+            gap: 20px;
+            background: #8bc34a;
+            padding: 25px;
+            border-radius: 20px;
+            border: 3px solid #689f38;
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .hole {
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(ellipse at center, #3e2723 0%, #2e1a00 70%);
+            border-radius: 50%;
+            position: relative;
+            cursor: pointer;
+            border: 5px solid #5d4037;
+            box-shadow: inset 0 8px 16px rgba(0,0,0,0.8);
+            overflow: hidden;
+            transition: all 0.2s ease;
+        }
+
+        .hole:hover {
+            transform: scale(1.05);
+        }
+
+        .mole {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(145deg, #8d6e63, #6d4c41);
+            border-radius: 50% 50% 40% 40%;
+            bottom: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            transition: bottom 0.3s ease-in-out;
+            cursor: pointer;
+            border: 3px solid #5d4037;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .mole.visible {
+            bottom: 10px;
+        }
+
+        .mole.hit {
+            animation: moleHit 0.3s ease-out;
+            bottom: -80px;
+        }
+
+        .mole::before {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: #2c2c2c;
+            border-radius: 50%;
+            top: 20px;
+            left: 20px;
+            box-shadow: 25px 0 0 #2c2c2c;
+        }
+
+        .mole::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 10px;
+            background: #ff5722;
+            border-radius: 10px;
+            top: 40px;
+            left: 30px;
+        }
+
+        .bomb {
+            background: linear-gradient(145deg, #2c2c2c, #1a1a1a) !important;
+            animation: bombBlink 0.5s infinite alternate;
+        }
+
+        .bomb::before {
+            content: '💣';
+            font-size: 30px;
+            color: #ff5722;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .bomb::after {
+            display: none;
+        }
+
+        .special-mole {
+            background: linear-gradient(145deg, #ffd700, #ffa000) !important;
+            animation: sparkle 1s infinite;
+        }
+
+        .special-mole::before {
+            content: '⭐';
+            font-size: 24px;
+            position: absolute;
+            top: 5px;
+            left: 5px;
+        }
+
+        .score-popup {
+            position: absolute;
+            font-size: 24px;
+            font-weight: bold;
+            color: #fff;
+            pointer-events: none;
+            z-index: 100;
+            animation: scoreFloat 1s ease-out forwards;
+        }
+
+        .positive-score {
+            color: #2ecc71;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .negative-score {
+            color: #e74c3c;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+        }
+
+        .game-controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 25px;
+        }
+
+        .control-btn {
+            padding: 12px 25px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .control-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .control-btn:active {
+            transform: translateY(0);
+        }
+
+        .difficulty-selector {
+            position: absolute;
+            bottom: -80px;
+            left: 0;
+            right: 0;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .difficulty-btn {
+            padding: 8px 16px;
+            background: #9b59b6;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .difficulty-btn:hover {
+            background: #8e44ad;
+        }
+
+        .difficulty-btn.active {
+            background: #e74c3c;
+        }
+
+        .start-screen {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-radius: 15px;
+        }
+
+        .start-btn {
+            padding: 15px 30px;
+            font-size: 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: all 0.3s;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+
+        .start-btn:hover {
+            background: #c0392b;
+            transform: scale(1.05);
+        }
+
+        .combo-display {
+            position: absolute;
+            top: -50px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #f39c12;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            display: none;
+            animation: pulse 0.5s infinite alternate;
+        }
+
+        @keyframes moleHit {
+            0% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.2); }
+            100% { transform: translateX(-50%) scale(0); }
+        }
+
+        @keyframes bombBlink {
+            0% { background: linear-gradient(145deg, #2c2c2c, #1a1a1a); }
+            100% { background: linear-gradient(145deg, #ff5722, #d84315); }
+        }
+
+        @keyframes sparkle {
+            0%, 100% { transform: translateX(-50%) scale(1); }
+            50% { transform: translateX(-50%) scale(1.1); }
+        }
+
+        @keyframes scoreFloat {
+            0% { 
+                opacity: 1; 
+                transform: translateY(0); 
+            }
+            100% { 
+                opacity: 0; 
+                transform: translateY(-50px); 
+            }
+        }
+
+        @keyframes pulse {
+            0% { transform: translateX(-50%) scale(1); }
+            100% { transform: translateX(-50%) scale(1.1); }
+        }
+
+        @media (max-width: 768px) {
+            .game-container {
+                padding: 15px;
+                width: 95vw;
+            }
+            
+            .hole {
+                width: 80px;
+                height: 80px;
+            }
+            
+            .mole {
+                width: 60px;
+                height: 60px;
+                font-size: 18px;
+            }
+            
+            .game-board {
+                gap: 15px;
+                padding: 20px;
+            }
+            
+            .game-header {
+                font-size: 16px;
+                padding: 15px;
+            }
+            
+            .score-number, .time-display {
+                font-size: 18px;
+                padding: 6px 12px;
+                min-width: 60px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-header">
+            <div class="score-display">
+                <span>🏆 得分:</span>
+                <div class="score-number" id="score">0</div>
+            </div>
+            
+            <div class="combo-display" id="comboDisplay">
+                连击 x<span id="comboCount">0</span>
+            </div>
+            
+            <div class="score-display">
+                <span>⏰ 时间:</span>
+                <div class="time-display" id="timeLeft">60</div>
+            </div>
+        </div>
+        
+        <div class="game-board" id="gameBoard">
+            <div class="hole" data-index="0"></div>
+            <div class="hole" data-index="1"></div>
+            <div class="hole" data-index="2"></div>
+            <div class="hole" data-index="3"></div>
+            <div class="hole" data-index="4"></div>
+            <div class="hole" data-index="5"></div>
+            <div class="hole" data-index="6"></div>
+            <div class="hole" data-index="7"></div>
+            <div class="hole" data-index="8"></div>
+        </div>
+        
+        <div class="game-controls">
+            <button class="control-btn" onclick="startGame()">开始游戏</button>
+            <button class="control-btn" onclick="pauseGame()">暂停</button>
+            <button class="control-btn" onclick="resetGame()">重置</button>
+        </div>
+        
+        <div class="difficulty-selector">
+            <button class="difficulty-btn active" onclick="setDifficulty('easy')">简单</button>
+            <button class="difficulty-btn" onclick="setDifficulty('medium')">中等</button>
+            <button class="difficulty-btn" onclick="setDifficulty('hard')">困难</button>
+            <button class="difficulty-btn" onclick="setDifficulty('insane')">疯狂</button>
+        </div>
+        
+        <div class="start-screen" id="startScreen">
+            <h1 style="font-size: 48px; color: #2ecc71; margin-bottom: 20px;">🔨 WHACK-A-MOLE 🔨</h1>
+            <p style="font-size: 18px; margin-bottom: 10px;">打地鼠游戏</p>
+            <p style="font-size: 14px; color: #bdc3c7; margin-bottom: 15px;">快速击打地鼠获得分数！</p>
+            <div style="font-size: 12px; color: #95a5a6; margin-bottom: 20px; text-align: center;">
+                <div>🐭 普通地鼠: +10分</div>
+                <div>⭐ 特殊地鼠: +25分</div>
+                <div>💣 炸弹: -20分</div>
+                <div>连击加成: 最高3倍分数</div>
+            </div>
+            <button class="start-btn" onclick="startGame()">开始游戏</button>
+        </div>
+    </div>
+
+    <script>
+        // 游戏状态
+        let gameRunning = false;
+        let gamePaused = false;
+        let score = 0;
+        let timeLeft = 60;
+        let combo = 0;
+        let maxCombo = 0;
+        let difficulty = 'easy';
+        let gameTimer = null;
+        let moleTimer = null;
+        let activeMoles = new Set();
+
+        // 难度配置
+        const difficulties = {
+            easy: { 
+                moleSpeed: 2000, 
+                moleStayTime: 1500, 
+                bombChance: 0.1, 
+                specialChance: 0.15,
+                maxActiveMoles: 2
+            },
+            medium: { 
+                moleSpeed: 1500, 
+                moleStayTime: 1200, 
+                bombChance: 0.15, 
+                specialChance: 0.2,
+                maxActiveMoles: 3
+            },
+            hard: { 
+                moleSpeed: 1000, 
+                moleStayTime: 900, 
+                bombChance: 0.2, 
+                specialChance: 0.25,
+                maxActiveMoles: 4
+            },
+            insane: { 
+                moleSpeed: 600, 
+                moleStayTime: 600, 
+                bombChance: 0.25, 
+                specialChance: 0.3,
+                maxActiveMoles: 5
+            }
+        };
+
+        function startGame() {
+            if (gameRunning && !gamePaused) return;
+            
+            if (!gameRunning) {
+                // 新游戏
+                score = 0;
+                timeLeft = 60;
+                combo = 0;
+                maxCombo = 0;
+                activeMoles.clear();
+                
+                // 清理所有地鼠
+                document.querySelectorAll('.mole').forEach(mole => mole.remove());
+            }
+            
+            gameRunning = true;
+            gamePaused = false;
+            document.getElementById('startScreen').style.display = 'none';
+            
+            updateDisplay();
+            startGameTimer();
+            startMoleSpawning();
+        }
+
+        function pauseGame() {
+            if (!gameRunning) return;
+            
+            if (gamePaused) {
+                // 恢复游戏
+                gamePaused = false;
+                startGameTimer();
+                startMoleSpawning();
+            } else {
+                // 暂停游戏
+                gamePaused = true;
+                clearInterval(gameTimer);
+                clearTimeout(moleTimer);
+            }
+        }
+
+        function resetGame() {
+            gameRunning = false;
+            gamePaused = false;
+            clearInterval(gameTimer);
+            clearTimeout(moleTimer);
+            
+            score = 0;
+            timeLeft = 60;
+            combo = 0;
+            maxCombo = 0;
+            activeMoles.clear();
+            
+            // 清理所有地鼠
+            document.querySelectorAll('.mole').forEach(mole => mole.remove());
+            
+            updateDisplay();
+            hideComboDisplay();
+        }
+
+        function setDifficulty(newDifficulty) {
+            difficulty = newDifficulty;
+            
+            // 更新按钮状态
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function startGameTimer() {
+            gameTimer = setInterval(() => {
+                if (gamePaused) return;
+                
+                timeLeft--;
+                updateDisplay();
+                
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+        }
+
+        function startMoleSpawning() {
+            if (!gameRunning || gamePaused) return;
+            
+            const config = difficulties[difficulty];
+            
+            // 生成新地鼠
+            if (activeMoles.size < config.maxActiveMoles) {
+                spawnMole();
+            }
+            
+            // 安排下一次生成
+            moleTimer = setTimeout(startMoleSpawning, config.moleSpeed + Math.random() * 1000);
+        }
+
+        function spawnMole() {
+            const config = difficulties[difficulty];
+            const availableHoles = [];
+            
+            // 找到可用的洞
+            for (let i = 0; i < 9; i++) {
+                if (!activeMoles.has(i)) {
+                    availableHoles.push(i);
+                }
+            }
+            
+            if (availableHoles.length === 0) return;
+            
+            // 随机选择一个洞
+            const holeIndex = availableHoles[Math.floor(Math.random() * availableHoles.length)];
+            const hole = document.querySelector(`[data-index="${holeIndex}"]`);
+            
+            // 创建地鼠
+            const mole = document.createElement('div');
+            mole.className = 'mole';
+            
+            // 确定地鼠类型
+            const rand = Math.random();
+            if (rand < config.bombChance) {
+                mole.classList.add('bomb');
+                mole.dataset.type = 'bomb';
+            } else if (rand < config.bombChance + config.specialChance) {
+                mole.classList.add('special-mole');
+                mole.dataset.type = 'special';
+            } else {
+                mole.dataset.type = 'normal';
+            }
+            
+            mole.dataset.holeIndex = holeIndex;
+            mole.addEventListener('click', hitMole);
+            
+            hole.appendChild(mole);
+            activeMoles.add(holeIndex);
+            
+            // 显示地鼠
+            setTimeout(() => {
+                if (mole.parentElement) {
+                    mole.classList.add('visible');
+                }
+            }, 100);
+            
+            // 自动隐藏地鼠
+            setTimeout(() => {
+                if (mole.parentElement && !mole.classList.contains('hit')) {
+                    hideMole(mole);
+                    // 错过地鼠，重置连击
+                    if (mole.dataset.type !== 'bomb') {
+                        resetCombo();
+                    }
+                }
+            }, config.moleStayTime);
+        }
+
+        function hitMole(event) {
+            event.stopPropagation();
+            
+            const mole = event.target;
+            const holeIndex = parseInt(mole.dataset.holeIndex);
+            const type = mole.dataset.type;
+            
+            // 防止重复点击
+            if (mole.classList.contains('hit')) return;
+            
+            mole.classList.add('hit');
+            
+            let points = 0;
+            let isPositive = true;
+            
+            switch (type) {
+                case 'normal':
+                    points = 10;
+                    combo++;
+                    break;
+                case 'special':
+                    points = 25;
+                    combo++;
+                    break;
+                case 'bomb':
+                    points = 20;
+                    isPositive = false;
+                    resetCombo();
+                    // 爆炸效果
+                    createExplosionEffect(mole);
+                    break;
+            }
+            
+            // 应用连击加成
+            if (isPositive && combo > 1) {
+                const multiplier = Math.min(Math.floor(combo / 3) + 1, 3);
+                points *= multiplier;
+                showComboDisplay();
+            }
+            
+            // 更新分数
+            if (isPositive) {
+                score += points;
+            } else {
+                score = Math.max(0, score - points);
+            }
+            
+            // 显示分数弹出
+            showScorePopup(mole, isPositive ? `+${points}` : `-${points}`, isPositive);
+            
+            // 隐藏地鼠
+            setTimeout(() => {
+                hideMole(mole);
+            }, 100);
+            
+            updateDisplay();
+        }
+
+        function hideMole(mole) {
+            const holeIndex = parseInt(mole.dataset.holeIndex);
+            mole.classList.remove('visible');
+            activeMoles.delete(holeIndex);
+            
+            setTimeout(() => {
+                if (mole.parentElement) {
+                    mole.parentElement.removeChild(mole);
+                }
+            }, 300);
+        }
+
+        function resetCombo() {
+            maxCombo = Math.max(maxCombo, combo);
+            combo = 0;
+            hideComboDisplay();
+        }
+
+        function showComboDisplay() {
+            const comboDisplay = document.getElementById('comboDisplay');
+            const comboCount = document.getElementById('comboCount');
+            
+            comboCount.textContent = combo;
+            comboDisplay.style.display = 'block';
+        }
+
+        function hideComboDisplay() {
+            document.getElementById('comboDisplay').style.display = 'none';
+        }
+
+        function showScorePopup(mole, text, isPositive) {
+            const popup = document.createElement('div');
+            popup.className = `score-popup ${isPositive ? 'positive-score' : 'negative-score'}`;
+            popup.textContent = text;
+            
+            const rect = mole.getBoundingClientRect();
+            popup.style.left = rect.left + rect.width / 2 + 'px';
+            popup.style.top = rect.top + 'px';
+            
+            document.body.appendChild(popup);
+            
+            setTimeout(() => {
+                document.body.removeChild(popup);
+            }, 1000);
+        }
+
+        function createExplosionEffect(mole) {
+            const explosion = document.createElement('div');
+            explosion.innerHTML = '💥';
+            explosion.style.position = 'absolute';
+            explosion.style.fontSize = '40px';
+            explosion.style.left = '50%';
+            explosion.style.top = '50%';
+            explosion.style.transform = 'translate(-50%, -50%)';
+            explosion.style.animation = 'scoreFloat 0.5s ease-out forwards';
+            explosion.style.pointerEvents = 'none';
+            
+            mole.parentElement.appendChild(explosion);
+            
+            setTimeout(() => {
+                if (explosion.parentElement) {
+                    explosion.parentElement.removeChild(explosion);
+                }
+            }, 500);
+        }
+
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('timeLeft').textContent = timeLeft;
+        }
+
+        function endGame() {
+            gameRunning = false;
+            gamePaused = false;
+            clearInterval(gameTimer);
+            clearTimeout(moleTimer);
+            
+            // 清理所有地鼠
+            document.querySelectorAll('.mole').forEach(mole => mole.remove());
+            activeMoles.clear();
+            
+            // 显示结果
+            const startScreen = document.getElementById('startScreen');
+            startScreen.style.display = 'flex';
+            
+            const difficultyNames = { easy: '简单', medium: '中等', hard: '困难', insane: '疯狂' };
+            
+            startScreen.innerHTML = `
+                <h1 style="font-size: 48px; color: #e74c3c; margin-bottom: 20px;">⏰ 时间到！ ⏰</h1>
+                <div style="font-size: 24px; margin-bottom: 15px; color: #f39c12;">最终得分: ${score}</div>
+                <div style="font-size: 18px; margin-bottom: 10px;">难度: ${difficultyNames[difficulty]}</div>
+                <div style="font-size: 16px; margin-bottom: 10px;">最高连击: ${maxCombo}</div>
+                <div style="font-size: 14px; margin-bottom: 20px; color: #95a5a6;">
+                    ${score >= 800 ? '🏆 地鼠大师！' : 
+                      score >= 500 ? '🥇 打鼠专家！' : 
+                      score >= 300 ? '🥈 熟练玩家！' : 
+                      score >= 100 ? '🥉 初级玩家' : '💪 继续努力！'}
+                </div>
+                <button class="start-btn" onclick="resetGame(); startGame();">再玩一次</button>
+            `;
+            
+            hideComboDisplay();
+        }
+
+        // 触摸设备支持
+        document.addEventListener('touchstart', (e) => {
+            if (e.target.classList.contains('mole')) {
+                e.preventDefault();
+                hitMole(e);
+            }
+        });
+
+        // 键盘支持 (数字键1-9)
+        document.addEventListener('keydown', (e) => {
+            if (!gameRunning || gamePaused) return;
+            
+            const keyNum = parseInt(e.key);
+            if (keyNum >= 1 && keyNum <= 9) {
+                const holeIndex = keyNum - 1;
+                const hole = document.querySelector(`[data-index="${holeIndex}"]`);
+                const mole = hole.querySelector('.mole.visible');
+                
+                if (mole) {
+                    hitMole({ target: mole, stopPropagation: () => {} });
+                }
+            }
+        });
+
+        // 初始化
+        updateDisplay();
+        hideComboDisplay();
+    </script>
+</body>
+</html>
