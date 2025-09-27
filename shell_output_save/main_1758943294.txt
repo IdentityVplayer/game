@@ -1,0 +1,35 @@
+Enumerating objects: 41, done.
+Counting objects:   2% (1/41)Counting objects:   4% (2/41)Counting objects:   7% (3/41)Counting objects:   9% (4/41)Counting objects:  12% (5/41)Counting objects:  14% (6/41)Counting objects:  17% (7/41)Counting objects:  19% (8/41)Counting objects:  21% (9/41)Counting objects:  24% (10/41)Counting objects:  26% (11/41)Counting objects:  29% (12/41)Counting objects:  31% (13/41)Counting objects:  34% (14/41)Counting objects:  36% (15/41)Counting objects:  39% (16/41)Counting objects:  41% (17/41)Counting objects:  43% (18/41)Counting objects:  46% (19/41)Counting objects:  48% (20/41)Counting objects:  51% (21/41)Counting objects:  53% (22/41)Counting objects:  56% (23/41)Counting objects:  58% (24/41)Counting objects:  60% (25/41)Counting objects:  63% (26/41)Counting objects:  65% (27/41)Counting objects:  68% (28/41)Counting objects:  70% (29/41)Counting objects:  73% (30/41)Counting objects:  75% (31/41)Counting objects:  78% (32/41)Counting objects:  80% (33/41)Counting objects:  82% (34/41)Counting objects:  85% (35/41)Counting objects:  87% (36/41)Counting objects:  90% (37/41)Counting objects:  92% (38/41)Counting objects:  95% (39/41)Counting objects:  97% (40/41)Counting objects: 100% (41/41)Counting objects: 100% (41/41), done.
+Delta compression using up to 16 threads
+Compressing objects:   2% (1/39)Compressing objects:   5% (2/39)Compressing objects:   7% (3/39)Compressing objects:  10% (4/39)Compressing objects:  12% (5/39)Compressing objects:  15% (6/39)Compressing objects:  17% (7/39)Compressing objects:  20% (8/39)Compressing objects:  23% (9/39)Compressing objects:  25% (10/39)Compressing objects:  28% (11/39)Compressing objects:  30% (12/39)Compressing objects:  33% (13/39)Compressing objects:  35% (14/39)Compressing objects:  38% (15/39)Compressing objects:  41% (16/39)Compressing objects:  43% (17/39)Compressing objects:  46% (18/39)Compressing objects:  48% (19/39)Compressing objects:  51% (20/39)Compressing objects:  53% (21/39)Compressing objects:  56% (22/39)Compressing objects:  58% (23/39)Compressing objects:  61% (24/39)Compressing objects:  64% (25/39)Compressing objects:  66% (26/39)Compressing objects:  69% (27/39)Compressing objects:  71% (28/39)Compressing objects:  74% (29/39)Compressing objects:  76% (30/39)Compressing objects:  79% (31/39)Compressing objects:  82% (32/39)Compressing objects:  84% (33/39)Compressing objects:  87% (34/39)Compressing objects:  89% (35/39)Compressing objects:  92% (36/39)Compressing objects:  94% (37/39)Compressing objects:  97% (38/39)Compressing objects: 100% (39/39)Compressing objects: 100% (39/39), done.
+Writing objects:   2% (1/39)Writing objects:   5% (2/39)Writing objects:   7% (3/39)Writing objects:  10% (4/39)Writing objects:  12% (5/39)Writing objects:  15% (6/39)Writing objects:  17% (7/39)Writing objects:  20% (8/39)Writing objects:  23% (9/39)Writing objects:  25% (10/39)Writing objects:  28% (11/39)Writing objects:  30% (12/39)Writing objects:  33% (13/39)Writing objects:  35% (14/39)Writing objects:  38% (15/39)Writing objects:  41% (16/39)Writing objects:  43% (17/39)Writing objects:  46% (18/39)Writing objects:  48% (19/39)Writing objects:  51% (20/39)Writing objects:  53% (21/39)Writing objects:  56% (22/39)Writing objects:  58% (23/39)Writing objects:  61% (24/39)Writing objects:  64% (25/39)Writing objects:  66% (26/39)Writing objects:  69% (27/39)Writing objects:  71% (28/39)Writing objects:  74% (29/39)Writing objects:  76% (30/39)Writing objects:  79% (31/39)Writing objects:  82% (32/39)Writing objects:  84% (33/39)Writing objects:  87% (34/39)Writing objects:  89% (35/39)Writing objects:  92% (36/39)Writing objects:  94% (37/39)Writing objects:  97% (38/39)Writing objects: 100% (39/39)Writing objects: 100% (39/39), 63.68 KiB | 2.45 MiB/s, done.
+Total 39 (delta 14), reused 0 (delta 0), pack-reused 0
+remote: Resolving deltas:   0% (0/14)        remote: Resolving deltas:   7% (1/14)        remote: Resolving deltas:  14% (2/14)        remote: Resolving deltas:  21% (3/14)        remote: Resolving deltas:  28% (4/14)        remote: Resolving deltas:  35% (5/14)        remote: Resolving deltas:  42% (6/14)        remote: Resolving deltas:  50% (7/14)        remote: Resolving deltas:  57% (8/14)        remote: Resolving deltas:  64% (9/14)        remote: Resolving deltas:  71% (10/14)        remote: Resolving deltas:  78% (11/14)        remote: Resolving deltas:  85% (12/14)        remote: Resolving deltas:  92% (13/14)        remote: Resolving deltas: 100% (14/14)        remote: Resolving deltas: 100% (14/14), done.        
+remote: error: GH013: Repository rule violations found for refs/heads/main.        
+remote: 
+remote: - GITHUB PUSH PROTECTION        
+remote:   —————————————————————————————————————————        
+remote:     Resolve the following violations before pushing again        
+remote: 
+remote:     - Push cannot contain secrets        
+remote: 
+remote:             
+remote:      (?) Learn how to resolve a blocked push        
+remote:      https://docs.github.com/code-security/secret-scanning/working-with-secret-scanning-and-push-protection/working-with-push-protection-from-the-command-line#resolving-a-blocked-push        
+remote:             
+remote:             
+remote:       —— GitHub Personal Access Token ——————————————————————        
+remote:        locations:        
+remote:          - commit: 1dc381010be5c090e9a691f982c541bcecb5ac54        
+remote:            path: github_upload.py:105        
+remote:          - commit: 8892bd8b5bb66ebb40295cfa3bd89157b41b8de7        
+remote:            path: quick_deploy.py:10        
+remote:             
+remote:        (?) To push, remove secret from commit(s) or follow this URL to allow the secret.        
+remote:        https://github.com/IdentityVplayer/game/security/secret-scanning/unblock-secret/33GVFlleqvCsANEs5QOer2MmtdT        
+remote:             
+remote: 
+remote: 
+To https://github.com/IdentityVplayer/game.git
+ ! [remote rejected] main -> main (push declined due to repository rule violations)
+error: failed to push some refs to 'https://github.com/IdentityVplayer/game.git'

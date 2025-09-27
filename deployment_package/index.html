@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10000款游戏大全 - Game Collection</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        
+        .header {
+            text-align: center;
+            padding: 2rem 0;
+            background: rgba(0,0,0,0.2);
+        }
+        
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .stats {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 3rem;
+            flex-wrap: wrap;
+        }
+        
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            padding: 1.5rem;
+            border-radius: 10px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #FFD700;
+        }
+        
+        .search-box {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .search-input {
+            padding: 1rem;
+            font-size: 1.1rem;
+            border: none;
+            border-radius: 25px;
+            width: 300px;
+            max-width: 90%;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+        }
+        
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .game-card {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: white;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+        
+        .game-card:hover {
+            transform: translateY(-5px);
+            background: rgba(255,255,255,0.2);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .game-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: #FFD700;
+        }
+        
+        .game-description {
+            opacity: 0.9;
+            line-height: 1.5;
+            margin-bottom: 1rem;
+        }
+        
+        .game-type {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 0.3rem 0.8rem;
+            border-radius: 15px;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+        
+        .play-button {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            border: none;
+            padding: 0.8rem 1.5rem;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .play-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+            background: rgba(0,0,0,0.2);
+        }
+        
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .stats {
+                gap: 1rem;
+            }
+            
+            .games-grid {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎮 10000款游戏大全</h1>
+        <p>最全面的HTML5游戏收藏站</p>
+    </div>
+    
+    <div class="container">
+        <div class="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="totalGames">10</div>
+                <div>总游戏数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">20</div>
+                <div>游戏类型</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">∞</div>
+                <div>游戏时长</div>
+            </div>
+        </div>
+        
+        <div class="search-box">
+            <input type="text" class="search-input" placeholder="搜索你喜欢的游戏..." id="searchInput">
+        </div>
+        
+        <div class="games-grid" id="gamesGrid">
+            <!-- 游戏卡片将通过JavaScript动态生成 -->
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>© 2025 Game Collection. 持续更新中... 目标10000款游戏！</p>
+    </div>
+
+    <script>
+        // 游戏数据
+        const games = [
+            {
+                id: 1,
+                title: "贪吃蛇大作战",
+                description: "经典贪吃蛇游戏，吃食物长身体，避免撞墙和自己！",
+                type: "街机",
+                file: "snake.html"
+            },
+            {
+                id: 2,
+                title: "俄罗斯方块",
+                description: "永恒的经典！旋转和放置方块，消除完整行获得分数。",
+                type: "益智",
+                file: "tetris.html"
+            },
+            {
+                id: 3,
+                title: "打砖块",
+                description: "用球拍击球打破所有砖块，经典的弹球游戏！",
+                type: "街机",
+                file: "breakout.html"
+            },
+            {
+                id: 4,
+                title: "2048",
+                description: "滑动数字方块，合并相同数字，挑战达到2048！",
+                type: "益智",
+                file: "2048.html"
+            },
+            {
+                id: 5,
+                title: "跳跃小鸟",
+                description: "点击控制小鸟飞行，避开管道障碍，挑战高分！",
+                type: "休闲",
+                file: "flappy.html"
+            },
+            {
+                id: 6,
+                title: "太空射击",
+                description: "驾驶飞船在太空中战斗，消灭外星敌人！",
+                type: "射击",
+                file: "space_shooter.html"
+            },
+            {
+                id: 7,
+                title: "拼图挑战",
+                description: "拖拽拼图块完成美丽的图片，锻炼观察力！",
+                type: "益智",
+                file: "puzzle.html"
+            },
+            {
+                id: 8,
+                title: "记忆翻牌",
+                description: "翻开卡片找到相同的图案，测试你的记忆力！",
+                type: "记忆",
+                file: "memory.html"
+            },
+            {
+                id: 9,
+                title: "极速赛车",
+                description: "在弯曲的赛道上驾驶赛车，避开障碍物！",
+                type: "竞速",
+                file: "racing.html"
+            },
+            {
+                id: 10,
+                title: "平台跳跃",
+                description: "控制角色在平台间跳跃，收集金币到达终点！",
+                type: "平台",
+                file: "platformer.html"
+            }
+        ];
+
+        // 渲染游戏网格
+        function renderGames(gamesToRender = games) {
+            const gamesGrid = document.getElementById('gamesGrid');
+            gamesGrid.innerHTML = '';
+            
+            gamesToRender.forEach(game => {
+                const gameCard = document.createElement('a');
+                gameCard.href = `games/${game.file}`;
+                gameCard.className = 'game-card';
+                gameCard.innerHTML = `
+                    <div class="game-title">${game.title}</div>
+                    <div class="game-type">${game.type}</div>
+                    <div class="game-description">${game.description}</div>
+                    <button class="play-button">开始游戏 🎮</button>
+                `;
+                gamesGrid.appendChild(gameCard);
+            });
+        }
+
+        // 搜索功能
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const filteredGames = games.filter(game => 
+                    game.title.toLowerCase().includes(searchTerm) ||
+                    game.description.toLowerCase().includes(searchTerm) ||
+                    game.type.toLowerCase().includes(searchTerm)
+                );
+                renderGames(filteredGames);
+            });
+        }
+
+        // 更新游戏总数
+        function updateGameCount() {
+            document.getElementById('totalGames').textContent = games.length;
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            renderGames();
+            setupSearch();
+            updateGameCount();
+        });
+    </script>
+</body>
+</html>
