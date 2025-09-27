@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>宾戈游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #FF6B6B 0%, #4ECDC4 50%, #45B7D1 100%);
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-size: 2.5em;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 600px;
+        }
+
+        .bingo-card {
+            display: grid;
+            grid-template-columns: repeat(5, 80px);
+            grid-template-rows: repeat(6, 60px);
+            gap: 5px;
+            margin: 30px auto;
+            justify-content: center;
+        }
+
+        .bingo-header {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 8px;
+        }
+
+        .bingo-cell {
+            background: #f8f9fa;
+            border: 3px solid #dee2e6;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .bingo-cell:hover {
+            background: #e9ecef;
+            transform: scale(1.05);
+        }
+
+        .bingo-cell.marked {
+            background: linear-gradient(45deg, #FF6B6B, #45B7D1);
+            color: white;
+            border-color: #FF6B6B;
+            transform: scale(0.95);
+        }
+
+        .bingo-cell.free {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border-color: #28a745;
+        }
+
+        .called-numbers {
+            margin: 30px 0;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .called-numbers h3 {
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .numbers-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 5px;
+            margin: 15px 0;
+        }
+
+        .called-number {
+            background: #FF6B6B;
+            color: white;
+            padding: 8px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .current-call {
+            font-size: 48px;
+            font-weight: bold;
+            color: #FF6B6B;
+            margin: 20px 0;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .controls {
+            margin: 30px 0;
+        }
+
+        button {
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .game-info {
+            background: rgba(255,107,107,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .win-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            font-size: 20px;
+            font-weight: bold;
+            display: none;
+        }
+
+        .progress {
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e9ecef;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(45deg, #FF6B6B, #4ECDC4);
+            transition: width 0.3s;
+            width: 0%;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎲 宾戈游戏</h1>
+    
+    <div class="game-container">
+        <div class="game-info">
+            <div>已叫号码: <span id="calledCount">0</span>/75</div>
+            <div class="progress">
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="current-call" id="currentCall">点击开始游戏</div>
+        
+        <div class="bingo-card" id="bingoCard">
+            <!-- 宾戈卡片将通过JavaScript生成 -->
+        </div>
+        
+        <div class="win-message" id="winMessage">🎉 BINGO! 你赢了！ 🎉</div>
+        
+        <div class="controls">
+            <button onclick="callNumber()" id="callBtn">叫号</button>
+            <button onclick="autoCall()" id="autoBtn">自动叫号</button>
+            <button onclick="stopAuto()" id="stopBtn" style="display: none;">停止</button>
+            <button onclick="newGame()">新游戏</button>
+        </div>
+        
+        <div class="called-numbers">
+            <h3>已叫号码</h3>
+            <div class="numbers-grid" id="calledNumbers">
+                <!-- 已叫号码将在这里显示 -->
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class Bingo {
+            constructor() {
+                this.card = [];
+                this.calledNumbers = [];
+                this.availableNumbers = [];
+                this.currentNumber = null;
+                this.gameWon = false;
+                this.autoInterval = null;
+                
+                this.initGame();
+            }
+
+            initGame() {
+                this.generateCard();
+                this.generateAvailableNumbers();
+                this.renderCard();
+                this.updateDisplay();
+            }
+
+            generateCard() {
+                // 生成宾戈卡片（5x5网格，中间是FREE）
+                this.card = [];
+                
+                // B列（1-15）
+                const bNumbers = this.getRandomNumbers(1, 15, 5);
+                // I列（16-30）
+                const iNumbers = this.getRandomNumbers(16, 30, 5);
+                // N列（31-45），中间是FREE
+                const nNumbers = this.getRandomNumbers(31, 45, 4);
+                // G列（46-60）
+                const gNumbers = this.getRandomNumbers(46, 60, 5);
+                // O列（61-75）
+                const oNumbers = this.getRandomNumbers(61, 75, 5);
+                
+                for (let row = 0; row < 5; row++) {
+                    this.card[row] = [];
+                    this.card[row][0] = { number: bNumbers[row], marked: false };
+                    this.card[row][1] = { number: iNumbers[row], marked: false };
+                    
+                    if (row === 2) {
+                        this.card[row][2] = { number: 'FREE', marked: true };
+                    } else {
+                        const nIndex = row < 2 ? row : row - 1;
+                        this.card[row][2] = { number: nNumbers[nIndex], marked: false };
+                    }
+                    
+                    this.card[row][3] = { number: gNumbers[row], marked: false };
+                    this.card[row][4] = { number: oNumbers[row], marked: false };
+                }
+            }
+
+            getRandomNumbers(min, max, count) {
+                const numbers = [];
+                const available = [];
+                
+                for (let i = min; i <= max; i++) {
+                    available.push(i);
+                }
+                
+                for (let i = 0; i < count; i++) {
+                    const randomIndex = Math.floor(Math.random() * available.length);
+                    numbers.push(available.splice(randomIndex, 1)[0]);
+                }
+                
+                return numbers;
+            }
+
+            generateAvailableNumbers() {
+                this.availableNumbers = [];
+                for (let i = 1; i <= 75; i++) {
+                    this.availableNumbers.push(i);
+                }
+            }
+
+            renderCard() {
+                const cardElement = document.getElementById('bingoCard');
+                cardElement.innerHTML = '';
+                
+                // 标题行
+                const headers = ['B', 'I', 'N', 'G', 'O'];
+                headers.forEach(header => {
+                    const headerCell = document.createElement('div');
+                    headerCell.className = 'bingo-header';
+                    headerCell.textContent = header;
+                    cardElement.appendChild(headerCell);
+                });
+                
+                // 数字行
+                for (let row = 0; row < 5; row++) {
+                    for (let col = 0; col < 5; col++) {
+                        const cell = document.createElement('div');
+                        const cellData = this.card[row][col];
+                        
+                        cell.className = `bingo-cell ${cellData.marked ? 'marked' : ''} ${cellData.number === 'FREE' ? 'free' : ''}`;
+                        cell.textContent = cellData.number;
+                        cell.onclick = () => this.toggleCell(row, col);
+                        
+                        cardElement.appendChild(cell);
+                    }
+                }
+            }
+
+            toggleCell(row, col) {
+                if (this.gameWon || this.card[row][col].number === 'FREE') return;
+                
+                const cellData = this.card[row][col];
+                
+                // 只能标记已叫过的号码
+                if (this.calledNumbers.includes(cellData.number)) {
+                    cellData.marked = !cellData.marked;
+                    this.renderCard();
+                    this.checkWin();
+                }
+            }
+
+            callNumber() {
+                if (this.gameWon || this.availableNumbers.length === 0) return;
+                
+                const randomIndex = Math.floor(Math.random() * this.availableNumbers.length);
+                this.currentNumber = this.availableNumbers.splice(randomIndex, 1)[0];
+                this.calledNumbers.push(this.currentNumber);
+                
+                this.updateDisplay();
+                this.autoMarkCard();
+                this.checkWin();
+            }
+
+            autoMarkCard() {
+                // 自动标记卡片上的对应号码
+                for (let row = 0; row < 5; row++) {
+                    for (let col = 0; col < 5; col++) {
+                        const cellData = this.card[row][col];
+                        if (cellData.number === this.currentNumber) {
+                            cellData.marked = true;
+                        }
+                    }
+                }
+                this.renderCard();
+            }
+
+            checkWin() {
+                // 检查行
+                for (let row = 0; row < 5; row++) {
+                    if (this.card[row].every(cell => cell.marked)) {
+                        this.gameWon = true;
+                        break;
+                    }
+                }
+                
+                // 检查列
+                for (let col = 0; col < 5; col++) {
+                    if (this.card.every(row => row[col].marked)) {
+                        this.gameWon = true;
+                        break;
+                    }
+                }
+                
+                // 检查对角线
+                if (this.card.every((row, i) => row[i].marked) ||
+                    this.card.every((row, i) => row[4 - i].marked)) {
+                    this.gameWon = true;
+                }
+                
+                if (this.gameWon) {
+                    document.getElementById('winMessage').style.display = 'block';
+                    document.getElementById('callBtn').disabled = true;
+                    this.stopAutoCall();
+                }
+            }
+
+            autoCall() {
+                this.autoInterval = setInterval(() => {
+                    this.callNumber();
+                    if (this.gameWon || this.availableNumbers.length === 0) {
+                        this.stopAutoCall();
+                    }
+                }, 2000);
+                
+                document.getElementById('autoBtn').style.display = 'none';
+                document.getElementById('stopBtn').style.display = 'inline-block';
+                document.getElementById('callBtn').disabled = true;
+            }
+
+            stopAutoCall() {
+                if (this.autoInterval) {
+                    clearInterval(this.autoInterval);
+                    this.autoInterval = null;
+                }
+                
+                document.getElementById('autoBtn').style.display = 'inline-block';
+                document.getElementById('stopBtn').style.display = 'none';
+                document.getElementById('callBtn').disabled = this.gameWon;
+            }
+
+            updateDisplay() {
+                // 更新当前号码
+                const currentCallElement = document.getElementById('currentCall');
+                if (this.currentNumber) {
+                    const letter = this.getLetterForNumber(this.currentNumber);
+                    currentCallElement.textContent = `${letter}-${this.currentNumber}`;
+                } else {
+                    currentCallElement.textContent = '点击开始游戏';
+                }
+                
+                // 更新已叫号码
+                const calledNumbersElement = document.getElementById('calledNumbers');
+                calledNumbersElement.innerHTML = '';
+                this.calledNumbers.forEach(number => {
+                    const numberDiv = document.createElement('div');
+                    numberDiv.className = 'called-number';
+                    numberDiv.textContent = number;
+                    calledNumbersElement.appendChild(numberDiv);
+                });
+                
+                // 更新进度
+                document.getElementById('calledCount').textContent = this.calledNumbers.length;
+                const progressPercent = (this.calledNumbers.length / 75) * 100;
+                document.getElementById('progressFill').style.width = `${progressPercent}%`;
+            }
+
+            getLetterForNumber(number) {
+                if (number <= 15) return 'B';
+                if (number <= 30) return 'I';
+                if (number <= 45) return 'N';
+                if (number <= 60) return 'G';
+                return 'O';
+            }
+        }
+
+        let game;
+
+        function callNumber() {
+            game.callNumber();
+        }
+
+        function autoCall() {
+            game.autoCall();
+        }
+
+        function stopAuto() {
+            game.stopAutoCall();
+        }
+
+        function newGame() {
+            game = new Bingo();
+            document.getElementById('winMessage').style.display = 'none';
+            document.getElementById('callBtn').disabled = false;
+        }
+
+        // 初始化游戏
+        newGame();
+    </script>
+</body>
+</html>

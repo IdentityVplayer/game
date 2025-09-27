@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>轮盘游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            min-height: 100vh;
+        }
+
+        .game-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        h1 {
+            color: #1a1a2e;
+            margin-bottom: 30px;
+        }
+
+        .roulette-wheel {
+            width: 300px;
+            height: 300px;
+            border-radius: 50%;
+            background: conic-gradient(
+                #FF0000 0deg 9.73deg,
+                #000000 9.73deg 19.46deg,
+                #FF0000 19.46deg 29.19deg,
+                #000000 29.19deg 38.92deg,
+                #FF0000 38.92deg 48.65deg,
+                #000000 48.65deg 58.38deg,
+                #FF0000 58.38deg 68.11deg,
+                #000000 68.11deg 77.84deg,
+                #FF0000 77.84deg 87.57deg,
+                #000000 87.57deg 97.3deg,
+                #FF0000 97.3deg 107.03deg,
+                #000000 107.03deg 116.76deg,
+                #FF0000 116.76deg 126.49deg,
+                #000000 126.49deg 136.22deg,
+                #FF0000 136.22deg 145.95deg,
+                #000000 145.95deg 155.68deg,
+                #FF0000 155.68deg 165.41deg,
+                #000000 165.41deg 175.14deg,
+                #FF0000 175.14deg 184.87deg,
+                #000000 184.87deg 194.6deg,
+                #FF0000 194.6deg 204.33deg,
+                #000000 204.33deg 214.06deg,
+                #FF0000 214.06deg 223.79deg,
+                #000000 223.79deg 233.52deg,
+                #FF0000 233.52deg 243.25deg,
+                #000000 243.25deg 252.98deg,
+                #FF0000 252.98deg 262.71deg,
+                #000000 262.71deg 272.44deg,
+                #FF0000 272.44deg 282.17deg,
+                #000000 282.17deg 291.9deg,
+                #FF0000 291.9deg 301.63deg,
+                #000000 301.63deg 311.36deg,
+                #FF0000 311.36deg 321.09deg,
+                #000000 321.09deg 330.82deg,
+                #FF0000 330.82deg 340.55deg,
+                #000000 340.55deg 350.28deg,
+                #FF0000 350.28deg 360deg
+            );
+            border: 8px solid #8B4513;
+            margin: 30px auto;
+            position: relative;
+            transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1);
+        }
+
+        .roulette-center {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 60px;
+            height: 60px;
+            background: #FFD700;
+            border-radius: 50%;
+            border: 3px solid #8B4513;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: #8B4513;
+        }
+
+        .roulette-pointer {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 30px solid #FFD700;
+            z-index: 10;
+        }
+
+        .betting-board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin: 30px auto;
+            max-width: 500px;
+        }
+
+        .bet-option {
+            background: #f8f9fa;
+            border: 2px solid #dee2e6;
+            border-radius: 10px;
+            padding: 15px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .bet-option:hover {
+            background: #e9ecef;
+            transform: scale(1.05);
+        }
+
+        .bet-option.red {
+            background: #ffebee;
+            border-color: #f44336;
+            color: #d32f2f;
+        }
+
+        .bet-option.black {
+            background: #f5f5f5;
+            border-color: #424242;
+            color: #212121;
+        }
+
+        .bet-option.green {
+            background: #e8f5e8;
+            border-color: #4caf50;
+            color: #2e7d32;
+        }
+
+        .bet-option.selected {
+            background: #FFD700;
+            border-color: #f39c12;
+            transform: scale(1.1);
+        }
+
+        .game-info {
+            background: rgba(26,26,46,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .balance {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1a1a2e;
+            margin: 10px 0;
+        }
+
+        .current-bet {
+            font-size: 18px;
+            color: #e74c3c;
+            margin: 10px 0;
+        }
+
+        .result {
+            font-size: 28px;
+            font-weight: bold;
+            margin: 20px 0;
+            min-height: 40px;
+        }
+
+        .controls {
+            margin: 30px 0;
+        }
+
+        button {
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .bet-buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .bet-btn {
+            background: #e74c3c;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🎲 轮盘游戏</h1>
+        
+        <div class="game-info">
+            <div class="balance">余额: $<span id="balance">1000</span></div>
+            <div class="current-bet">当前下注: $<span id="currentBet">0</span></div>
+        </div>
+        
+        <div style="position: relative;">
+            <div class="roulette-wheel" id="wheel">
+                <div class="roulette-center" id="result">?</div>
+            </div>
+            <div class="roulette-pointer"></div>
+        </div>
+        
+        <div class="result" id="resultMessage"></div>
+        
+        <div class="bet-buttons">
+            <button class="bet-btn" onclick="setBetAmount(10)">$10</button>
+            <button class="bet-btn" onclick="setBetAmount(25)">$25</button>
+            <button class="bet-btn" onclick="setBetAmount(50)">$50</button>
+            <button class="bet-btn" onclick="setBetAmount(100)">$100</button>
+        </div>
+        
+        <div class="betting-board">
+            <div class="bet-option red" onclick="placeBet('red')">红色 (2:1)</div>
+            <div class="bet-option black" onclick="placeBet('black')">黑色 (2:1)</div>
+            <div class="bet-option green" onclick="placeBet('zero')">零 (35:1)</div>
+            <div class="bet-option" onclick="placeBet('even')">偶数 (2:1)</div>
+            <div class="bet-option" onclick="placeBet('odd')">奇数 (2:1)</div>
+            <div class="bet-option" onclick="placeBet('high')">大 (19-36) (2:1)</div>
+            <div class="bet-option" onclick="placeBet('low')">小 (1-18) (2:1)</div>
+            <div class="bet-option" onclick="placeBet('dozen1')">第一打 (1-12) (3:1)</div>
+            <div class="bet-option" onclick="placeBet('dozen2')">第二打 (13-24) (3:1)</div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="spin()" id="spinBtn" disabled>旋转</button>
+            <button onclick="clearBets()">清除下注</button>
+            <button onclick="newGame()">新游戏</button>
+            <button onclick="showRules()">游戏规则</button>
+        </div>
+    </div>
+
+    <script>
+        class Roulette {
+            constructor() {
+                this.balance = 1000;
+                this.betAmount = 10;
+                this.currentBets = new Map();
+                this.isSpinning = false;
+                
+                // 轮盘数字和颜色
+                this.numbers = [
+                    {num: 0, color: 'green'},
+                    {num: 1, color: 'red'}, {num: 2, color: 'black'}, {num: 3, color: 'red'},
+                    {num: 4, color: 'black'}, {num: 5, color: 'red'}, {num: 6, color: 'black'},
+                    {num: 7, color: 'red'}, {num: 8, color: 'black'}, {num: 9, color: 'red'},
+                    {num: 10, color: 'black'}, {num: 11, color: 'black'}, {num: 12, color: 'red'},
+                    {num: 13, color: 'black'}, {num: 14, color: 'red'}, {num: 15, color: 'black'},
+                    {num: 16, color: 'red'}, {num: 17, color: 'black'}, {num: 18, color: 'red'},
+                    {num: 19, color: 'red'}, {num: 20, color: 'black'}, {num: 21, color: 'red'},
+                    {num: 22, color: 'black'}, {num: 23, color: 'red'}, {num: 24, color: 'black'},
+                    {num: 25, color: 'red'}, {num: 26, color: 'black'}, {num: 27, color: 'red'},
+                    {num: 28, color: 'black'}, {num: 29, color: 'black'}, {num: 30, color: 'red'},
+                    {num: 31, color: 'black'}, {num: 32, color: 'red'}, {num: 33, color: 'black'},
+                    {num: 34, color: 'red'}, {num: 35, color: 'black'}, {num: 36, color: 'red'}
+                ];
+                
+                this.updateDisplay();
+            }
+
+            setBetAmount(amount) {
+                if (amount <= this.balance) {
+                    this.betAmount = amount;
+                    this.updateDisplay();
+                }
+            }
+
+            placeBet(type) {
+                if (this.isSpinning || this.balance < this.betAmount) return;
+                
+                if (this.currentBets.has(type)) {
+                    this.currentBets.set(type, this.currentBets.get(type) + this.betAmount);
+                } else {
+                    this.currentBets.set(type, this.betAmount);
+                }
+                
+                this.balance -= this.betAmount;
+                this.updateDisplay();
+                this.highlightBet(type);
+            }
+
+            highlightBet(type) {
+                // 移除之前的高亮
+                document.querySelectorAll('.bet-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                
+                // 高亮当前选择
+                const betMapping = {
+                    'red': 0, 'black': 1, 'zero': 2,
+                    'even': 3, 'odd': 4, 'high': 5,
+                    'low': 6, 'dozen1': 7, 'dozen2': 8
+                };
+                
+                const options = document.querySelectorAll('.bet-option');
+                if (betMapping[type] !== undefined) {
+                    options[betMapping[type]].classList.add('selected');
+                }
+            }
+
+            spin() {
+                if (this.isSpinning || this.currentBets.size === 0) return;
+                
+                this.isSpinning = true;
+                document.getElementById('spinBtn').disabled = true;
+                document.getElementById('resultMessage').textContent = '旋转中...';
+                
+                // 随机选择结果
+                const winningNumber = this.numbers[Math.floor(Math.random() * this.numbers.length)];
+                
+                // 旋转动画
+                const wheel = document.getElementById('wheel');
+                const spins = 5 + Math.random() * 5; // 5-10圈
+                const finalRotation = spins * 360 + (winningNumber.num * 9.73); // 每个数字9.73度
+                
+                wheel.style.transform = `rotate(${finalRotation}deg)`;
+                
+                setTimeout(() => {
+                    this.processResult(winningNumber);
+                }, 3000);
+            }
+
+            processResult(winningNumber) {
+                document.getElementById('result').textContent = winningNumber.num;
+                
+                let totalWin = 0;
+                let resultText = `结果: ${winningNumber.num} (${this.getColorText(winningNumber.color)})`;
+                
+                // 计算获奖
+                for (let [betType, betAmount] of this.currentBets) {
+                    const win = this.calculateWin(betType, winningNumber, betAmount);
+                    totalWin += win;
+                }
+                
+                this.balance += totalWin;
+                
+                if (totalWin > 0) {
+                    resultText += `\n🎉 你赢了 $${totalWin}!`;
+                    document.getElementById('resultMessage').style.color = '#27ae60';
+                } else {
+                    resultText += `\n😔 这次没中，再试一次！`;
+                    document.getElementById('resultMessage').style.color = '#e74c3c';
+                }
+                
+                document.getElementById('resultMessage').textContent = resultText;
+                
+                this.currentBets.clear();
+                this.isSpinning = false;
+                document.getElementById('spinBtn').disabled = true;
+                
+                // 清除高亮
+                document.querySelectorAll('.bet-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                
+                this.updateDisplay();
+            }
+
+            calculateWin(betType, winningNumber, betAmount) {
+                switch (betType) {
+                    case 'red':
+                        return winningNumber.color === 'red' ? betAmount * 2 : 0;
+                    case 'black':
+                        return winningNumber.color === 'black' ? betAmount * 2 : 0;
+                    case 'zero':
+                        return winningNumber.num === 0 ? betAmount * 36 : 0;
+                    case 'even':
+                        return winningNumber.num > 0 && winningNumber.num % 2 === 0 ? betAmount * 2 : 0;
+                    case 'odd':
+                        return winningNumber.num > 0 && winningNumber.num % 2 === 1 ? betAmount * 2 : 0;
+                    case 'high':
+                        return winningNumber.num >= 19 && winningNumber.num <= 36 ? betAmount * 2 : 0;
+                    case 'low':
+                        return winningNumber.num >= 1 && winningNumber.num <= 18 ? betAmount * 2 : 0;
+                    case 'dozen1':
+                        return winningNumber.num >= 1 && winningNumber.num <= 12 ? betAmount * 3 : 0;
+                    case 'dozen2':
+                        return winningNumber.num >= 13 && winningNumber.num <= 24 ? betAmount * 3 : 0;
+                    default:
+                        return 0;
+                }
+            }
+
+            getColorText(color) {
+                switch (color) {
+                    case 'red': return '红色';
+                    case 'black': return '黑色';
+                    case 'green': return '绿色';
+                    default: return '未知';
+                }
+            }
+
+            clearBets() {
+                if (this.isSpinning) return;
+                
+                // 退还下注金额
+                for (let betAmount of this.currentBets.values()) {
+                    this.balance += betAmount;
+                }
+                
+                this.currentBets.clear();
+                
+                // 清除高亮
+                document.querySelectorAll('.bet-option').forEach(option => {
+                    option.classList.remove('selected');
+                });
+                
+                this.updateDisplay();
+            }
+
+            updateDisplay() {
+                document.getElementById('balance').textContent = this.balance;
+                
+                let totalBet = 0;
+                for (let betAmount of this.currentBets.values()) {
+                    totalBet += betAmount;
+                }
+                document.getElementById('currentBet').textContent = totalBet;
+                
+                // 更新按钮状态
+                document.getElementById('spinBtn').disabled = this.currentBets.size === 0 || this.isSpinning;
+            }
+        }
+
+        let game;
+
+        function setBetAmount(amount) {
+            game.setBetAmount(amount);
+        }
+
+        function placeBet(type) {
+            game.placeBet(type);
+        }
+
+        function spin() {
+            game.spin();
+        }
+
+        function clearBets() {
+            game.clearBets();
+        }
+
+        function newGame() {
+            game = new Roulette();
+            document.getElementById('result').textContent = '?';
+            document.getElementById('resultMessage').textContent = '';
+            document.getElementById('wheel').style.transform = 'rotate(0deg)';
+        }
+
+        function showRules() {
+            alert(`轮盘游戏规则：\n1. 选择下注金额和下注类型\n2. 点击旋转开始游戏\n3. 赔率：\n   - 红/黑/偶/奇/大/小: 2:1\n   - 打数 (1-12, 13-24): 3:1\n   - 单数字 (0): 35:1\n4. 可以同时下多种类型的注`);
+        }
+
+        // 初始化游戏
+        newGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跳棋</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #654321 0%, #D2B48C 50%, #8B4513 100%);
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: #2F4F4F;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            border: 3px solid #8B4513;
+            margin: 20px auto;
+        }
+
+        .square {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .square.light {
+            background-color: #F5DEB3;
+        }
+
+        .square.dark {
+            background-color: #D2B48C;
+        }
+
+        .square.selected {
+            background-color: #FFD700 !important;
+            box-shadow: inset 0 0 10px rgba(255,215,0,0.8);
+        }
+
+        .square.valid-move {
+            background-color: #90EE90 !important;
+        }
+
+        .piece {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 3px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .piece:hover {
+            transform: scale(1.1);
+        }
+
+        .piece.red {
+            background: radial-gradient(circle, #FF6B6B, #DC143C);
+            color: white;
+        }
+
+        .piece.black {
+            background: radial-gradient(circle, #2F2F2F, #000);
+            color: white;
+        }
+
+        .piece.king {
+            border-color: #FFD700;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        .game-info {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            color: #2F4F4F;
+        }
+
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        button {
+            background: linear-gradient(45deg, #8B4513, #D2B48C);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .status {
+            background: rgba(255,255,255,0.9);
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .score {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔴 跳棋</h1>
+    
+    <div class="game-container">
+        <div class="game-info">
+            <div class="status" id="status">红方回合</div>
+            <div class="score">
+                <div>红方棋子: <span id="redCount">12</span></div>
+                <div>黑方棋子: <span id="blackCount">12</span></div>
+            </div>
+        </div>
+        
+        <div class="board" id="board"></div>
+        
+        <div class="controls">
+            <button onclick="newGame()">新游戏</button>
+            <button onclick="showRules()">游戏规则</button>
+        </div>
+    </div>
+
+    <script>
+        class Checkers {
+            constructor() {
+                this.board = this.initializeBoard();
+                this.currentPlayer = 'red';
+                this.selectedSquare = null;
+                this.gameOver = false;
+                this.mandatoryCapture = null;
+                
+                this.initBoard();
+                this.updateStatus();
+            }
+
+            initializeBoard() {
+                const board = [];
+                for (let row = 0; row < 8; row++) {
+                    board[row] = [];
+                    for (let col = 0; col < 8; col++) {
+                        if ((row + col) % 2 === 1) {
+                            if (row < 3) {
+                                board[row][col] = { color: 'black', king: false };
+                            } else if (row > 4) {
+                                board[row][col] = { color: 'red', king: false };
+                            } else {
+                                board[row][col] = null;
+                            }
+                        } else {
+                            board[row][col] = null;
+                        }
+                    }
+                }
+                return board;
+            }
+
+            initBoard() {
+                const boardElement = document.getElementById('board');
+                boardElement.innerHTML = '';
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const square = document.createElement('div');
+                        square.className = `square ${(row + col) % 2 === 0 ? 'light' : 'dark'}`;
+                        square.dataset.row = row;
+                        square.dataset.col = col;
+                        square.onclick = () => this.onSquareClick(row, col);
+                        
+                        const piece = this.board[row][col];
+                        if (piece) {
+                            const pieceElement = document.createElement('div');
+                            pieceElement.className = `piece ${piece.color} ${piece.king ? 'king' : ''}`;
+                            pieceElement.textContent = piece.king ? '♚' : '';
+                            square.appendChild(pieceElement);
+                        }
+                        
+                        boardElement.appendChild(square);
+                    }
+                }
+                
+                this.updateScore();
+            }
+
+            onSquareClick(row, col) {
+                if (this.gameOver) return;
+                
+                const piece = this.board[row][col];
+                
+                if (this.selectedSquare) {
+                    const [selectedRow, selectedCol] = this.selectedSquare;
+                    
+                    if (row === selectedRow && col === selectedCol) {
+                        this.clearSelection();
+                        return;
+                    }
+                    
+                    const moves = this.getValidMoves(selectedRow, selectedCol);
+                    const move = moves.find(m => m.to[0] === row && m.to[1] === col);
+                    
+                    if (move) {
+                        this.makeMove(move);
+                        this.clearSelection();
+                        
+                        // 检查是否有连续跳跃
+                        const furtherCaptures = this.getCaptureMoves(row, col);
+                        if (move.capture && furtherCaptures.length > 0) {
+                            this.selectSquare(row, col);
+                            this.mandatoryCapture = [row, col];
+                        } else {
+                            this.mandatoryCapture = null;
+                            this.switchPlayer();
+                            this.updateStatus();
+                        }
+                    } else {
+                        this.clearSelection();
+                        if (piece && piece.color === this.currentPlayer) {
+                            this.selectSquare(row, col);
+                        }
+                    }
+                } else {
+                    if (piece && piece.color === this.currentPlayer) {
+                        // 检查是否有强制吃子
+                        if (this.mandatoryCapture) {
+                            const [mandRow, mandCol] = this.mandatoryCapture;
+                            if (row === mandRow && col === mandCol) {
+                                this.selectSquare(row, col);
+                            }
+                        } else {
+                            this.selectSquare(row, col);
+                        }
+                    }
+                }
+            }
+
+            selectSquare(row, col) {
+                this.selectedSquare = [row, col];
+                this.clearHighlights();
+                
+                const square = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                square.classList.add('selected');
+                
+                this.highlightValidMoves(row, col);
+            }
+
+            clearSelection() {
+                this.selectedSquare = null;
+                this.clearHighlights();
+            }
+
+            clearHighlights() {
+                document.querySelectorAll('.square').forEach(square => {
+                    square.classList.remove('selected', 'valid-move');
+                });
+            }
+
+            highlightValidMoves(row, col) {
+                const moves = this.getValidMoves(row, col);
+                moves.forEach(move => {
+                    const [toRow, toCol] = move.to;
+                    const square = document.querySelector(`[data-row="${toRow}"][data-col="${toCol}"]`);
+                    square.classList.add('valid-move');
+                });
+            }
+
+            getValidMoves(row, col) {
+                const piece = this.board[row][col];
+                if (!piece || piece.color !== this.currentPlayer) return [];
+                
+                // 如果有强制吃子，只返回吃子移动
+                if (this.mandatoryCapture) {
+                    const [mandRow, mandCol] = this.mandatoryCapture;
+                    if (row === mandRow && col === mandCol) {
+                        return this.getCaptureMoves(row, col);
+                    }
+                    return [];
+                }
+                
+                // 首先检查是否有吃子移动
+                const allCaptures = this.getAllCaptureMoves(this.currentPlayer);
+                if (allCaptures.length > 0) {
+                    return this.getCaptureMoves(row, col);
+                }
+                
+                // 否则返回普通移动
+                return this.getRegularMoves(row, col);
+            }
+
+            getRegularMoves(row, col) {
+                const piece = this.board[row][col];
+                const moves = [];
+                
+                const directions = this.getDirections(piece);
+                
+                directions.forEach(([dr, dc]) => {
+                    const newRow = row + dr;
+                    const newCol = col + dc;
+                    
+                    if (this.isValidPosition(newRow, newCol) && !this.board[newRow][newCol]) {
+                        moves.push({
+                            from: [row, col],
+                            to: [newRow, newCol],
+                            capture: false
+                        });
+                    }
+                });
+                
+                return moves;
+            }
+
+            getCaptureMoves(row, col) {
+                const piece = this.board[row][col];
+                const moves = [];
+                
+                const directions = this.getDirections(piece);
+                
+                directions.forEach(([dr, dc]) => {
+                    const jumpRow = row + dr;
+                    const jumpCol = col + dc;
+                    const landRow = row + dr * 2;
+                    const landCol = col + dc * 2;
+                    
+                    if (this.isValidPosition(landRow, landCol) && !this.board[landRow][landCol]) {
+                        const jumpedPiece = this.board[jumpRow][jumpCol];
+                        if (jumpedPiece && jumpedPiece.color !== piece.color) {
+                            moves.push({
+                                from: [row, col],
+                                to: [landRow, landCol],
+                                capture: true,
+                                capturedPos: [jumpRow, jumpCol]
+                            });
+                        }
+                    }
+                });
+                
+                return moves;
+            }
+
+            getAllCaptureMoves(color) {
+                const moves = [];
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const piece = this.board[row][col];
+                        if (piece && piece.color === color) {
+                            moves.push(...this.getCaptureMoves(row, col));
+                        }
+                    }
+                }
+                return moves;
+            }
+
+            getDirections(piece) {
+                if (piece.king) {
+                    return [[-1, -1], [-1, 1], [1, -1], [1, 1]];
+                } else if (piece.color === 'red') {
+                    return [[-1, -1], [-1, 1]];
+                } else {
+                    return [[1, -1], [1, 1]];
+                }
+            }
+
+            isValidPosition(row, col) {
+                return row >= 0 && row < 8 && col >= 0 && col < 8;
+            }
+
+            makeMove(move) {
+                const piece = this.board[move.from[0]][move.from[1]];
+                
+                this.board[move.to[0]][move.to[1]] = piece;
+                this.board[move.from[0]][move.from[1]] = null;
+                
+                if (move.capture) {
+                    this.board[move.capturedPos[0]][move.capturedPos[1]] = null;
+                }
+                
+                // 检查是否成王
+                if (!piece.king) {
+                    if ((piece.color === 'red' && move.to[0] === 0) ||
+                        (piece.color === 'black' && move.to[0] === 7)) {
+                        piece.king = true;
+                    }
+                }
+                
+                this.initBoard();
+                this.checkGameOver();
+            }
+
+            switchPlayer() {
+                this.currentPlayer = this.currentPlayer === 'red' ? 'black' : 'red';
+            }
+
+            updateStatus() {
+                const status = document.getElementById('status');
+                if (this.gameOver) {
+                    status.textContent = `游戏结束！${this.currentPlayer === 'red' ? '黑方' : '红方'}获胜！`;
+                    status.style.background = '#FFD700';
+                } else {
+                    status.textContent = this.currentPlayer === 'red' ? '红方回合' : '黑方回合';
+                    status.style.background = this.currentPlayer === 'red' ? '#FFE6E6' : '#E6E6E6';
+                }
+            }
+
+            updateScore() {
+                let redCount = 0;
+                let blackCount = 0;
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const piece = this.board[row][col];
+                        if (piece) {
+                            if (piece.color === 'red') redCount++;
+                            else blackCount++;
+                        }
+                    }
+                }
+                
+                document.getElementById('redCount').textContent = redCount;
+                document.getElementById('blackCount').textContent = blackCount;
+            }
+
+            checkGameOver() {
+                let redPieces = 0;
+                let blackPieces = 0;
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const piece = this.board[row][col];
+                        if (piece) {
+                            if (piece.color === 'red') redPieces++;
+                            else blackPieces++;
+                        }
+                    }
+                }
+                
+                if (redPieces === 0 || blackPieces === 0) {
+                    this.gameOver = true;
+                    this.updateStatus();
+                }
+            }
+        }
+
+        let game;
+
+        function newGame() {
+            game = new Checkers();
+        }
+
+        function showRules() {
+            alert(`跳棋规则：
+1. 棋子只能在深色格子上移动
+2. 普通棋子只能向前斜向移动
+3. 必须吃子时不能选择普通移动
+4. 吃子时跳过对方棋子到空格
+5. 可以连续吃子
+6. 到达对方底线的棋子成王
+7. 王棋可以向前向后移动
+8. 吃光对方所有棋子获胜`);
+        }
+
+        // 初始化游戏
+        newGame();
+    </script>
+</body>
+</html>

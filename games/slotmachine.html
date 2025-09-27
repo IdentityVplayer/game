@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>老虎机</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #FFD700 0%, #FF6347 50%, #DC143C 100%);
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            font-size: 3em;
+        }
+
+        .slot-machine {
+            background: linear-gradient(145deg, #2c3e50, #34495e);
+            border-radius: 30px;
+            padding: 40px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+            text-align: center;
+            border: 8px solid #f39c12;
+        }
+
+        .display {
+            background: #000;
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+
+        .reels {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin: 30px 0;
+        }
+
+        .reel {
+            width: 120px;
+            height: 120px;
+            background: white;
+            border: 5px solid #34495e;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 60px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .reel.spinning {
+            animation: spin 2s ease-out;
+        }
+
+        @keyframes spin {
+            0% { transform: rotateY(0deg); }
+            50% { transform: rotateY(180deg); }
+            100% { transform: rotateY(360deg); }
+        }
+
+        .reel::before {
+            content: '';
+            position: absolute;
+            top: -10px;
+            left: -10px;
+            right: -10px;
+            bottom: -10px;
+            background: linear-gradient(45deg, transparent, rgba(255,255,255,0.3), transparent);
+            border-radius: 20px;
+            animation: shine 3s infinite;
+        }
+
+        @keyframes shine {
+            0%, 100% { opacity: 0; }
+            50% { opacity: 1; }
+        }
+
+        .credits {
+            color: #f39c12;
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .bet-controls {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 20px 0;
+            justify-content: center;
+        }
+
+        .bet-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: transform 0.2s;
+        }
+
+        .bet-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .bet-amount {
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            min-width: 100px;
+        }
+
+        .spin-btn {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            border: none;
+            padding: 20px 40px;
+            border-radius: 50px;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 30px 0;
+            transition: all 0.3s;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+        }
+
+        .spin-btn:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+        }
+
+        .spin-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .win-message {
+            color: #f39c12;
+            font-size: 28px;
+            font-weight: bold;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            min-height: 40px;
+        }
+
+        .paylines {
+            background: rgba(255,255,255,0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            color: white;
+        }
+
+        .payline {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 18px;
+        }
+
+        .controls {
+            margin: 20px 0;
+        }
+
+        .control-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+
+        .control-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .jackpot {
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            padding: 15px;
+            border-radius: 20px;
+            margin: 20px 0;
+            font-size: 20px;
+            font-weight: bold;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body>
+    <h1>🎰 老虎机</h1>
+    
+    <div class="slot-machine">
+        <div class="jackpot">
+            🏆 大奖: $<span id="jackpot">10000</span>
+        </div>
+        
+        <div class="display">
+            <div class="credits">余额: $<span id="credits">1000</span></div>
+            
+            <div class="reels">
+                <div class="reel" id="reel1">🍒</div>
+                <div class="reel" id="reel2">🍋</div>
+                <div class="reel" id="reel3">🍇</div>
+            </div>
+            
+            <div class="win-message" id="winMessage"></div>
+        </div>
+        
+        <div class="bet-controls">
+            <button class="bet-btn" onclick="changeBet(-10)">-$10</button>
+            <div class="bet-amount">下注: $<span id="betAmount">10</span></div>
+            <button class="bet-btn" onclick="changeBet(10)">+$10</button>
+        </div>
+        
+        <button class="spin-btn" id="spinBtn" onclick="spin()">🎲 旋转</button>
+        
+        <div class="paylines">
+            <div class="payline">
+                <span>🍒 🍒 🍒</span>
+                <span>100x</span>
+            </div>
+            <div class="payline">
+                <span>🍋 🍋 🍋</span>
+                <span>50x</span>
+            </div>
+            <div class="payline">
+                <span>🍇 🍇 🍇</span>
+                <span>25x</span>
+            </div>
+            <div class="payline">
+                <span>🍊 🍊 🍊</span>
+                <span>15x</span>
+            </div>
+            <div class="payline">
+                <span>🍑 🍑 🍑</span>
+                <span>10x</span>
+            </div>
+            <div class="payline">
+                <span>🍎 🍎 🍎</span>
+                <span>5x</span>
+            </div>
+            <div class="payline">
+                <span>🍷 🍷 🍷</span>
+                <span>JACKPOT!</span>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="control-btn" onclick="newGame()">新游戏</button>
+            <button class="control-btn" onclick="showRules()">游戏规则</button>
+        </div>
+    </div>
+
+    <script>
+        class SlotMachine {
+            constructor() {
+                this.symbols = ['🍒', '🍋', '🍇', '🍊', '🍑', '🍎', '🍷'];
+                this.payouts = {
+                    '🍒': 100,
+                    '🍋': 50,
+                    '🍇': 25,
+                    '🍊': 15,
+                    '🍑': 10,
+                    '🍎': 5,
+                    '🍷': 'JACKPOT'
+                };
+                
+                this.credits = 1000;
+                this.betAmount = 10;
+                this.jackpot = 10000;
+                this.isSpinning = false;
+                
+                this.updateDisplay();
+            }
+
+            spin() {
+                if (this.isSpinning || this.credits < this.betAmount) {
+                    return;
+                }
+                
+                this.isSpinning = true;
+                this.credits -= this.betAmount;
+                this.jackpot += Math.floor(this.betAmount * 0.1); // 10%进入奖池
+                
+                document.getElementById('spinBtn').disabled = true;
+                document.getElementById('winMessage').textContent = '';
+                
+                // 动画效果
+                const reels = ['reel1', 'reel2', 'reel3'];
+                reels.forEach(reelId => {
+                    document.getElementById(reelId).classList.add('spinning');
+                });
+                
+                // 模拟旋转过程
+                const spinDuration = 2000;
+                const spinInterval = 100;
+                const spins = spinDuration / spinInterval;
+                
+                let spinCount = 0;
+                const spinTimer = setInterval(() => {
+                    reels.forEach(reelId => {
+                        const randomSymbol = this.symbols[Math.floor(Math.random() * this.symbols.length)];
+                        document.getElementById(reelId).textContent = randomSymbol;
+                    });
+                    
+                    spinCount++;
+                    if (spinCount >= spins) {
+                        clearInterval(spinTimer);
+                        this.finishSpin();
+                    }
+                }, spinInterval);
+            }
+
+            finishSpin() {
+                // 生成最终结果
+                const result = [];
+                for (let i = 0; i < 3; i++) {
+                    result.push(this.symbols[Math.floor(Math.random() * this.symbols.length)]);
+                }
+                
+                // 显示结果
+                document.getElementById('reel1').textContent = result[0];
+                document.getElementById('reel2').textContent = result[1];
+                document.getElementById('reel3').textContent = result[2];
+                
+                // 移除动画
+                setTimeout(() => {
+                    ['reel1', 'reel2', 'reel3'].forEach(reelId => {
+                        document.getElementById(reelId).classList.remove('spinning');
+                    });
+                }, 200);
+                
+                // 计算获奖
+                const winAmount = this.calculateWin(result);
+                this.credits += winAmount;
+                
+                // 显示结果
+                this.showResult(result, winAmount);
+                
+                this.isSpinning = false;
+                document.getElementById('spinBtn').disabled = false;
+                this.updateDisplay();
+            }
+
+            calculateWin(result) {
+                const [sym1, sym2, sym3] = result;
+                
+                // 检查是否三个相同
+                if (sym1 === sym2 && sym2 === sym3) {
+                    if (sym1 === '🍷') {
+                        // 大奖
+                        const jackpotWin = this.jackpot;
+                        this.jackpot = 10000; // 重置奖池
+                        return jackpotWin;
+                    } else {
+                        return this.betAmount * this.payouts[sym1];
+                    }
+                }
+                
+                // 检查是否有两个相同
+                if (sym1 === sym2 || sym2 === sym3 || sym1 === sym3) {
+                    const matchingSymbol = sym1 === sym2 ? sym1 : (sym2 === sym3 ? sym2 : sym1);
+                    if (matchingSymbol !== '🍷') {
+                        return Math.floor(this.betAmount * this.payouts[matchingSymbol] * 0.2);
+                    }
+                }
+                
+                return 0;
+            }
+
+            showResult(result, winAmount) {
+                const winMessage = document.getElementById('winMessage');
+                
+                if (winAmount > 0) {
+                    if (result[0] === '🍷' && result[1] === '🍷' && result[2] === '🍷') {
+                        winMessage.textContent = `🏆 大奖！赢得 $${winAmount}!`;
+                        winMessage.style.color = '#f39c12';
+                        this.playWinAnimation();
+                    } else if (result[0] === result[1] && result[1] === result[2]) {
+                        winMessage.textContent = `🎉 三个相同！赢得 $${winAmount}!`;
+                        winMessage.style.color = '#27ae60';
+                    } else {
+                        winMessage.textContent = `😊 两个相同！赢得 $${winAmount}!`;
+                        winMessage.style.color = '#3498db';
+                    }
+                } else {
+                    winMessage.textContent = '这次没中，再试一次！';
+                    winMessage.style.color = '#e74c3c';
+                }
+            }
+
+            playWinAnimation() {
+                // 大奖动画效果
+                const machine = document.querySelector('.slot-machine');
+                machine.style.animation = 'pulse 0.5s ease-in-out 3';
+                
+                setTimeout(() => {
+                    machine.style.animation = '';
+                }, 1500);
+            }
+
+            changeBet(amount) {
+                const newBet = this.betAmount + amount;
+                if (newBet >= 10 && newBet <= this.credits && newBet <= 100) {
+                    this.betAmount = newBet;
+                    this.updateDisplay();
+                }
+            }
+
+            updateDisplay() {
+                document.getElementById('credits').textContent = this.credits;
+                document.getElementById('betAmount').textContent = this.betAmount;
+                document.getElementById('jackpot').textContent = this.jackpot;
+                
+                // 更新按钮状态
+                document.getElementById('spinBtn').disabled = this.credits < this.betAmount || this.isSpinning;
+            }
+        }
+
+        let game;
+
+        function spin() {
+            game.spin();
+        }
+
+        function changeBet(amount) {
+            game.changeBet(amount);
+        }
+
+        function newGame() {
+            game = new SlotMachine();
+            document.getElementById('winMessage').textContent = '';
+        }
+
+        function showRules() {
+            alert(`老虎机规则：\n1. 设置下注金额（10-100美元）\n2. 点击旋转按钮开始游戏\n3. 三个相同符号获得对应倍数奖金\n4. 两个相同符号获得20%奖金\n5. 三个酒杯符号获得大奖\n6. 每次下注10%进入奖池`);
+        }
+
+        // 添加CSS动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+            }
+        `;
+        document.head.appendChild(style);
+
+        // 初始化游戏
+        newGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>黑白棋</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #2F4F4F 0%, #696969 50%, #A9A9A9 100%);
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: white;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(8, 60px);
+            grid-template-rows: repeat(8, 60px);
+            gap: 2px;
+            background: #2F4F4F;
+            border: 3px solid #2F4F4F;
+            margin: 20px auto;
+        }
+
+        .cell {
+            width: 60px;
+            height: 60px;
+            background: #228B22;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .cell.valid-move {
+            background: #90EE90;
+        }
+
+        .cell:hover.valid-move::after {
+            content: '';
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.3);
+            border: 2px dashed #333;
+        }
+
+        .piece {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: 2px solid #333;
+            transition: transform 0.3s;
+        }
+
+        .piece.black {
+            background: radial-gradient(circle, #2F2F2F, #000);
+        }
+
+        .piece.white {
+            background: radial-gradient(circle, #F5F5F5, #DCDCDC);
+        }
+
+        .piece.flipping {
+            animation: flip 0.6s ease-in-out;
+        }
+
+        @keyframes flip {
+            50% { transform: rotateY(90deg); }
+        }
+
+        .game-info {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            color: #2F4F4F;
+        }
+
+        .score {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        button {
+            background: linear-gradient(45deg, #2F4F4F, #696969);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .status {
+            background: rgba(255,255,255,0.9);
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>⚫⚪ 黑白棋</h1>
+    
+    <div class="game-container">
+        <div class="game-info">
+            <div class="status" id="status">黑方回合</div>
+            <div class="score">
+                <div>黑方: <span id="blackScore">2</span></div>
+                <div>白方: <span id="whiteScore">2</span></div>
+            </div>
+        </div>
+        
+        <div class="board" id="board"></div>
+        
+        <div class="controls">
+            <button onclick="newGame()">新游戏</button>
+            <button onclick="showRules()">游戏规则</button>
+        </div>
+    </div>
+
+    <script>
+        class Reversi {
+            constructor() {
+                this.board = Array(8).fill(null).map(() => Array(8).fill(null));
+                this.currentPlayer = 'black';
+                this.gameOver = false;
+                
+                // 初始棋盘设置
+                this.board[3][3] = 'white';
+                this.board[3][4] = 'black';
+                this.board[4][3] = 'black';
+                this.board[4][4] = 'white';
+                
+                this.initBoard();
+                this.updateStatus();
+            }
+
+            initBoard() {
+                const boardElement = document.getElementById('board');
+                boardElement.innerHTML = '';
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        
+                        if (this.isValidMove(row, col)) {
+                            cell.classList.add('valid-move');
+                            cell.onclick = () => this.makeMove(row, col);
+                        }
+                        
+                        const piece = this.board[row][col];
+                        if (piece) {
+                            const pieceElement = document.createElement('div');
+                            pieceElement.className = `piece ${piece}`;
+                            cell.appendChild(pieceElement);
+                        }
+                        
+                        boardElement.appendChild(cell);
+                    }
+                }
+                
+                this.updateScore();
+            }
+
+            isValidMove(row, col) {
+                if (this.board[row][col] !== null) return false;
+                
+                const directions = [
+                    [-1, -1], [-1, 0], [-1, 1],
+                    [0, -1],           [0, 1],
+                    [1, -1],  [1, 0],  [1, 1]
+                ];
+                
+                for (let [dx, dy] of directions) {
+                    if (this.canFlipInDirection(row, col, dx, dy)) {
+                        return true;
+                    }
+                }
+                
+                return false;
+            }
+
+            canFlipInDirection(row, col, dx, dy) {
+                let x = row + dx;
+                let y = col + dy;
+                let foundOpponent = false;
+                
+                while (x >= 0 && x < 8 && y >= 0 && y < 8) {
+                    if (this.board[x][y] === null) {
+                        return false;
+                    }
+                    
+                    if (this.board[x][y] === this.currentPlayer) {
+                        return foundOpponent;
+                    }
+                    
+                    foundOpponent = true;
+                    x += dx;
+                    y += dy;
+                }
+                
+                return false;
+            }
+
+            makeMove(row, col) {
+                if (!this.isValidMove(row, col)) return;
+                
+                this.board[row][col] = this.currentPlayer;
+                
+                const directions = [
+                    [-1, -1], [-1, 0], [-1, 1],
+                    [0, -1],           [0, 1],
+                    [1, -1],  [1, 0],  [1, 1]
+                ];
+                
+                // 翻转棋子
+                for (let [dx, dy] of directions) {
+                    if (this.canFlipInDirection(row, col, dx, dy)) {
+                        this.flipInDirection(row, col, dx, dy);
+                    }
+                }
+                
+                this.switchPlayer();
+                this.initBoard();
+                
+                // 检查游戏是否结束
+                if (!this.hasValidMoves()) {
+                    this.switchPlayer();
+                    if (!this.hasValidMoves()) {
+                        this.endGame();
+                    }
+                }
+                
+                this.updateStatus();
+            }
+
+            flipInDirection(row, col, dx, dy) {
+                let x = row + dx;
+                let y = col + dy;
+                
+                while (x >= 0 && x < 8 && y >= 0 && y < 8 && 
+                       this.board[x][y] !== this.currentPlayer) {
+                    this.board[x][y] = this.currentPlayer;
+                    x += dx;
+                    y += dy;
+                }
+            }
+
+            hasValidMoves() {
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        if (this.isValidMove(row, col)) {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            switchPlayer() {
+                this.currentPlayer = this.currentPlayer === 'black' ? 'white' : 'black';
+            }
+
+            updateScore() {
+                let blackCount = 0;
+                let whiteCount = 0;
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        if (this.board[row][col] === 'black') blackCount++;
+                        else if (this.board[row][col] === 'white') whiteCount++;
+                    }
+                }
+                
+                document.getElementById('blackScore').textContent = blackCount;
+                document.getElementById('whiteScore').textContent = whiteCount;
+            }
+
+            updateStatus() {
+                const status = document.getElementById('status');
+                if (this.gameOver) {
+                    const blackScore = parseInt(document.getElementById('blackScore').textContent);
+                    const whiteScore = parseInt(document.getElementById('whiteScore').textContent);
+                    
+                    if (blackScore > whiteScore) {
+                        status.textContent = '游戏结束！黑方获胜！';
+                    } else if (whiteScore > blackScore) {
+                        status.textContent = '游戏结束！白方获胜！';
+                    } else {
+                        status.textContent = '游戏结束！平局！';
+                    }
+                    status.style.background = '#FFD700';
+                } else {
+                    status.textContent = this.currentPlayer === 'black' ? '黑方回合' : '白方回合';
+                    status.style.background = this.currentPlayer === 'black' ? '#E6E6E6' : '#F5F5F5';
+                }
+            }
+
+            endGame() {
+                this.gameOver = true;
+            }
+        }
+
+        let game;
+
+        function newGame() {
+            game = new Reversi();
+        }
+
+        function showRules() {
+            alert(`黑白棋规则：\n1. 黑方先手\n2. 必须放在能夹住对方棋子的位置\n3. 夹住的对方棋子会翻转成己方颜色\n4. 如果无法下棋则跳过回合\n5. 双方都无法下棋时游戏结束\n6. 棋子多的一方获胜`);
+        }
+
+        // 初始化游戏
+        newGame();
+    </script>
+</body>
+</html>

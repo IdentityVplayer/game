@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>找单词</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #00b894 0%, #00cec9 100%);
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 800px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(15, 25px);
+            grid-template-rows: repeat(15, 25px);
+            gap: 1px;
+            margin: 20px auto;
+            background: #ddd;
+            padding: 5px;
+            user-select: none;
+        }
+
+        .cell {
+            width: 25px;
+            height: 25px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .cell:hover {
+            background: #81ecec;
+        }
+
+        .cell.selected {
+            background: #74b9ff;
+            color: white;
+        }
+
+        .cell.found {
+            background: #00b894;
+            color: white;
+        }
+
+        .word-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .word-item {
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 20px;
+            text-align: center;
+            font-weight: bold;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .word-item:hover {
+            background: #e9ecef;
+            transform: scale(1.05);
+        }
+
+        .word-item.found {
+            background: #00b894;
+            color: white;
+            text-decoration: line-through;
+        }
+
+        .game-info {
+            text-align: center;
+            margin: 20px 0;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #00b894;
+        }
+
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        button {
+            background: linear-gradient(45deg, #00b894, #00cec9);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .timer {
+            font-size: 20px;
+            font-weight: bold;
+            color: #00b894;
+            margin: 10px 0;
+        }
+
+        .difficulty {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .difficulty label {
+            margin: 0 10px;
+            cursor: pointer;
+        }
+
+        input[type="radio"] {
+            margin-right: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 找单词</h1>
+    
+    <div class="game-container">
+        <div class="game-info">
+            <div class="timer" id="timer">00:00</div>
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number" id="found">0</div>
+                    <div>已找到</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="total">10</div>
+                    <div>总数</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="percentage">0%</div>
+                    <div>完成度</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="difficulty">
+            <label><input type="radio" name="difficulty" value="easy" checked> 简单 (8个单词)</label>
+            <label><input type="radio" name="difficulty" value="medium"> 中等 (12个单词)</label>
+            <label><input type="radio" name="difficulty" value="hard"> 困难 (16个单词)</label>
+        </div>
+        
+        <div class="grid" id="grid"></div>
+        
+        <div class="word-list" id="wordList"></div>
+        
+        <div class="controls">
+            <button onclick="newGame()">新游戏</button>
+            <button onclick="showHint()">显示提示</button>
+            <button onclick="giveUp()">放弃</button>
+        </div>
+    </div>
+
+    <script>
+        class WordSearch {
+            constructor() {
+                this.gridSize = 15;
+                this.grid = [];
+                this.words = [];
+                this.foundWords = [];
+                this.selectedCells = [];
+                this.isSelecting = false;
+                this.startTime = 0;
+                this.timerInterval = null;
+                
+                this.wordLists = {
+                    easy: ['CAT', 'DOG', 'BIRD', 'FISH', 'LOVE', 'BOOK', 'GAME', 'FIRE'],
+                    medium: ['APPLE', 'WATER', 'HOUSE', 'MUSIC', 'LIGHT', 'WORLD', 'PEACE', 'DREAM', 'SMILE', 'HEART', 'DANCE', 'POWER'],
+                    hard: ['COMPUTER', 'ELEPHANT', 'MOUNTAIN', 'RAINBOW', 'CHOCOLATE', 'BUTTERFLY', 'ADVENTURE', 'KNOWLEDGE', 'WONDERFUL', 'BEAUTIFUL', 'FANTASTIC', 'INCREDIBLE', 'AMAZING', 'BRILLIANT', 'CREATIVE', 'POSITIVE']
+                };
+                
+                this.initGame();
+            }
+
+            initGame() {
+                this.getDifficulty();
+                this.generateGrid();
+                this.placeWords();
+                this.fillEmptySpaces();
+                this.renderGrid();
+                this.renderWordList();
+                this.updateStats();
+                this.startTimer();
+            }
+
+            getDifficulty() {
+                const difficulty = document.querySelector('input[name="difficulty"]:checked').value;
+                this.words = [...this.wordLists[difficulty]];
+                this.foundWords = [];
+            }
+
+            generateGrid() {
+                this.grid = Array(this.gridSize).fill(null).map(() => 
+                    Array(this.gridSize).fill(''));
+            }
+
+            placeWords() {
+                const directions = [
+                    [0, 1],   // 水平向右
+                    [1, 0],   // 垂直向下
+                    [1, 1],   // 对角线向下右
+                    [0, -1],  // 水平向左
+                    [-1, 0],  // 垂直向上
+                    [-1, -1], // 对角线向上左
+                    [1, -1],  // 对角线向下左
+                    [-1, 1]   // 对角线向上右
+                ];
+                
+                this.words.forEach(word => {
+                    let placed = false;
+                    let attempts = 0;
+                    
+                    while (!placed && attempts < 100) {
+                        const direction = directions[Math.floor(Math.random() * directions.length)];
+                        const startRow = Math.floor(Math.random() * this.gridSize);
+                        const startCol = Math.floor(Math.random() * this.gridSize);
+                        
+                        if (this.canPlaceWord(word, startRow, startCol, direction)) {
+                            this.placeWord(word, startRow, startCol, direction);
+                            placed = true;
+                        }
+                        
+                        attempts++;
+                    }
+                });
+            }
+
+            canPlaceWord(word, startRow, startCol, direction) {
+                const [deltaRow, deltaCol] = direction;
+                
+                for (let i = 0; i < word.length; i++) {
+                    const row = startRow + i * deltaRow;
+                    const col = startCol + i * deltaCol;
+                    
+                    if (row < 0 || row >= this.gridSize || col < 0 || col >= this.gridSize) {
+                        return false;
+                    }
+                    
+                    if (this.grid[row][col] !== '' && this.grid[row][col] !== word[i]) {
+                        return false;
+                    }
+                }
+                
+                return true;
+            }
+
+            placeWord(word, startRow, startCol, direction) {
+                const [deltaRow, deltaCol] = direction;
+                
+                for (let i = 0; i < word.length; i++) {
+                    const row = startRow + i * deltaRow;
+                    const col = startCol + i * deltaCol;
+                    this.grid[row][col] = word[i];
+                }
+            }
+
+            fillEmptySpaces() {
+                for (let row = 0; row < this.gridSize; row++) {
+                    for (let col = 0; col < this.gridSize; col++) {
+                        if (this.grid[row][col] === '') {
+                            this.grid[row][col] = String.fromCharCode(65 + Math.floor(Math.random() * 26));
+                        }
+                    }
+                }
+            }
+
+            renderGrid() {
+                const gridElement = document.getElementById('grid');
+                gridElement.innerHTML = '';
+                
+                for (let row = 0; row < this.gridSize; row++) {
+                    for (let col = 0; col < this.gridSize; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.textContent = this.grid[row][col];
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        
+                        cell.onmousedown = () => this.startSelection(row, col);
+                        cell.onmouseenter = () => this.extendSelection(row, col);
+                        cell.onmouseup = () => this.endSelection();
+                        
+                        gridElement.appendChild(cell);
+                    }
+                }
+                
+                document.addEventListener('mouseup', () => this.endSelection());
+            }
+
+            renderWordList() {
+                const wordList = document.getElementById('wordList');
+                wordList.innerHTML = '';
+                
+                this.words.forEach(word => {
+                    const wordItem = document.createElement('div');
+                    wordItem.className = `word-item ${this.foundWords.includes(word) ? 'found' : ''}`;
+                    wordItem.textContent = word;
+                    wordItem.onclick = () => this.highlightWord(word);
+                    wordList.appendChild(wordItem);
+                });
+            }
+
+            startSelection(row, col) {
+                this.isSelecting = true;
+                this.selectedCells = [[row, col]];
+                this.updateCellHighlight();
+            }
+
+            extendSelection(row, col) {
+                if (!this.isSelecting || this.selectedCells.length === 0) return;
+                
+                const [startRow, startCol] = this.selectedCells[0];
+                const cells = this.getLineCells(startRow, startCol, row, col);
+                this.selectedCells = cells;
+                this.updateCellHighlight();
+            }
+
+            endSelection() {
+                if (this.isSelecting && this.selectedCells.length > 1) {
+                    this.checkSelectedWord();
+                }
+                
+                this.isSelecting = false;
+                setTimeout(() => {
+                    if (!this.isSelecting) {
+                        this.clearSelection();
+                    }
+                }, 100);
+            }
+
+            getLineCells(startRow, startCol, endRow, endCol) {
+                const cells = [];
+                const deltaRow = Math.sign(endRow - startRow);
+                const deltaCol = Math.sign(endCol - startCol);
+                
+                let currentRow = startRow;
+                let currentCol = startCol;
+                
+                while (true) {
+                    cells.push([currentRow, currentCol]);
+                    
+                    if (currentRow === endRow && currentCol === endCol) break;
+                    
+                    currentRow += deltaRow;
+                    currentCol += deltaCol;
+                    
+                    if (currentRow < 0 || currentRow >= this.gridSize || 
+                        currentCol < 0 || currentCol >= this.gridSize) break;
+                }
+                
+                return cells;
+            }
+
+            updateCellHighlight() {
+                document.querySelectorAll('.cell').forEach(cell => {
+                    cell.classList.remove('selected');
+                });
+                
+                this.selectedCells.forEach(([row, col]) => {
+                    const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                    if (cell) {
+                        cell.classList.add('selected');
+                    }
+                });
+            }
+
+            clearSelection() {
+                this.selectedCells = [];
+                document.querySelectorAll('.cell').forEach(cell => {
+                    cell.classList.remove('selected');
+                });
+            }
+
+            checkSelectedWord() {
+                const selectedWord = this.selectedCells.map(([row, col]) => this.grid[row][col]).join('');
+                const reversedWord = selectedWord.split('').reverse().join('');
+                
+                for (let word of this.words) {
+                    if ((selectedWord === word || reversedWord === word) && !this.foundWords.includes(word)) {
+                        this.foundWords.push(word);
+                        this.markWordAsFound();
+                        this.renderWordList();
+                        this.updateStats();
+                        
+                        if (this.foundWords.length === this.words.length) {
+                            this.gameComplete();
+                        }
+                        break;
+                    }
+                }
+            }
+
+            markWordAsFound() {
+                this.selectedCells.forEach(([row, col]) => {
+                    const cell = document.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+                    if (cell) {
+                        cell.classList.add('found');
+                    }
+                });
+            }
+
+            highlightWord(word) {
+                // 简化版本：只显示提示
+                alert(`找找单词: ${word}`);
+            }
+
+            showHint() {
+                const unFoundWords = this.words.filter(word => !this.foundWords.includes(word));
+                if (unFoundWords.length > 0) {
+                    const hintWord = unFoundWords[Math.floor(Math.random() * unFoundWords.length)];
+                    alert(`提示: 找找单词 "${hintWord}"`);
+                }
+            }
+
+            giveUp() {
+                this.words.forEach(word => {
+                    if (!this.foundWords.includes(word)) {
+                        this.foundWords.push(word);
+                    }
+                });
+                
+                // 高亮所有单词
+                document.querySelectorAll('.cell').forEach(cell => {
+                    cell.classList.add('found');
+                });
+                
+                this.renderWordList();
+                this.updateStats();
+                alert('游戏结束！所有单词已显示。');
+            }
+
+            startTimer() {
+                this.startTime = Date.now();
+                this.timerInterval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                    const minutes = Math.floor(elapsed / 60);
+                    const seconds = elapsed % 60;
+                    document.getElementById('timer').textContent = 
+                        `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                }, 1000);
+            }
+
+            updateStats() {
+                document.getElementById('found').textContent = this.foundWords.length;
+                document.getElementById('total').textContent = this.words.length;
+                const percentage = Math.round((this.foundWords.length / this.words.length) * 100);
+                document.getElementById('percentage').textContent = percentage + '%';
+            }
+
+            gameComplete() {
+                clearInterval(this.timerInterval);
+                const elapsed = Math.floor((Date.now() - this.startTime) / 1000);
+                setTimeout(() => {
+                    alert(`恭喜你！游戏完成！\n用时: ${Math.floor(elapsed / 60)}:${(elapsed % 60).toString().padStart(2, '0')}`);
+                }, 500);
+            }
+        }
+
+        let game;
+
+        function newGame() {
+            if (game && game.timerInterval) {
+                clearInterval(game.timerInterval);
+            }
+            game = new WordSearch();
+        }
+
+        function showHint() {
+            game.showHint();
+        }
+
+        function giveUp() {
+            game.giveUp();
+        }
+
+        // 初始化游戏
+        newGame();
+    </script>
+</body>
+</html>

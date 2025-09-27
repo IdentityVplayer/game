@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>德州扑克</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #0F4C75 0%, #3282B8 50%, #BBE1FA 100%);
+            min-height: 100vh;
+        }
+
+        .game-container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        h1 {
+            text-align: center;
+            color: #0F4C75;
+            margin-bottom: 30px;
+        }
+
+        .table {
+            width: 100%;
+            height: 400px;
+            background: #0F5132;
+            border-radius: 200px;
+            position: relative;
+            margin: 30px 0;
+            border: 8px solid #8B4513;
+        }
+
+        .community-cards {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            gap: 10px;
+        }
+
+        .card {
+            width: 60px;
+            height: 80px;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .card.red {
+            color: red;
+        }
+
+        .card.black {
+            color: black;
+        }
+
+        .card.back {
+            background: linear-gradient(45deg, #1a1a2e, #16213e);
+            color: white;
+        }
+
+        .player-area {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+
+        .player {
+            text-align: center;
+            padding: 15px;
+            background: rgba(255,255,255,0.9);
+            border-radius: 10px;
+            min-width: 120px;
+        }
+
+        .player.active {
+            background: #FFD700;
+            transform: scale(1.05);
+        }
+
+        .player-cards {
+            display: flex;
+            gap: 5px;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .player-cards .card {
+            width: 40px;
+            height: 55px;
+            font-size: 10px;
+        }
+
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        button {
+            background: linear-gradient(45deg, #0F4C75, #3282B8);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .game-info {
+            background: rgba(255,255,255,0.9);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .betting-area {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .chips {
+            font-weight: bold;
+            color: #0F4C75;
+        }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>🃏 德州扑克</h1>
+        
+        <div class="game-info">
+            <div>底池: $<span id="pot">0</span> | 当前下注: $<span id="currentBet">0</span></div>
+            <div id="gamePhase">等待开始</div>
+        </div>
+        
+        <div class="table">
+            <div class="community-cards" id="communityCards">
+                <!-- 公共牌 -->
+            </div>
+        </div>
+        
+        <div class="player-area">
+            <div class="player" id="player1">
+                <div>玩家</div>
+                <div class="player-cards" id="playerCards"></div>
+                <div class="chips">$<span id="playerChips">1000</span></div>
+            </div>
+            
+            <div class="player" id="computer1">
+                <div>电脑1</div>
+                <div class="player-cards" id="comp1Cards"></div>
+                <div class="chips">$<span id="comp1Chips">1000</span></div>
+            </div>
+            
+            <div class="player" id="computer2">
+                <div>电脑2</div>
+                <div class="player-cards" id="comp2Cards"></div>
+                <div class="chips">$<span id="comp2Chips">1000</span></div>
+            </div>
+        </div>
+        
+        <div class="betting-area">
+            <button onclick="fold()" id="foldBtn">弃牌</button>
+            <button onclick="call()" id="callBtn">跟注</button>
+            <button onclick="raise()" id="raiseBtn">加注</button>
+            <button onclick="check()" id="checkBtn">过牌</button>
+        </div>
+        
+        <div class="controls">
+            <button onclick="newGame()">新游戏</button>
+            <button onclick="showRules()">游戏规则</button>
+        </div>
+    </div>
+
+    <script>
+        class TexasHoldem {
+            constructor() {
+                this.deck = [];
+                this.players = [
+                    { id: 'player', name: '玩家', chips: 1000, cards: [], bet: 0, folded: false, isHuman: true },
+                    { id: 'comp1', name: '电脑1', chips: 1000, cards: [], bet: 0, folded: false, isHuman: false },
+                    { id: 'comp2', name: '电脑2', chips: 1000, cards: [], bet: 0, folded: false, isHuman: false }
+                ];
+                this.communityCards = [];
+                this.pot = 0;
+                this.currentBet = 0;
+                this.currentPlayer = 0;
+                this.phase = 'preflop'; // preflop, flop, turn, river
+                this.gameActive = false;
+                
+                this.initDeck();
+                this.updateDisplay();
+            }
+
+            initDeck() {
+                const suits = ['♠', '♥', '♦', '♣'];
+                const ranks = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+                
+                this.deck = [];
+                for (let suit of suits) {
+                    for (let rank of ranks) {
+                        this.deck.push({
+                            suit: suit,
+                            rank: rank,
+                            isRed: suit === '♥' || suit === '♦'
+                        });
+                    }
+                }
+                
+                // 洗牌
+                for (let i = this.deck.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
+                }
+            }
+
+            dealCards() {
+                // 发两张牌给每个玩家
+                for (let i = 0; i < 2; i++) {
+                    for (let player of this.players) {
+                        if (!player.folded) {
+                            player.cards.push(this.deck.pop());
+                        }
+                    }
+                }
+            }
+
+            dealCommunityCards(count) {
+                for (let i = 0; i < count; i++) {
+                    this.communityCards.push(this.deck.pop());
+                }
+            }
+
+            createCardElement(card, faceDown = false) {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = `card ${faceDown ? 'back' : (card.isRed ? 'red' : 'black')}`;
+                
+                if (faceDown) {
+                    cardDiv.innerHTML = '🂠';
+                } else {
+                    cardDiv.innerHTML = `<div>${card.rank}</div><div>${card.suit}</div>`;
+                }
+                
+                return cardDiv;
+            }
+
+            updateDisplay() {
+                // 更新公共牌
+                const communityElement = document.getElementById('communityCards');
+                communityElement.innerHTML = '';
+                this.communityCards.forEach(card => {
+                    communityElement.appendChild(this.createCardElement(card));
+                });
+                
+                // 更新玩家手牌
+                const playerCardsElement = document.getElementById('playerCards');
+                playerCardsElement.innerHTML = '';
+                this.players[0].cards.forEach(card => {
+                    playerCardsElement.appendChild(this.createCardElement(card));
+                });
+                
+                // 更新电脑手牌（背面）
+                const comp1CardsElement = document.getElementById('comp1Cards');
+                comp1CardsElement.innerHTML = '';
+                this.players[1].cards.forEach(card => {
+                    comp1CardsElement.appendChild(this.createCardElement(card, true));
+                });
+                
+                const comp2CardsElement = document.getElementById('comp2Cards');
+                comp2CardsElement.innerHTML = '';
+                this.players[2].cards.forEach(card => {
+                    comp2CardsElement.appendChild(this.createCardElement(card, true));
+                });
+                
+                // 更新筹码
+                document.getElementById('playerChips').textContent = this.players[0].chips;
+                document.getElementById('comp1Chips').textContent = this.players[1].chips;
+                document.getElementById('comp2Chips').textContent = this.players[2].chips;
+                
+                // 更新底池和当前下注
+                document.getElementById('pot').textContent = this.pot;
+                document.getElementById('currentBet').textContent = this.currentBet;
+                
+                // 更新游戏阶段
+                document.getElementById('gamePhase').textContent = this.getPhaseText();
+                
+                // 更新按钮状态
+                this.updateButtons();
+                
+                // 高亮当前玩家
+                document.querySelectorAll('.player').forEach(p => p.classList.remove('active'));
+                if (this.gameActive && this.currentPlayer < this.players.length) {
+                    const playerElements = ['player1', 'computer1', 'computer2'];
+                    document.getElementById(playerElements[this.currentPlayer]).classList.add('active');
+                }
+            }
+
+            getPhaseText() {
+                switch (this.phase) {
+                    case 'preflop': return '翻牌前';
+                    case 'flop': return '翻牌';
+                    case 'turn': return '转牌';
+                    case 'river': return '河牌';
+                    default: return '等待开始';
+                }
+            }
+
+            updateButtons() {
+                const canAct = this.gameActive && this.currentPlayer === 0 && !this.players[0].folded;
+                
+                document.getElementById('foldBtn').disabled = !canAct;
+                document.getElementById('callBtn').disabled = !canAct || this.currentBet === 0;
+                document.getElementById('raiseBtn').disabled = !canAct;
+                document.getElementById('checkBtn').disabled = !canAct || this.currentBet > this.players[0].bet;
+            }
+
+            startNewHand() {
+                // 重置状态
+                this.players.forEach(player => {
+                    player.cards = [];
+                    player.bet = 0;
+                    player.folded = false;
+                });
+                
+                this.communityCards = [];
+                this.pot = 0;
+                this.currentBet = 0;
+                this.currentPlayer = 0;
+                this.phase = 'preflop';
+                this.gameActive = true;
+                
+                this.initDeck();
+                this.dealCards();
+                this.updateDisplay();
+            }
+
+            fold() {
+                this.players[0].folded = true;
+                this.nextPlayer();
+            }
+
+            call() {
+                const callAmount = this.currentBet - this.players[0].bet;
+                this.players[0].chips -= callAmount;
+                this.players[0].bet += callAmount;
+                this.pot += callAmount;
+                this.nextPlayer();
+            }
+
+            raise() {
+                const raiseAmount = 50; // 固定加注金额
+                const totalBet = this.currentBet + raiseAmount;
+                const playerBetAmount = totalBet - this.players[0].bet;
+                
+                this.players[0].chips -= playerBetAmount;
+                this.players[0].bet = totalBet;
+                this.pot += playerBetAmount;
+                this.currentBet = totalBet;
+                
+                this.nextPlayer();
+            }
+
+            check() {
+                this.nextPlayer();
+            }
+
+            nextPlayer() {
+                this.currentPlayer = (this.currentPlayer + 1) % 3;
+                
+                // 如果是电脑回合
+                if (this.currentPlayer !== 0 && this.gameActive) {
+                    setTimeout(() => this.computerAction(), 1000);
+                } else {
+                    this.checkRoundEnd();
+                }
+                
+                this.updateDisplay();
+            }
+
+            computerAction() {
+                const player = this.players[this.currentPlayer];
+                if (player.folded) {
+                    this.nextPlayer();
+                    return;
+                }
+                
+                // 简单的AI逻辑
+                const random = Math.random();
+                if (random < 0.3) {
+                    // 弃牌
+                    player.folded = true;
+                } else if (random < 0.7 || this.currentBet === 0) {
+                    // 跟注或过牌
+                    const callAmount = this.currentBet - player.bet;
+                    player.chips -= callAmount;
+                    player.bet += callAmount;
+                    this.pot += callAmount;
+                } else {
+                    // 加注
+                    const raiseAmount = 50;
+                    const totalBet = this.currentBet + raiseAmount;
+                    const betAmount = totalBet - player.bet;
+                    
+                    player.chips -= betAmount;
+                    player.bet = totalBet;
+                    this.pot += betAmount;
+                    this.currentBet = totalBet;
+                }
+                
+                this.nextPlayer();
+            }
+
+            checkRoundEnd() {
+                // 检查是否所有玩家都行动过
+                const activePlayers = this.players.filter(p => !p.folded);
+                if (activePlayers.length <= 1) {
+                    this.endHand();
+                    return;
+                }
+                
+                // 检查是否进入下一阶段
+                const allBetsEqual = activePlayers.every(p => p.bet === this.currentBet);
+                if (allBetsEqual && this.currentPlayer === 0) {
+                    this.nextPhase();
+                }
+            }
+
+            nextPhase() {
+                // 重置下注
+                this.players.forEach(player => player.bet = 0);
+                this.currentBet = 0;
+                
+                switch (this.phase) {
+                    case 'preflop':
+                        this.phase = 'flop';
+                        this.dealCommunityCards(3);
+                        break;
+                    case 'flop':
+                        this.phase = 'turn';
+                        this.dealCommunityCards(1);
+                        break;
+                    case 'turn':
+                        this.phase = 'river';
+                        this.dealCommunityCards(1);
+                        break;
+                    case 'river':
+                        this.endHand();
+                        return;
+                }
+                
+                this.currentPlayer = 0;
+                this.updateDisplay();
+            }
+
+            endHand() {
+                this.gameActive = false;
+                
+                const activePlayers = this.players.filter(p => !p.folded);
+                if (activePlayers.length === 1) {
+                    // 只有一个玩家没弃牌
+                    activePlayers[0].chips += this.pot;
+                    alert(`${activePlayers[0].name} 获胜！赢得 $${this.pot}`);
+                } else {
+                    // 比较手牌（简化版本）
+                    alert('游戏结束！这是简化版本，暂不比较手牌大小。');
+                }
+                
+                this.updateDisplay();
+            }
+        }
+
+        let game;
+
+        function newGame() {
+            game = new TexasHoldem();
+            game.startNewHand();
+        }
+
+        function fold() {
+            game.fold();
+        }
+
+        function call() {
+            game.call();
+        }
+
+        function raise() {
+            game.raise();
+        }
+
+        function check() {
+            game.check();
+        }
+
+        function showRules() {
+            alert(`德州扑克规则：\n1. 每位玩家发2张底牌\n2. 依次发出3张、1张、1张公共牌\n3. 玩家用底牌+公共牌组成最佳5张牌\n4. 每轮可以弃牌、跟注、加注或过牌\n5. 最大的牌型获胜`);
+        }
+
+        // 初始化游戏
+        newGame();
+    </script>
+</body>
+</html>
