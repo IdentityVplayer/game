@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔法拼图 8852</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #FFEAA7, #F7DC6F);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #BB8FCE, #45B7D1);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #333;
+        }
+        
+        
+        #puzzleGrid {
+            display: grid;
+            grid-template-columns: repeat(5, 80px);
+            grid-template-rows: repeat(5, 80px);
+            gap: 2px;
+            margin: 20px auto;
+            width: fit-content;
+            background-color: #333;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        
+        .puzzle-tile {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(45deg, #BB8FCE, #DDA0DD);
+            border: none;
+            border-radius: 5px;
+            font-size: 24px;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .puzzle-tile:hover {
+            transform: scale(1.05);
+        }
+        
+        .empty {
+            background: transparent !important;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>魔法拼图 8852</h1>
+        
+        <div id="puzzleGrid"></div>
+        <div class="score">步数: <span id="moves">0</span></div>
+        <button class="btn" onclick="shufflePuzzle()">打乱</button>
+        <button class="btn" onclick="solvePuzzle()">解决</button>
+        
+    </div>
+    
+    <script>
+        
+        const SIZE = 5;
+        let puzzle = [];
+        let emptyPos = {x: SIZE - 1, y: SIZE - 1};
+        let moves = 0;
+        
+        function initPuzzle() {
+            puzzle = [];
+            for (let i = 0; i < SIZE; i++) {
+                puzzle[i] = [];
+                for (let j = 0; j < SIZE; j++) {
+                    puzzle[i][j] = i * SIZE + j + 1;
+                }
+            }
+            puzzle[SIZE - 1][SIZE - 1] = 0; // Empty space
+            emptyPos = {x: SIZE - 1, y: SIZE - 1};
+            moves = 0;
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            const grid = document.getElementById('puzzleGrid');
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE; j++) {
+                    const tile = document.createElement('button');
+                    tile.className = 'puzzle-tile';
+                    
+                    if (puzzle[i][j] === 0) {
+                        tile.classList.add('empty');
+                    } else {
+                        tile.textContent = puzzle[i][j];
+                        tile.onclick = () => moveTile(i, j);
+                    }
+                    
+                    grid.appendChild(tile);
+                }
+            }
+            
+            document.getElementById('moves').textContent = moves;
+        }
+        
+        function moveTile(x, y) {
+            const dx = Math.abs(x - emptyPos.x);
+            const dy = Math.abs(y - emptyPos.y);
+            
+            if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
+                puzzle[emptyPos.x][emptyPos.y] = puzzle[x][y];
+                puzzle[x][y] = 0;
+                emptyPos = {x, y};
+                moves++;
+                updateDisplay();
+                
+                if (isSolved()) {
+                    setTimeout(() => alert('恭喜！你完成了拼图！步数: ' + moves), 100);
+                }
+            }
+        }
+        
+        function isSolved() {
+            for (let i = 0; i < SIZE; i++) {
+                for (let j = 0; j < SIZE; j++) {
+                    const expected = i * SIZE + j + 1;
+                    if (i === SIZE - 1 && j === SIZE - 1) {
+                        if (puzzle[i][j] !== 0) return false;
+                    } else {
+                        if (puzzle[i][j] !== expected) return false;
+                    }
+                }
+            }
+            return true;
+        }
+        
+        function shufflePuzzle() {
+            for (let i = 0; i < 1000; i++) {
+                const directions = [];
+                if (emptyPos.x > 0) directions.push({x: -1, y: 0});
+                if (emptyPos.x < SIZE - 1) directions.push({x: 1, y: 0});
+                if (emptyPos.y > 0) directions.push({x: 0, y: -1});
+                if (emptyPos.y < SIZE - 1) directions.push({x: 0, y: 1});
+                
+                const dir = directions[Math.floor(Math.random() * directions.length)];
+                const newX = emptyPos.x + dir.x;
+                const newY = emptyPos.y + dir.y;
+                
+                puzzle[emptyPos.x][emptyPos.y] = puzzle[newX][newY];
+                puzzle[newX][newY] = 0;
+                emptyPos = {x: newX, y: newY};
+            }
+            moves = 0;
+            updateDisplay();
+        }
+        
+        function solvePuzzle() {
+            initPuzzle();
+        }
+        
+        initPuzzle();
+        
+    </script>
+</body>
+</html>
