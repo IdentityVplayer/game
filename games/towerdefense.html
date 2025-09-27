@@ -57,7 +57,7 @@
 
         .tower-btn {
             width: 60px;
-            height: 60px;
+            height: 70px;
             border: 2px solid #27ae60;
             border-radius: 8px;
             background: rgba(39, 174, 96, 0.2);
@@ -69,6 +69,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.3s;
+            position: relative;
         }
 
         .tower-btn:hover {
@@ -79,6 +80,25 @@
         .tower-btn.selected {
             border-color: #f39c12;
             background: rgba(243, 156, 18, 0.3);
+        }
+
+        .tower-btn.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            border-color: #7f8c8d;
+        }
+
+        .charge-indicator {
+            font-size: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 1px 3px;
+            border-radius: 3px;
+            margin-top: 2px;
+        }
+
+        .charge-indicator.ready {
+            background: rgba(39, 174, 96, 0.8);
+            color: white;
         }
 
         .wave-info {
@@ -122,6 +142,37 @@
             transform: scale(1.05);
         }
 
+        #startWaveBtn, #autoWaveBtn {
+            padding: 10px 15px;
+            font-size: 14px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            transition: all 0.3s;
+            display: block;
+            width: calc(100% - 10px);
+        }
+
+        #startWaveBtn:hover, #autoWaveBtn:hover {
+            background: #2980b9;
+        }
+
+        #startWaveBtn:disabled {
+            background: #7f8c8d;
+            cursor: not-allowed;
+        }
+
+        #autoWaveBtn.active {
+            background: #e74c3c;
+        }
+
+        #autoWaveBtn.active:hover {
+            background: #c0392b;
+        }
+
         @media (max-width: 768px) {
             .game-container {
                 width: 95vw;
@@ -131,13 +182,75 @@
             .ui {
                 font-size: 12px;
                 padding: 8px;
+                top: 5px;
+                left: 5px;
+            }
+            
+            .wave-info {
+                top: 5px;
+                right: 5px;
+                padding: 8px;
+                font-size: 12px;
+            }
+            
+            .tower-shop {
+                bottom: 5px;
+                left: 5px;
+                flex-wrap: wrap;
+                max-width: calc(100% - 10px);
             }
             
             .tower-btn {
-                width: 50px;
-                height: 50px;
+                width: 45px;
+                height: 55px;
                 font-size: 10px;
+                margin: 2px;
             }
+
+            .charge-indicator {
+                font-size: 7px;
+                padding: 1px 2px;
+            }
+
+            #startWaveBtn, #autoWaveBtn {
+                padding: 8px 10px;
+                font-size: 12px;
+                margin: 2px;
+            }
+
+            /* 添加触摸友好的按钮 */
+            canvas {
+                touch-action: none;
+            }
+
+            /* 移动端提示 */
+            .mobile-hint {
+                position: absolute;
+                bottom: 120px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                font-size: 12px;
+                text-align: center;
+                display: none;
+                z-index: 10;
+            }
+
+            .mobile-hint.show {
+                display: block;
+            }
+        }
+
+        /* 触摸反馈 */
+        .tower-btn:active {
+            transform: scale(0.95);
+        }
+
+        #startWaveBtn:active, #autoWaveBtn:active {
+            transform: scale(0.95);
         }
     </style>
 </head>
@@ -155,24 +268,34 @@
             <div>第 <span id="waveNum">1</span> 波</div>
             <div>敌人: <span id="enemiesLeft">10</span></div>
             <button id="startWaveBtn" onclick="startWave()">开始波次</button>
+            <button id="autoWaveBtn" onclick="toggleAutoWave()">自动出怪</button>
         </div>
         
         <div class="tower-shop">
             <div class="tower-btn" data-type="basic" onclick="selectTower('basic')">
                 <div>🗼</div>
                 <div>$20</div>
+                <div class="charge-indicator" id="charge-basic">0/1</div>
             </div>
             <div class="tower-btn" data-type="laser" onclick="selectTower('laser')">
                 <div>⚡</div>
                 <div>$50</div>
+                <div class="charge-indicator" id="charge-laser">0/1</div>
             </div>
             <div class="tower-btn" data-type="missile" onclick="selectTower('missile')">
                 <div>🚀</div>
                 <div>$80</div>
+                <div class="charge-indicator" id="charge-missile">0/1</div>
             </div>
             <div class="tower-btn" data-type="freeze" onclick="selectTower('freeze')">
                 <div>❄️</div>
                 <div>$60</div>
+                <div class="charge-indicator" id="charge-freeze">0/1</div>
+            </div>
+            <div class="tower-btn" data-type="wall" onclick="selectTower('wall')">
+                <div>🧱</div>
+                <div>$15</div>
+                <div class="charge-indicator" id="charge-wall">0/3</div>
             </div>
         </div>
         
@@ -181,6 +304,10 @@
             <p style="font-size: 18px; margin-bottom: 10px;">塔防游戏</p>
             <p style="font-size: 14px; color: #bdc3c7; margin-bottom: 20px;">建造防御塔阻止敌人到达终点！</p>
             <button class="start-btn" onclick="startGame()">开始防御</button>
+        </div>
+
+        <div class="mobile-hint" id="mobileHint">
+            💡 提示：先选择防御塔类型，然后点击空地放置！
         </div>
     </div>
 
@@ -196,6 +323,7 @@
         let waveNumber = 1;
         let selectedTowerType = 'basic';
         let waveActive = false;
+        let autoWave = false;
 
         // 游戏对象数组
         let towers = [];
@@ -215,21 +343,79 @@
             { x: 800, y: 100 }
         ];
 
-        // 塔类型配置
+        // 塔类型配置 - 充能式系统
         const towerTypes = {
-            basic: { cost: 20, damage: 15, range: 80, rate: 30, color: '#27ae60' },
-            laser: { cost: 50, damage: 25, range: 100, rate: 20, color: '#e74c3c' },
-            missile: { cost: 80, damage: 40, range: 120, rate: 60, color: '#f39c12' },
-            freeze: { cost: 60, damage: 10, range: 90, rate: 40, color: '#3498db' }
+            basic: { 
+                cost: 20, 
+                damage: 15, 
+                range: 80, 
+                rate: 30, 
+                color: '#27ae60',
+                chargeTime: 300, // 5秒充能时间
+                name: '基础炮塔'
+            },
+            laser: { 
+                cost: 50, 
+                damage: 25, 
+                range: 100, 
+                rate: 20, 
+                color: '#e74c3c',
+                chargeTime: 600, // 10秒充能时间
+                name: '激光炮塔'
+            },
+            missile: { 
+                cost: 80, 
+                damage: 40, 
+                range: 120, 
+                rate: 60, 
+                color: '#f39c12',
+                chargeTime: 900, // 15秒充能时间
+                name: '导弹炮塔'
+            },
+            freeze: { 
+                cost: 60, 
+                damage: 10, 
+                range: 90, 
+                rate: 40, 
+                color: '#3498db',
+                chargeTime: 480, // 8秒充能时间
+                name: '冰冻炮塔'
+            },
+            wall: {
+                cost: 15,
+                damage: 0,
+                range: 0,
+                rate: 0,
+                color: '#7f8c8d',
+                chargeTime: 180, // 3秒充能时间
+                name: '防御墙'
+            }
         };
 
-        // 敌人类型配置
+        // 敌人类型配置 - 新增敌人
         const enemyTypes = [
-            { hp: 50, speed: 1, reward: 10, color: '#e67e22' },
-            { hp: 80, speed: 0.8, reward: 15, color: '#8e44ad' },
-            { hp: 120, speed: 1.2, reward: 20, color: '#c0392b' },
-            { hp: 200, speed: 0.6, reward: 30, color: '#2c3e50' }
+            { hp: 50, speed: 1, reward: 10, color: '#e67e22', name: '步兵' },
+            { hp: 80, speed: 0.8, reward: 15, color: '#8e44ad', name: '重装兵' },
+            { hp: 120, speed: 1.2, reward: 20, color: '#c0392b', name: '快速兵' },
+            { hp: 200, speed: 0.6, reward: 30, color: '#2c3e50', name: '坦克' },
+            { hp: 150, speed: 1.5, reward: 25, color: '#16a085', name: '侦察兵' },
+            { hp: 300, speed: 0.4, reward: 50, color: '#d35400', name: '巨型机甲' }
         ];
+
+        // 网格系统
+        const gridSize = 40;
+        const gridCols = Math.floor(800 / gridSize);
+        const gridRows = Math.floor(600 / gridSize);
+        let grid = [];
+
+        // 充能系统
+        let towerCharges = {
+            basic: { current: 0, max: 1 },
+            laser: { current: 0, max: 1 },
+            missile: { current: 0, max: 1 },
+            freeze: { current: 0, max: 1 },
+            wall: { current: 0, max: 3 }
+        };
 
         function startGame() {
             gameRunning = true;
@@ -241,6 +427,24 @@
             score = 0;
             waveNumber = 1;
             waveActive = false;
+            autoWave = false;
+            
+            // 重置充能系统
+            towerCharges = {
+                basic: { current: 1, max: 1 },
+                laser: { current: 1, max: 1 },
+                missile: { current: 1, max: 1 },
+                freeze: { current: 1, max: 1 },
+                wall: { current: 3, max: 3 }
+            };
+            
+            // 初始化网格
+            initGrid();
+            
+            // 重置UI状态
+            document.getElementById('autoWaveBtn').classList.remove('active');
+            document.getElementById('autoWaveBtn').textContent = '自动出怪';
+            document.getElementById('startWaveBtn').disabled = false;
             
             // 清空数组
             towers = [];
@@ -249,10 +453,60 @@
             particles = [];
             
             updateUI();
+            updateChargeDisplay();
             gameLoop();
+            
+            // 移动端显示提示
+            showMobileHint();
+        }
+
+        // 初始化网格系统
+        function initGrid() {
+            grid = [];
+            for (let row = 0; row < gridRows; row++) {
+                grid[row] = [];
+                for (let col = 0; col < gridCols; col++) {
+                    grid[row][col] = { 
+                        type: 'empty', 
+                        tower: null,
+                        blocked: false 
+                    };
+                }
+            }
+            
+            // 标记路径格子为不可建造
+            for (let i = 0; i < path.length - 1; i++) {
+                const start = path[i];
+                const end = path[i + 1];
+                markPathCells(start, end);
+            }
+        }
+
+        // 标记路径单元格
+        function markPathCells(start, end) {
+            const distance = Math.hypot(end.x - start.x, end.y - start.y);
+            const steps = Math.ceil(distance / 20);
+            
+            for (let step = 0; step <= steps; step++) {
+                const t = step / steps;
+                const x = start.x + (end.x - start.x) * t;
+                const y = start.y + (end.y - start.y) * t;
+                
+                const col = Math.floor(x / gridSize);
+                const row = Math.floor(y / gridSize);
+                
+                if (row >= 0 && row < gridRows && col >= 0 && col < gridCols) {
+                    grid[row][col].blocked = true;
+                }
+            }
         }
 
         function selectTower(type) {
+            // 检查是否有充能
+            if (towerCharges[type].current <= 0) {
+                return; // 没有充能，无法选择
+            }
+            
             selectedTowerType = type;
             
             // 更新UI选择状态
@@ -278,18 +532,40 @@
             document.getElementById('startWaveBtn').style.display = 'none';
         }
 
+        function toggleAutoWave() {
+            autoWave = !autoWave;
+            const autoBtn = document.getElementById('autoWaveBtn');
+            const startBtn = document.getElementById('startWaveBtn');
+            
+            if (autoWave) {
+                autoBtn.classList.add('active');
+                autoBtn.textContent = '停止自动';
+                startBtn.disabled = true;
+                
+                // 如果当前没有波次在进行，立即开始下一波
+                if (!waveActive) {
+                    startWave();
+                }
+            } else {
+                autoBtn.classList.remove('active');
+                autoBtn.textContent = '自动出怪';
+                startBtn.disabled = false;
+            }
+        }
+
         function spawnEnemy() {
-            const typeIndex = Math.min(Math.floor(waveNumber / 3), enemyTypes.length - 1);
+            const typeIndex = Math.min(Math.floor(waveNumber / 2), enemyTypes.length - 1);
             const type = enemyTypes[typeIndex];
             
             enemies.push({
                 x: path[0].x,
                 y: path[0].y,
-                hp: type.hp + waveNumber * 10,
-                maxHp: type.hp + waveNumber * 10,
-                speed: type.speed,
+                hp: type.hp + waveNumber * 5,
+                maxHp: type.hp + waveNumber * 5,
+                speed: type.speed + waveNumber * 0.05,
                 reward: type.reward,
                 color: type.color,
+                name: type.name,
                 pathIndex: 0,
                 freezeTime: 0
             });
@@ -298,78 +574,102 @@
         function placeTower(x, y) {
             const towerConfig = towerTypes[selectedTowerType];
             
-            if (money >= towerConfig.cost) {
-                // 检查是否在路径上
-                let onPath = false;
-                for (let i = 0; i < path.length - 1; i++) {
-                    const p1 = path[i];
-                    const p2 = path[i + 1];
-                    const dist = distanceToLine(x, y, p1.x, p1.y, p2.x, p2.y);
-                    if (dist < 30) {
-                        onPath = true;
-                        break;
-                    }
-                }
-                
-                // 检查是否与其他塔重叠
-                let overlap = false;
-                for (const tower of towers) {
-                    if (Math.hypot(x - tower.x, y - tower.y) < 40) {
-                        overlap = true;
-                        break;
-                    }
-                }
-                
-                if (!onPath && !overlap) {
-                    towers.push({
-                        x: x,
-                        y: y,
-                        type: selectedTowerType,
-                        damage: towerConfig.damage,
-                        range: towerConfig.range,
-                        rate: towerConfig.rate,
-                        color: towerConfig.color,
-                        lastShot: 0,
-                        target: null
-                    });
-                    
-                    money -= towerConfig.cost;
-                    updateUI();
-                }
+            // 检查金钱和充能
+            if (money < towerConfig.cost || towerCharges[selectedTowerType].current <= 0) {
+                return;
             }
+            
+            // 转换为网格坐标
+            const col = Math.floor(x / gridSize);
+            const row = Math.floor(y / gridSize);
+            
+            // 检查网格边界
+            if (row < 0 || row >= gridRows || col < 0 || col >= gridCols) {
+                return;
+            }
+            
+            // 检查网格是否可用
+            const cell = grid[row][col];
+            if (cell.blocked || cell.tower) {
+                return;
+            }
+            
+            // 计算网格中心位置
+            const centerX = col * gridSize + gridSize / 2;
+            const centerY = row * gridSize + gridSize / 2;
+            
+            // 创建塔或墙
+            const newTower = {
+                x: centerX,
+                y: centerY,
+                gridX: col,
+                gridY: row,
+                type: selectedTowerType,
+                damage: towerConfig.damage,
+                range: towerConfig.range,
+                rate: towerConfig.rate,
+                color: towerConfig.color,
+                lastShot: 0,
+                target: null,
+                isWall: selectedTowerType === 'wall'
+            };
+            
+            towers.push(newTower);
+            cell.tower = newTower;
+            
+            // 如果是墙，标记为阻挡物但敌人可以绕行
+            if (selectedTowerType === 'wall') {
+                cell.blocked = true;
+            }
+            
+            // 扣除金钱和充能
+            money -= towerConfig.cost;
+            towerCharges[selectedTowerType].current--;
+            
+            // 开始充能
+            startCharging(selectedTowerType);
+            
+            updateUI();
+            updateChargeDisplay();
         }
 
-        function distanceToLine(px, py, x1, y1, x2, y2) {
-            const A = px - x1;
-            const B = py - y1;
-            const C = x2 - x1;
-            const D = y2 - y1;
+        // 充能系统
+        function startCharging(towerType) {
+            const chargeTime = towerTypes[towerType].chargeTime;
             
-            const dot = A * C + B * D;
-            const lenSq = C * C + D * D;
-            let param = -1;
-            
-            if (lenSq !== 0) param = dot / lenSq;
-            
-            let xx, yy;
-            if (param < 0) {
-                xx = x1;
-                yy = y1;
-            } else if (param > 1) {
-                xx = x2;
-                yy = y2;
-            } else {
-                xx = x1 + param * C;
-                yy = y1 + param * D;
-            }
-            
-            const dx = px - xx;
-            const dy = py - yy;
-            return Math.sqrt(dx * dx + dy * dy);
+            setTimeout(() => {
+                if (towerCharges[towerType].current < towerCharges[towerType].max) {
+                    towerCharges[towerType].current++;
+                    updateChargeDisplay();
+                }
+            }, chargeTime);
+        }
+
+        function updateChargeDisplay() {
+            Object.keys(towerCharges).forEach(type => {
+                const charge = towerCharges[type];
+                const indicator = document.getElementById(`charge-${type}`);
+                const btn = document.querySelector(`[data-type="${type}"]`);
+                
+                if (indicator) {
+                    indicator.textContent = `${charge.current}/${charge.max}`;
+                    
+                    if (charge.current > 0) {
+                        indicator.classList.add('ready');
+                        btn.classList.remove('disabled');
+                    } else {
+                        indicator.classList.remove('ready');
+                        btn.classList.add('disabled');
+                    }
+                }
+            });
         }
 
         function updateTowers() {
             for (const tower of towers) {
+                // 墙体不需要攻击逻辑
+                if (tower.isWall) continue;
+                
                 tower.lastShot++;
                 
                 // 寻找目标
@@ -518,7 +818,18 @@
                 waveNumber++;
                 money += 50;
                 score += 500;
-                document.getElementById('startWaveBtn').style.display = 'block';
+                
+                if (autoWave) {
+                    // 自动出怪模式：等待2秒后自动开始下一波
+                    setTimeout(() => {
+                        if (autoWave && !waveActive) {
+                            startWave();
+                        }
+                    }, 2000);
+                } else {
+                    // 手动模式：显示开始按钮
+                    document.getElementById('startWaveBtn').style.display = 'block';
+                }
             }
         }
 
@@ -547,8 +858,24 @@
             ctx.fillStyle = '#2c3e50';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
             
-            // 绘制路径
+            // 绘制网格
             ctx.strokeStyle = '#34495e';
+            ctx.lineWidth = 1;
+            for (let col = 0; col <= gridCols; col++) {
+                ctx.beginPath();
+                ctx.moveTo(col * gridSize, 0);
+                ctx.lineTo(col * gridSize, canvas.height);
+                ctx.stroke();
+            }
+            for (let row = 0; row <= gridRows; row++) {
+                ctx.beginPath();
+                ctx.moveTo(0, row * gridSize);
+                ctx.lineTo(canvas.width, row * gridSize);
+                ctx.stroke();
+            }
+            
+            // 绘制路径
+            ctx.strokeStyle = '#5d6d7e';
             ctx.lineWidth = 30;
             ctx.lineCap = 'round';
             ctx.lineJoin = 'round';
@@ -562,32 +889,63 @@
             }
             ctx.stroke();
             
+            // 绘制被阻挡的网格
+            ctx.fillStyle = 'rgba(127, 140, 141, 0.3)';
+            for (let row = 0; row < gridRows; row++) {
+                for (let col = 0; col < gridCols; col++) {
+                    if (grid[row][col].blocked && !grid[row][col].tower) {
+                        ctx.fillRect(col * gridSize, row * gridSize, gridSize, gridSize);
+                    }
+                }
+            }
+            
             // 绘制塔
             for (const tower of towers) {
-                // 射程圈（仅在鼠标悬停时显示）
-                if (selectedTowerType === tower.type) {
-                    ctx.strokeStyle = tower.color + '40';
-                    ctx.lineWidth = 1;
+                if (tower.isWall) {
+                    // 绘制墙体
+                    ctx.fillStyle = tower.color;
+                    ctx.fillRect(
+                        tower.gridX * gridSize + 2, 
+                        tower.gridY * gridSize + 2, 
+                        gridSize - 4, 
+                        gridSize - 4
+                    );
+                    
+                    // 墙体边框
+                    ctx.strokeStyle = '#566573';
+                    ctx.lineWidth = 2;
+                    ctx.strokeRect(
+                        tower.gridX * gridSize + 2, 
+                        tower.gridY * gridSize + 2, 
+                        gridSize - 4, 
+                        gridSize - 4
+                    );
+                } else {
+                    // 射程圈（仅在选中时显示）
+                    if (selectedTowerType === tower.type) {
+                        ctx.strokeStyle = tower.color + '40';
+                        ctx.lineWidth = 1;
+                        ctx.beginPath();
+                        ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2);
+                        ctx.stroke();
+                    }
+                    
+                    // 塔身
+                    ctx.fillStyle = tower.color;
                     ctx.beginPath();
-                    ctx.arc(tower.x, tower.y, tower.range, 0, Math.PI * 2);
-                    ctx.stroke();
-                }
-                
-                // 塔身
-                ctx.fillStyle = tower.color;
-                ctx.beginPath();
-                ctx.arc(tower.x, tower.y, 15, 0, Math.PI * 2);
-                ctx.fill();
-                
-                // 炮管
-                if (tower.target) {
-                    const angle = Math.atan2(tower.target.y - tower.y, tower.target.x - tower.x);
-                    ctx.strokeStyle = tower.color;
-                    ctx.lineWidth = 4;
-                    ctx.beginPath();
-                    ctx.moveTo(tower.x, tower.y);
-                    ctx.lineTo(tower.x + Math.cos(angle) * 20, tower.y + Math.sin(angle) * 20);
-                    ctx.stroke();
+                    ctx.arc(tower.x, tower.y, 15, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // 炮管
+                    if (tower.target) {
+                        const angle = Math.atan2(tower.target.y - tower.y, tower.target.x - tower.x);
+                        ctx.strokeStyle = tower.color;
+                        ctx.lineWidth = 4;
+                        ctx.beginPath();
+                        ctx.moveTo(tower.x, tower.y);
+                        ctx.lineTo(tower.x + Math.cos(angle) * 20, tower.y + Math.sin(angle) * 20);
+                        ctx.stroke();
+                    }
                 }
             }
             
@@ -607,6 +965,12 @@
                 ctx.beginPath();
                 ctx.arc(enemy.x, enemy.y, 12, 0, Math.PI * 2);
                 ctx.fill();
+                
+                // 敌人类型标识
+                ctx.fillStyle = 'white';
+                ctx.font = '10px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(enemy.name ? enemy.name[0] : '敌', enemy.x, enemy.y + 3);
                 
                 // 冰冻效果
                 if (enemy.freezeTime > 0) {
@@ -652,7 +1016,7 @@
             requestAnimationFrame(gameLoop);
         }
 
-        // 鼠标事件
+        // 鼠标和触摸事件
         canvas.addEventListener('click', (e) => {
             if (!gameRunning) return;
             
@@ -661,7 +1025,40 @@
             const y = e.clientY - rect.top;
             
             placeTower(x, y);
+            hideMobileHint();
         });
+
+        // 触摸事件支持
+        canvas.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            if (!gameRunning) return;
+            
+            const rect = canvas.getBoundingClientRect();
+            const touch = e.touches[0];
+            const x = touch.clientX - rect.left;
+            const y = touch.clientY - rect.top;
+            
+            placeTower(x, y);
+            hideMobileHint();
+        });
+
+        // 移动端提示功能
+        function showMobileHint() {
+            if (window.innerWidth <= 768) {
+                const hint = document.getElementById('mobileHint');
+                hint.classList.add('show');
+                
+                // 5秒后自动隐藏
+                setTimeout(() => {
+                    hideMobileHint();
+                }, 5000);
+            }
+        }
+
+        function hideMobileHint() {
+            const hint = document.getElementById('mobileHint');
+            hint.classList.remove('show');
+        }
 
         // 响应式调整
         function resizeCanvas() {
@@ -679,6 +1076,7 @@
 
         // 初始化
         selectTower('basic');
+        updateChargeDisplay();
     </script>
 </body>
 </html>
