@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>精英纸牌 1484</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #85C1E9, #DDA0DD);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #85C1E9, #DDA0DD);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #333;
+        }
+        
+        
+        #gameArea {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        
+        #deck, #hand, #table {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .card {
+            width: 80px;
+            height: 120px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.3s;
+            background: white;
+        }
+        
+        .card:hover {
+            transform: translateY(-10px);
+        }
+        
+        .card-back {
+            background: linear-gradient(45deg, #1e3c72, #2a5298);
+            color: white;
+        }
+        
+        .card-red {
+            color: red;
+        }
+        
+        .card-black {
+            color: black;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>精英纸牌 1484</h1>
+        
+        <div id="gameArea">
+            <div id="deck">
+                <div class="card card-back" onclick="drawCard()">牌堆</div>
+            </div>
+            <div id="hand"></div>
+            <div id="table"></div>
+        </div>
+        <div class="score">得分: <span id="score">0</span></div>
+        <div class="score">剩余: <span id="remaining">52</span></div>
+        <button class="btn" onclick="newGame()">新游戏</button>
+        
+    </div>
+    
+    <script>
+        
+        const SUITS = ['♠', '♥', '♦', '♣'];
+        const RANKS = ['A', '2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K'];
+        
+        let deck = [];
+        let hand = [];
+        let table = [];
+        let score = 0;
+        
+        function createDeck() {
+            deck = [];
+            for (let suit of SUITS) {
+                for (let rank of RANKS) {
+                    deck.push({
+                        suit: suit,
+                        rank: rank,
+                        value: getRankValue(rank),
+                        color: suit === '♥' || suit === '♦' ? 'red' : 'black'
+                    });
+                }
+            }
+            shuffleDeck();
+        }
+        
+        function getRankValue(rank) {
+            if (rank === 'A') return 1;
+            if (rank === 'J') return 11;
+            if (rank === 'Q') return 12;
+            if (rank === 'K') return 13;
+            return parseInt(rank);
+        }
+        
+        function shuffleDeck() {
+            for (let i = deck.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [deck[i], deck[j]] = [deck[j], deck[i]];
+            }
+        }
+        
+        function drawCard() {
+            if (deck.length > 0) {
+                const card = deck.pop();
+                hand.push(card);
+                updateDisplay();
+            }
+        }
+        
+        function playCard(cardIndex) {
+            if (cardIndex >= 0 && cardIndex < hand.length) {
+                const card = hand.splice(cardIndex, 1)[0];
+                table.push(card);
+                score += card.value;
+                updateDisplay();
+                
+                if (hand.length === 0 && deck.length === 0) {
+                    alert('游戏结束！最终得分: ' + score);
+                }
+            }
+        }
+        
+        function createCardElement(card, index, area) {
+            const cardEl = document.createElement('div');
+            cardEl.className = `card card-${card.color}`;
+            cardEl.textContent = card.rank + card.suit;
+            
+            if (area === 'hand') {
+                cardEl.onclick = () => playCard(index);
+            }
+            
+            return cardEl;
+        }
+        
+        function updateDisplay() {
+            // Update deck
+            const deckEl = document.getElementById('deck');
+            deckEl.innerHTML = '';
+            if (deck.length > 0) {
+                const deckCard = document.createElement('div');
+                deckCard.className = 'card card-back';
+                deckCard.textContent = '牌堆';
+                deckCard.onclick = drawCard;
+                deckEl.appendChild(deckCard);
+            }
+            
+            // Update hand
+            const handEl = document.getElementById('hand');
+            handEl.innerHTML = '';
+            hand.forEach((card, index) => {
+                handEl.appendChild(createCardElement(card, index, 'hand'));
+            });
+            
+            // Update table
+            const tableEl = document.getElementById('table');
+            tableEl.innerHTML = '';
+            table.forEach((card, index) => {
+                tableEl.appendChild(createCardElement(card, index, 'table'));
+            });
+            
+            // Update stats
+            document.getElementById('score').textContent = score;
+            document.getElementById('remaining').textContent = deck.length;
+        }
+        
+        function newGame() {
+            createDeck();
+            hand = [];
+            table = [];
+            score = 0;
+            
+            // Deal initial hand
+            for (let i = 0; i < 5; i++) {
+                if (deck.length > 0) {
+                    hand.push(deck.pop());
+                }
+            }
+            
+            updateDisplay();
+        }
+        
+        newGame();
+        
+    </script>
+</body>
+</html>
