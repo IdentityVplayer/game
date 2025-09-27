@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔法消除 9062</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #F7DC6F, #BB8FCE);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #FFEAA7, #45B7D1);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #333;
+        }
+        
+        
+        #gameCanvas {
+            border: 3px solid #333;
+            margin: 20px 0;
+            cursor: pointer;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>魔法消除 9062</h1>
+        
+        <canvas id="gameCanvas" width="480" height="640"></canvas>
+        <div class="score">得分: <span id="score">0</span></div>
+        <div class="score">消除: <span id="eliminated">0</span></div>
+        <button class="btn" onclick="startGame()">开始游戏</button>
+        
+    </div>
+    
+    <script>
+        
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const ROWS = 10;
+        const COLS = 8;
+        const CELL_SIZE = 60;
+        const COLORS = ['#4ECDC4', '#FFEAA7', '#F7DC6F', '#96CEB4', '#85C1E9', '#98D8C8'];
+        
+        let board = [];
+        let score = 0;
+        let eliminated = 0;
+        let selectedCell = null;
+        
+        function initGame() {
+            board = [];
+            for (let i = 0; i < ROWS; i++) {
+                board[i] = [];
+                for (let j = 0; j < COLS; j++) {
+                    board[i][j] = Math.floor(Math.random() * COLORS.length);
+                }
+            }
+            score = 0;
+            eliminated = 0;
+            selectedCell = null;
+            updateDisplay();
+        }
+        
+        function drawBoard() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            for (let i = 0; i < ROWS; i++) {
+                for (let j = 0; j < COLS; j++) {
+                    const x = j * CELL_SIZE;
+                    const y = i * CELL_SIZE;
+                    
+                    ctx.fillStyle = COLORS[board[i][j]];
+                    ctx.fillRect(x, y, CELL_SIZE - 2, CELL_SIZE - 2);
+                    
+                    if (selectedCell && selectedCell.x === i && selectedCell.y === j) {
+                        ctx.strokeStyle = 'white';
+                        ctx.lineWidth = 4;
+                        ctx.strokeRect(x, y, CELL_SIZE - 2, CELL_SIZE - 2);
+                    }
+                }
+            }
+        }
+        
+        function updateDisplay() {
+            drawBoard();
+            document.getElementById('score').textContent = score;
+            document.getElementById('eliminated').textContent = eliminated;
+        }
+        
+        function findMatches() {
+            const matches = [];
+            
+            // Horizontal matches
+            for (let i = 0; i < ROWS; i++) {
+                let count = 1;
+                let color = board[i][0];
+                for (let j = 1; j < COLS; j++) {
+                    if (board[i][j] === color) {
+                        count++;
+                    } else {
+                        if (count >= 3) {
+                            for (let k = j - count; k < j; k++) {
+                                matches.push({x: i, y: k});
+                            }
+                        }
+                        count = 1;
+                        color = board[i][j];
+                    }
+                }
+                if (count >= 3) {
+                    for (let k = COLS - count; k < COLS; k++) {
+                        matches.push({x: i, y: k});
+                    }
+                }
+            }
+            
+            // Vertical matches
+            for (let j = 0; j < COLS; j++) {
+                let count = 1;
+                let color = board[0][j];
+                for (let i = 1; i < ROWS; i++) {
+                    if (board[i][j] === color) {
+                        count++;
+                    } else {
+                        if (count >= 3) {
+                            for (let k = i - count; k < i; k++) {
+                                matches.push({x: k, y: j});
+                            }
+                        }
+                        count = 1;
+                        color = board[i][j];
+                    }
+                }
+                if (count >= 3) {
+                    for (let k = ROWS - count; k < ROWS; k++) {
+                        matches.push({x: k, y: j});
+                    }
+                }
+            }
+            
+            return matches;
+        }
+        
+        function removeMatches(matches) {
+            for (let match of matches) {
+                board[match.x][match.y] = -1; // Mark for removal
+            }
+            eliminated += matches.length;
+            score += matches.length * 10;
+        }
+        
+        function dropPieces() {
+            for (let j = 0; j < COLS; j++) {
+                let writePos = ROWS - 1;
+                for (let i = ROWS - 1; i >= 0; i--) {
+                    if (board[i][j] !== -1) {
+                        board[writePos][j] = board[i][j];
+                        if (writePos !== i) {
+                            board[i][j] = -1;
+                        }
+                        writePos--;
+                    }
+                }
+                
+                // Fill empty spaces with new pieces
+                for (let i = writePos; i >= 0; i--) {
+                    board[i][j] = Math.floor(Math.random() * COLORS.length);
+                }
+            }
+        }
+        
+        function isAdjacent(cell1, cell2) {
+            const dx = Math.abs(cell1.x - cell2.x);
+            const dy = Math.abs(cell1.y - cell2.y);
+            return (dx === 1 && dy === 0) || (dx === 0 && dy === 1);
+        }
+        
+        function swapCells(cell1, cell2) {
+            const temp = board[cell1.x][cell1.y];
+            board[cell1.x][cell1.y] = board[cell2.x][cell2.y];
+            board[cell2.x][cell2.y] = temp;
+        }
+        
+        canvas.addEventListener('click', function(e) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+            
+            const col = Math.floor(x / CELL_SIZE);
+            const row = Math.floor(y / CELL_SIZE);
+            
+            if (row >= 0 && row < ROWS && col >= 0 && col < COLS) {
+                const clickedCell = {x: row, y: col};
+                
+                if (!selectedCell) {
+                    selectedCell = clickedCell;
+                } else if (selectedCell.x === clickedCell.x && selectedCell.y === clickedCell.y) {
+                    selectedCell = null;
+                } else if (isAdjacent(selectedCell, clickedCell)) {
+                    swapCells(selectedCell, clickedCell);
+                    
+                    const matches = findMatches();
+                    if (matches.length > 0) {
+                        removeMatches(matches);
+                        dropPieces();
+                        
+                        // Continue removing matches until no more
+                        let newMatches = findMatches();
+                        while (newMatches.length > 0) {
+                            removeMatches(newMatches);
+                            dropPieces();
+                            newMatches = findMatches();
+                        }
+                    } else {
+                        // Swap back if no matches
+                        swapCells(selectedCell, clickedCell);
+                    }
+                    
+                    selectedCell = null;
+                } else {
+                    selectedCell = clickedCell;
+                }
+                
+                updateDisplay();
+            }
+        });
+        
+        function startGame() {
+            initGame();
+        }
+        
+        initGame();
+        
+    </script>
+</body>
+</html>
