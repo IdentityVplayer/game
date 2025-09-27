@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数独大师 - 游戏世界</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 50%, #9b59b6 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .game-header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 3px solid #3498db;
+        }
+        .game-title {
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(44, 62, 80, 0.3);
+            font-weight: bold;
+        }
+        .game-category {
+            display: inline-block;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(52, 152, 219, 0.3);
+        }
+        .game-area {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 3px solid #3498db;
+        }
+        .game-canvas {
+            width: 100%;
+            height: 400px;
+            border: 3px solid #3498db;
+            border-radius: 15px;
+            background: linear-gradient(45deg, #ecf0f1 0%, #bdc3c7 50%, #95a5a6 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #2c3e50;
+            text-shadow: 2px 2px 4px rgba(255,255,255,0.7);
+            position: relative;
+            overflow: hidden;
+            font-weight: bold;
+        }
+        .sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 30px);
+            grid-template-rows: repeat(9, 30px);
+            gap: 2px;
+            background: #2c3e50;
+            padding: 10px;
+            border-radius: 8px;
+            position: absolute;
+            left: 50%;
+            top: 40%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+        }
+        .sudoku-cell {
+            background: #fff;
+            border: 1px solid #bdc3c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: bold;
+            color: #2c3e50;
+            border-radius: 2px;
+            transition: all 0.3s ease;
+        }
+        .sudoku-cell.filled {
+            background: #3498db;
+            color: white;
+        }
+        .sudoku-cell.highlighted {
+            background: #e74c3c;
+            color: white;
+            animation: highlight 2s ease-in-out infinite;
+        }
+        @keyframes highlight {
+            0%, 100% { background: #e74c3c; }
+            50% { background: #c0392b; }
+        }
+        .number-pad {
+            position: absolute;
+            right: 50px;
+            top: 80px;
+            display: grid;
+            grid-template-columns: repeat(3, 40px);
+            grid-template-rows: repeat(3, 40px);
+            gap: 5px;
+        }
+        .number-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .number-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(52, 152, 219, 0.4);
+        }
+        .timer {
+            position: absolute;
+            left: 50px;
+            top: 80px;
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .difficulty {
+            position: absolute;
+            left: 50px;
+            bottom: 80px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .diff-btn {
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 15px;
+            font-size: 0.9em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .diff-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 8px rgba(155, 89, 182, 0.4);
+        }
+        .hint {
+            position: absolute;
+            right: 50px;
+            bottom: 80px;
+            background: linear-gradient(45deg, #f39c12, #e67e22);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .hint:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(243, 156, 18, 0.4);
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .control-btn {
+            padding: 12px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
+        }
+        .start-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+        .solve-btn {
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            color: white;
+        }
+        .solve-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(39, 174, 96, 0.4);
+        }
+        .description {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid #3498db;
+        }
+        .description h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .description p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .how-to-play {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid #3498db;
+        }
+        .how-to-play h3 {
+            color: #2980b9;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .how-to-play ol {
+            color: #555;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        .how-to-play li {
+            margin-bottom: 8px;
+        }
+        .back-btn {
+            display: inline-block;
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(155, 89, 182, 0.3);
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-header">
+            <h1 class="game-title">数独大师</h1>
+            <div class="game-category">#益智游戏</div>
+        </div>
+
+        <div class="game-area">
+            <div class="game-canvas">
+                <div class="sudoku-grid">
+                    <div class="sudoku-cell filled">5</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">8</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">1</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">2</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">7</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">3</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">9</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">4</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">2</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">7</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">5</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">9</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">3</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">6</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">1</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">4</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">8</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">6</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">5</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">3</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">4</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">2</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">7</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">3</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">8</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">1</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">7</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">6</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">9</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">1</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">4</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell filled">8</div>
+                    <div class="sudoku-cell"></div>
+                    <div class="sudoku-cell"></div>
+                </div>
+                <div class="timer">12:34</div>
+                <div class="number-pad">
+                    <button class="number-btn">1</button>
+                    <button class="number-btn">2</button>
+                    <button class="number-btn">3</button>
+                    <button class="number-btn">4</button>
+                    <button class="number-btn">5</button>
+                    <button class="number-btn">6</button>
+                    <button class="number-btn">7</button>
+                    <button class="number-btn">8</button>
+                    <button class="number-btn">9</button>
+                </div>
+                <div class="difficulty">
+                    <button class="diff-btn">简单</button>
+                    <button class="diff-btn">中等</button>
+                    <button class="diff-btn">困难</button>
+                </div>
+                <button class="hint">提示</button>
+                数独大师
+            </div>
+            <div class="controls">
+                <button class="control-btn start-btn">开始游戏</button>
+                <button class="control-btn solve-btn">自动求解</button>
+            </div>
+        </div>
+
+        <div class="description">
+            <h3>游戏介绍</h3>
+            <p>欢迎来到数独大师的世界！这是一个经典的数字逻辑游戏，旨在训练你的逻辑思维和数字推理能力。通过不同难度的数独谜题，挑战你的智力极限。</p>
+            <p>从简单的入门级别到极具挑战性的大师级别，每一个谜题都精心设计。使用提示功能学习解题技巧，记录你的最佳成绩，成为真正的数独大师！</p>
+        </div>
+
+        <div class="how-to-play">
+            <h3>游玩方法</h3>
+            <ol>
+                <li>选择适合你的雾度级别：简单、中等或困雾</li>
+                <li>在空白格子中填入1-9的数字，确保每行、每列和每个3x3小方格中都不重复</li>
+                <li>使用逻辑推理找出每个格子的唯一正确答案</li>
+                <li>如果遇到困雾，可以使用提示功能获得帮助</li>
+                <li>记录你的完成时间，不断挑战更快的解题速度</li>
+                <li>逐步提高雾度，成为数独解题高手</li>
+            </ol>
+        </div>
+
+        <a href="../index.html" class="back-btn">返回游戏列表</a>
+    </div>
+
+    <script>
+        document.querySelector('.start-btn').addEventListener('click', function() {
+            this.textContent = '游戏开始...';
+            this.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
+            
+            setTimeout(() => {
+                this.textContent = '开始游戏';
+                this.style.background = 'linear-gradient(45deg, #3498db, #2980b9)';
+            }, 3000);
+        });
+
+        document.querySelector('.solve-btn').addEventListener('click', function() {
+            this.textContent = '求解中...';
+            setTimeout(() => {
+                this.textContent = '自动求解';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

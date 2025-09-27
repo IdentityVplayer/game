@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>跳跃方块</title>
+    <style>
+        body { background: linear-gradient(135deg, #667eea, #764ba2); font-family: 'Arial', sans-serif; margin: 0; color: white; overflow: hidden; }
+        .game-container { max-width: 800px; margin: 0 auto; padding: 20px; text-align: center; }
+        .game-title { font-size: 3em; margin-bottom: 10px; text-shadow: 3px 3px 6px rgba(0,0,0,0.7); }
+        .game-category { color: #fd79a8; font-size: 1.2em; margin-bottom: 20px; }
+        .game-area { background: rgba(0,0,0,0.3); border-radius: 15px; padding: 30px; margin: 20px 0; }
+        .jump-field { width: 100%; height: 600px; background: linear-gradient(180deg, #74b9ff, #00cec9); border-radius: 10px; position: relative; overflow: hidden; }
+        .player { width: 40px; height: 40px; background: #e17055; position: absolute; left: 50px; z-index: 10; transition: top 0.1s ease; }
+        .platform { position: absolute; background: #2d3436; }
+        .platform.normal { background: linear-gradient(45deg, #2d3436, #636e72); }
+        .platform.moving { background: linear-gradient(45deg, #00b894, #00cec9); }
+        .platform.breaking { background: linear-gradient(45deg, #e17055, #ff7675); }
+        .platform.spring { background: linear-gradient(45deg, #fdcb6e, #f39c12); }
+        .coin { width: 20px; height: 20px; background: radial-gradient(circle, #ffd700, #ffb347); border-radius: 50%; position: absolute; animation: spin 2s linear infinite; }
+        .power-up { width: 25px; height: 25px; background: radial-gradient(circle, #a29bfe, #6c5ce7); border-radius: 50%; position: absolute; }
+        .particle { width: 4px; height: 4px; background: #fff; border-radius: 50%; position: absolute; pointer-events: none; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 1.2em; }
+        .controls { margin: 20px 0; }
+        .btn { background: #fd79a8; color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #e84393; }
+        .jump-btn { background: #00cec9; padding: 15px 30px; font-size: 1.2em; border-radius: 50%; }
+        .jump-btn:hover { background: #00b894; }
+        .camera-indicator { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .how-to-play { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">跳跃方块</h1>
+        <div class="game-category">#动作游戏</div>
+        
+        <div class="game-area">
+            <div class="stats">
+                <div>得分: <span id="score">0</span></div>
+                <div>高度: <span id="height">0</span>m</div>
+                <div>金币: <span id="coins">0</span></div>
+                <div>生命: <span id="lives">3</span></div>
+            </div>
+            
+            <div class="jump-field" id="jumpField">
+                <div class="camera-indicator" id="cameraIndicator">
+                    高度: <span id="cameraHeight">0</span>m
+                </div>
+                <div class="player" id="player">🚀</div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="startGame()">开始游戏</button>
+                <button class="btn jump-btn" onclick="jump()" onmousedown="jump()" ontouchstart="jump()">跳跃</button>
+                <button class="btn" onclick="pauseGame()">暂停</button>
+                <button class="btn" onclick="resetGame()">重新开始</button>
+            </div>
+        </div>
+        
+        <div class="how-to-play">
+            <h3>游玩方法：</h3>
+            <p>• 点击“跳跃”按钮或按空格键让方块跳起</p>
+            <p>• 使用左右方向键或AD键控制水平移动</p>
+            <p>• 灰色平台：普通平台，可以站立</p>
+            <p>• 蓝色平台：移动平台，会水平移动</p>
+            <p>• 红色平台：易碎平台，踩上去会碎掉</p>
+            <p>• 黄色平台：弹簧平台，可以跳得更高</p>
+            <p>• 收集金币和道具获得奖励</p>
+            <p>• 尽量跳得更高，挑战最高记录！</p>
+        </div>
+    </div>
+    
+    <script>
+        let score = 0;
+        let height = 0;
+        let coins = 0;
+        let lives = 3;
+        let gameRunning = false;
+        let player, field;
+        let platforms = [];
+        let gameCoins = [];
+        let powerUps = [];
+        let particles = [];
+        let keys = {};
+        
+        // Player physics
+        let playerX = 50;
+        let playerY = 500;
+        let velocityX = 0;
+        let velocityY = 0;
+        let onGround = false;
+        let cameraY = 0;
+        
+        // Platform generation
+        let lastPlatformY = 500;
+        let platformId = 0;
+        
+        function initGame() {
+            player = document.getElementById('player');
+            field = document.getElementById('jumpField');
+            
+            // Create starting platform
+            createPlatform(0, 550, 200, 'normal');
+            generatePlatforms();
+        }
+        
+        function createPlatform(x, y, width, type = 'normal') {
+            const platform = document.createElement('div');
+            platform.className = 'platform ' + type;
+            platform.style.left = x + 'px';
+            platform.style.top = y + 'px';
+            platform.style.width = width + 'px';
+            platform.style.height = '20px';
+            
+            field.appendChild(platform);
+            
+            const platformObj = {
+                id: platformId++,
+                element: platform,
+                x: x,
+                y: y,
+                width: width,
+                height: 20,
+                type: type,
+                moveDirection: Math.random() < 0.5 ? 1 : -1,
+                moveSpeed: 1 + Math.random() * 2,
+                broken: false
+            };
+            
+            platforms.push(platformObj);
+            
+            // Add coins and power-ups on platforms
+            if (type !== 'breaking' && Math.random() < 0.4) {
+                createCoin(x + width / 2, y - 25);
+            }
+            
+            if (Math.random() < 0.1) {
+                createPowerUp(x + width / 2, y - 30);
+            }
+        }
+        
+        function createCoin(x, y) {
+            const coin = document.createElement('div');
+            coin.className = 'coin';
+            coin.style.left = x + 'px';
+            coin.style.top = y + 'px';
+            coin.textContent = '💰';
+            coin.style.fontSize = '16px';
+            coin.style.display = 'flex';
+            coin.style.alignItems = 'center';
+            coin.style.justifyContent = 'center';
+            
+            field.appendChild(coin);
+            
+            gameCoins.push({
+                element: coin,
+                x: x,
+                y: y,
+                collected: false
+            });
+        }
+        
+        function createPowerUp(x, y) {
+            const powerUp = document.createElement('div');
+            powerUp.className = 'power-up';
+            powerUp.style.left = x + 'px';
+            powerUp.style.top = y + 'px';
+            powerUp.textContent = '✨';
+            powerUp.style.fontSize = '20px';
+            powerUp.style.display = 'flex';
+            powerUp.style.alignItems = 'center';
+            powerUp.style.justifyContent = 'center';
+            
+            field.appendChild(powerUp);
+            
+            powerUps.push({
+                element: powerUp,
+                x: x,
+                y: y,
+                collected: false
+            });
+        }
+        
+        function generatePlatforms() {
+            // Generate platforms going upward
+            for (let i = 0; i < 50; i++) {
+                const x = Math.random() * 600;
+                const y = lastPlatformY - (60 + Math.random() * 40);
+                const width = 80 + Math.random() * 60;
+                
+                // Choose platform type
+                let type = 'normal';
+                const rand = Math.random();
+                if (rand < 0.15) type = 'moving';
+                else if (rand < 0.25) type = 'breaking';
+                else if (rand < 0.35) type = 'spring';
+                
+                createPlatform(x, y, width, type);
+                lastPlatformY = y;
+            }
+        }
+        
+        function startGame() {
+            gameRunning = true;
+            gameLoop();
+        }
+        
+        function pauseGame() {
+            gameRunning = !gameRunning;
+            if (gameRunning) gameLoop();
+        }
+        
+        function resetGame() {
+            gameRunning = false;
+            score = 0;
+            height = 0;
+            coins = 0;
+            lives = 3;
+            playerX = 50;
+            playerY = 500;
+            velocityX = 0;
+            velocityY = 0;
+            onGround = false;
+            cameraY = 0;
+            lastPlatformY = 500;
+            platformId = 0;
+            
+            // Clear all objects
+            platforms.forEach(platform => platform.element.remove());
+            gameCoins.forEach(coin => coin.element.remove());
+            powerUps.forEach(powerUp => powerUp.element.remove());
+            particles.forEach(particle => particle.element.remove());
+            
+            platforms = [];
+            gameCoins = [];
+            powerUps = [];
+            particles = [];
+            
+            // Reset field
+            field.innerHTML = '<div class="camera-indicator" id="cameraIndicator">高度: <span id="cameraHeight">0</span>m</div><div class="player" id="player">🚀</div>';
+            
+            player = document.getElementById('player');
+            
+            // Recreate starting setup
+            createPlatform(0, 550, 200, 'normal');
+            generatePlatforms();
+            
+            updateDisplay();
+            updateCamera();
+        }
+        
+        function jump() {
+            if (!gameRunning) return;
+            
+            if (onGround) {
+                velocityY = -15;
+                onGround = false;
+                
+                // Create jump particles
+                createParticles(playerX + 20, playerY + 40);
+            }
+        }
+        
+        function createParticles(x, y) {
+            for (let i = 0; i < 5; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = x + (Math.random() - 0.5) * 20 + 'px';
+                particle.style.top = y + 'px';
+                
+                field.appendChild(particle);
+                
+                particles.push({
+                    element: particle,
+                    x: x + (Math.random() - 0.5) * 20,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 4,
+                    vy: -Math.random() * 5,
+                    life: 30
+                });
+            }
+        }
+        
+        function updateCamera() {
+            // Follow player with camera
+            const targetCameraY = Math.max(0, playerY - 400);
+            cameraY += (targetCameraY - cameraY) * 0.1;
+            
+            field.style.transform = `translateY(${-cameraY}px)`;
+            
+            // Update height display
+            height = Math.max(0, Math.floor((600 - playerY) / 10));
+            document.getElementById('cameraHeight').textContent = height;
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Apply gravity
+            velocityY += 0.8;
+            
+            // Handle horizontal movement
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                velocityX = Math.max(velocityX - 0.5, -8);
+            } else if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                velocityX = Math.min(velocityX + 0.5, 8);
+            } else {
+                velocityX *= 0.8; // Friction
+            }
+            
+            // Update player position
+            playerX += velocityX;
+            playerY += velocityY;
+            
+            // Screen wrapping
+            if (playerX < -20) playerX = 780;
+            if (playerX > 800) playerX = -20;
+            
+            // Platform collision
+            onGround = false;
+            platforms.forEach((platform, index) => {
+                if (platform.broken) return;
+                
+                // Move moving platforms
+                if (platform.type === 'moving') {
+                    platform.x += platform.moveDirection * platform.moveSpeed;
+                    if (platform.x <= 0 || platform.x + platform.width >= 800) {
+                        platform.moveDirection *= -1;
+                    }
+                    platform.element.style.left = platform.x + 'px';
+                }
+                
+                // Collision detection
+                if (playerX + 40 > platform.x && playerX < platform.x + platform.width &&
+                    playerY + 40 > platform.y && playerY + 40 < platform.y + platform.height + 10 &&
+                    velocityY > 0) {
+                    
+                    playerY = platform.y - 40;
+                    velocityY = 0;
+                    onGround = true;
+                    
+                    if (platform.type === 'spring') {
+                        velocityY = -25; // Super jump
+                        createParticles(playerX + 20, playerY + 40);
+                    } else if (platform.type === 'breaking') {
+                        platform.broken = true;
+                        platform.element.style.opacity = '0.5';
+                        setTimeout(() => {
+                            platform.element.remove();
+                            platforms.splice(index, 1);
+                        }, 500);
+                    }
+                }
+            });
+            
+            // Coin collection
+            gameCoins.forEach((coin, index) => {
+                if (!coin.collected) {
+                    const distance = Math.sqrt(
+                        Math.pow(playerX + 20 - coin.x, 2) + 
+                        Math.pow(playerY + 20 - coin.y, 2)
+                    );
+                    
+                    if (distance < 25) {
+                        coin.collected = true;
+                        coin.element.remove();
+                        gameCoins.splice(index, 1);
+                        coins += 10;
+                        score += 50;
+                    }
+                }
+            });
+            
+            // Power-up collection
+            powerUps.forEach((powerUp, index) => {
+                if (!powerUp.collected) {
+                    const distance = Math.sqrt(
+                        Math.pow(playerX + 20 - powerUp.x, 2) + 
+                        Math.pow(playerY + 20 - powerUp.y, 2)
+                    );
+                    
+                    if (distance < 25) {
+                        powerUp.collected = true;
+                        powerUp.element.remove();
+                        powerUps.splice(index, 1);
+                        
+                        // Super jump boost
+                        velocityY = -20;
+                        score += 100;
+                    }
+                }
+            });
+            
+            // Update particles
+            particles.forEach((particle, index) => {
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.vy += 0.3; // Gravity
+                particle.life--;
+                
+                particle.element.style.left = particle.x + 'px';
+                particle.element.style.top = particle.y + 'px';
+                particle.element.style.opacity = particle.life / 30;
+                
+                if (particle.life <= 0) {
+                    particle.element.remove();
+                    particles.splice(index, 1);
+                }
+            });
+            
+            // Check if player fell too far
+            if (playerY > 800 + cameraY) {
+                lives--;
+                if (lives <= 0) {
+                    alert('游戏结束！\n最终得分: ' + score + '\n最高高度: ' + height + 'm');
+                    resetGame();
+                    return;
+                } else {
+                    // Respawn player
+                    playerX = 100;
+                    playerY = cameraY + 300;
+                    velocityX = 0;
+                    velocityY = 0;
+                }
+            }
+            
+            // Generate more platforms if needed
+            if (playerY < lastPlatformY + 200) {
+                generatePlatforms();
+            }
+            
+            // Update score based on height
+            score = Math.max(score, height * 10);
+            
+            // Update player position
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+            
+            updateCamera();
+            updateDisplay();
+            
+            setTimeout(gameLoop, 16);
+        }
+        
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('height').textContent = height;
+            document.getElementById('coins').textContent = coins;
+            document.getElementById('lives').textContent = lives;
+        }
+        
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.code === 'Space') {
+                e.preventDefault();
+                jump();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        // Touch events for mobile
+        field.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            jump();
+        });
+        
+        initGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>林中小屋建造师 - 游戏世界</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #228b22 0%, #32cd32 30%, #90ee90 70%, #98fb98 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .game-header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 3px solid #228b22;
+        }
+        .game-title {
+            font-size: 2.5em;
+            color: #2d5016;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(45, 80, 22, 0.3);
+            font-weight: bold;
+        }
+        .game-category {
+            display: inline-block;
+            background: linear-gradient(45deg, #228b22, #32cd32);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(34, 139, 34, 0.3);
+        }
+        .game-area {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 3px solid #228b22;
+        }
+        .game-canvas {
+            width: 100%;
+            height: 400px;
+            border: 3px solid #228b22;
+            border-radius: 15px;
+            background: linear-gradient(to bottom, #87ceeb 0%, #228b22 20%, #32cd32 60%, #8b4513 90%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #2d5016;
+            text-shadow: 2px 2px 4px rgba(255,255,255,0.7);
+            position: relative;
+            overflow: hidden;
+            font-weight: bold;
+        }
+        .cabin {
+            width: 80px;
+            height: 60px;
+            background: linear-gradient(to bottom, #deb887, #cd853f);
+            border: 2px solid #8b4513;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .cabin::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 42px solid transparent;
+            border-right: 42px solid transparent;
+            border-bottom: 25px solid #8b0000;
+            top: -25px;
+            left: -2px;
+        }
+        .cabin::after {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 25px;
+            background: #654321;
+            bottom: 0;
+            right: 15px;
+            border-radius: 2px;
+        }
+        .window {
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(45deg, #87ceeb, #4682b4);
+            border: 1px solid #2f4f4f;
+            position: absolute;
+            border-radius: 2px;
+        }
+        .window:nth-child(1) { top: 15px; left: 15px; }
+        .window:nth-child(2) { top: 15px; right: 15px; }
+        .tree {
+            position: absolute;
+            width: 20px;
+            height: 40px;
+        }
+        .tree::before {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 15px;
+            background: linear-gradient(to bottom, #8b4513, #654321);
+            bottom: 0;
+            left: 7px;
+            border-radius: 2px;
+        }
+        .tree::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 25px solid #228b22;
+            top: 0;
+            left: 0;
+        }
+        .tree:nth-child(3) { left: 80px; top: 120px; }
+        .tree:nth-child(4) { right: 90px; top: 140px; }
+        .tree:nth-child(5) { left: 150px; bottom: 100px; }
+        .tree:nth-child(6) { right: 120px; bottom: 80px; }
+        .tree:nth-child(7) { left: 50px; bottom: 60px; }
+        .tree:nth-child(8) { right: 60px; top: 80px; }
+        .path {
+            position: absolute;
+            width: 60px;
+            height: 8px;
+            background: linear-gradient(90deg, #daa520, #b8860b, #daa520);
+            border-radius: 4px;
+            bottom: 100px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .path::before {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 8px;
+            background: linear-gradient(90deg, #daa520, #b8860b, #daa520);
+            border-radius: 4px;
+            bottom: -30px;
+            left: 10px;
+        }
+        .logs {
+            width: 25px;
+            height: 8px;
+            background: linear-gradient(to bottom, #deb887, #cd853f);
+            border: 1px solid #8b4513;
+            position: absolute;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .logs:nth-child(10) { left: 120px; bottom: 80px; }
+        .logs:nth-child(11) { right: 150px; bottom: 120px; }
+        .smoke {
+            width: 8px;
+            height: 8px;
+            background: radial-gradient(circle, #f5f5f5, #d3d3d3);
+            border-radius: 50%;
+            position: absolute;
+            left: 50%;
+            top: -40px;
+            animation: smokeRise 3s ease-in-out infinite;
+            box-shadow: 0 0 10px rgba(211, 211, 211, 0.6);
+        }
+        .smoke:nth-child(12) { animation-delay: 0s; }
+        .smoke:nth-child(13) { animation-delay: 1s; }
+        .smoke:nth-child(14) { animation-delay: 2s; }
+        @keyframes smokeRise {
+            0% { transform: translateX(-50%) translateY(0px) scale(0.5); opacity: 1; }
+            100% { transform: translateX(-50%) translateY(-50px) scale(1.5); opacity: 0; }
+        }
+        .bird {
+            width: 12px;
+            height: 8px;
+            position: absolute;
+            animation: birdFly 8s ease-in-out infinite;
+        }
+        .bird::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 4px solid #2f4f4f;
+            left: 0;
+            top: 2px;
+        }
+        .bird::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-bottom: 4px solid #2f4f4f;
+            right: 0;
+            top: 2px;
+        }
+        .bird:nth-child(15) { top: 60px; left: -20px; }
+        .bird:nth-child(16) { top: 40px; left: -20px; animation-delay: 2s; }
+        @keyframes birdFly {
+            0% { left: -20px; }
+            100% { left: 100%; }
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .control-btn {
+            padding: 12px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
+        }
+        .start-btn {
+            background: linear-gradient(45deg, #228b22, #32cd32);
+            color: white;
+        }
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(34, 139, 34, 0.4);
+        }
+        .build-btn {
+            background: linear-gradient(45deg, #cd853f, #deb887);
+            color: white;
+        }
+        .build-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(205, 133, 63, 0.4);
+        }
+        .description {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid #228b22;
+        }
+        .description h3 {
+            color: #2d5016;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .description p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .how-to-play {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid #228b22;
+        }
+        .how-to-play h3 {
+            color: #32cd32;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .how-to-play ol {
+            color: #555;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        .how-to-play li {
+            margin-bottom: 8px;
+        }
+        .back-btn {
+            display: inline-block;
+            background: linear-gradient(45deg, #8b4513, #cd853f);
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-header">
+            <h1 class="game-title">林中小屋建造师</h1>
+            <div class="game-category">#建设游戏</div>
+        </div>
+
+        <div class="game-area">
+            <div class="game-canvas">
+                <div class="cabin">
+                    <div class="window"></div>
+                    <div class="window"></div>
+                </div>
+                <div class="tree"></div>
+                <div class="tree"></div>
+                <div class="tree"></div>
+                <div class="tree"></div>
+                <div class="tree"></div>
+                <div class="tree"></div>
+                <div class="path"></div>
+                <div class="logs"></div>
+                <div class="logs"></div>
+                <div class="smoke"></div>
+                <div class="smoke"></div>
+                <div class="smoke"></div>
+                <div class="bird"></div>
+                <div class="bird"></div>
+                林中小屋建造师
+            </div>
+            <div class="controls">
+                <button class="control-btn start-btn">开始建造</button>
+                <button class="control-btn build-btn">设计小屋</button>
+            </div>
+        </div>
+
+        <div class="description">
+            <h3>游戏介绍</h3>
+            <p>逃离城市的喧嚣，来到宁静的林间建造你的梦想小屋！在这个治愈系的建造游戏中，你将亲手设计和建造一个完美的林中退所。</p>
+            <p>从选择合适的地址开始，设计小屋的布局，选择材料和装饰。享受建造过程的每一个细节，从地基到屋顶，从室内到庭院，创造属于你的完美世界！</p>
+        </div>
+
+        <div class="how-to-play">
+            <h3>游玩方法</h3>
+            <ol>
+                <li>在美丽的林间中选择一个理想的地点建造你的小屋</li>
+                <li>从多种建筑风格中选择：传统木屋、现代小屋或帐篷风格</li>
+                <li>设计小屋的布局，包括房间数量、大小和用途</li>
+                <li>选择建筑材料：木材、石材或环保材料</li>
+                <li>装饰室内外，添加家具、庭院和景观元素</li>
+                <li>享受你的林中小屋，邀请朋友参观你的作品</li>
+            </ol>
+        </div>
+
+        <a href="../index.html" class="back-btn">返回游戏列表</a>
+    </div>
+
+    <script>
+        document.querySelector('.start-btn').addEventListener('click', function() {
+            this.textContent = '建造中...';
+            this.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
+            
+            setTimeout(() => {
+                this.textContent = '开始建造';
+                this.style.background = 'linear-gradient(45deg, #228b22, #32cd32)';
+            }, 3000);
+        });
+
+        document.querySelector('.build-btn').addEventListener('click', function() {
+            this.textContent = '设计中...';
+            setTimeout(() => {
+                this.textContent = '设计小屋';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

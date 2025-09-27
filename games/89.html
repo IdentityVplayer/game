@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>复古赛车</title>
+    <style>
+        body { background: linear-gradient(135deg, #2c3e50, #34495e); font-family: 'Arial', sans-serif; margin: 0; color: white; overflow: hidden; }
+        .game-container { max-width: 900px; margin: 0 auto; padding: 20px; text-align: center; }
+        .game-title { font-size: 3em; margin-bottom: 10px; text-shadow: 3px 3px 6px rgba(0,0,0,0.7); }
+        .game-category { color: #f39c12; font-size: 1.2em; margin-bottom: 20px; }
+        .game-area { background: rgba(0,0,0,0.3); border-radius: 15px; padding: 30px; margin: 20px 0; }
+        .race-field { width: 100%; height: 600px; background: linear-gradient(180deg, #87ceeb, #228b22); border-radius: 10px; position: relative; overflow: hidden; }
+        .road { width: 300px; height: 100%; background: repeating-linear-gradient(180deg, #333 0px, #333 50px, #fff 50px, #fff 60px); position: absolute; left: 50%; transform: translateX(-50%); }
+        .player-car { width: 60px; height: 100px; background: #e74c3c; position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%); clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%); }
+        .enemy-car { width: 55px; height: 90px; background: #3498db; position: absolute; clip-path: polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%); }
+        .road-line { width: 6px; height: 40px; background: #fff; position: absolute; left: 50%; transform: translateX(-50%); animation: roadMove 1s linear infinite; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 1.2em; }
+        .controls { margin: 20px 0; }
+        .btn { background: #f39c12; color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #e67e22; }
+        .speedometer { position: absolute; top: 20px; right: 20px; width: 100px; height: 100px; border: 3px solid #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.7); }
+        .speed-needle { width: 2px; height: 40px; background: #e74c3c; position: absolute; origin: bottom; transition: transform 0.3s; }
+        @keyframes roadMove { 0% { top: -40px; } 100% { top: 600px; } }
+        .how-to-play { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">复古赛车</h1>
+        <div class="game-category">#竞速游戏</div>
+        
+        <div class="game-area">
+            <div class="stats">
+                <div>得分: <span id="score">0</span></div>
+                <div>速度: <span id="speed">60</span> km/h</div>
+                <div>距离: <span id="distance">0</span> km</div>
+            </div>
+            
+            <div class="race-field" id="raceField">
+                <div class="road" id="road"></div>
+                <div class="speedometer">
+                    <div class="speed-needle" id="speedNeedle"></div>
+                    <div style="font-size: 12px; margin-top: 60px;">速度</div>
+                </div>
+                <div class="player-car" id="playerCar">🏎️</div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="startGame()">开始赛车</button>
+                <button class="btn" onclick="pauseGame()">暂停</button>
+                <button class="btn" onclick="resetGame()">重新开始</button>
+            </div>
+        </div>
+        
+        <div class="how-to-play">
+            <h3>游玩方法：</h3>
+            <p>• 使用左右方向键或AD键控制赛车方向</p>
+            <p>• 按住上方向键或W键加速</p>
+            <p>• 按住下方向键或S键刹车</p>
+            <p>• 避开其他赛车，避免发生碰撞</p>
+            <p>• 保持高速行驶获得更多分数</p>
+            <p>• 赛车越快，得分倍数越高</p>
+            <p>• 挑战更高的速度和距离！</p>
+        </div>
+    </div>
+    
+    <script>
+        let score = 0;
+        let speed = 60;
+        let distance = 0;
+        let gameRunning = false;
+        let playerCar, field, road;
+        let enemyCars = [];
+        let roadLines = [];
+        let keys = {};
+        let gameSpeed = 1;
+        
+        function initGame() {
+            playerCar = document.getElementById('playerCar');
+            field = document.getElementById('raceField');
+            road = document.getElementById('road');
+            createRoadLines();
+        }
+        
+        function createRoadLines() {
+            for (let i = 0; i < 15; i++) {
+                const line = document.createElement('div');
+                line.className = 'road-line';
+                line.style.top = (i * 40 - 40) + 'px';
+                road.appendChild(line);
+                roadLines.push(line);
+            }
+        }
+        
+        function startGame() {
+            gameRunning = true;
+            gameLoop();
+            spawnEnemyCars();
+            moveRoadLines();
+        }
+        
+        function pauseGame() {
+            gameRunning = !gameRunning;
+            if (gameRunning) {
+                gameLoop();
+                moveRoadLines();
+            }
+        }
+        
+        function resetGame() {
+            gameRunning = false;
+            score = 0;
+            speed = 60;
+            distance = 0;
+            gameSpeed = 1;
+            
+            // Clear enemy cars
+            enemyCars.forEach(car => car.element.remove());
+            enemyCars = [];
+            
+            // Reset player car position
+            playerCar.style.left = '50%';
+            playerCar.style.bottom = '50px';
+            playerCar.style.transform = 'translateX(-50%)';
+            
+            updateDisplay();
+        }
+        
+        function spawnEnemyCars() {
+            if (!gameRunning) return;
+            
+            const enemyCar = document.createElement('div');
+            enemyCar.className = 'enemy-car';
+            
+            // Random lane (left, center, right)
+            const lanes = [20, 50, 80];
+            const lane = lanes[Math.floor(Math.random() * lanes.length)];
+            
+            enemyCar.style.left = lane + '%';
+            enemyCar.style.top = '-90px';
+            enemyCar.style.fontSize = '50px';
+            enemyCar.textContent = ['🏎️', '🚗', '🚙'][Math.floor(Math.random() * 3)];
+            enemyCar.style.display = 'flex';
+            enemyCar.style.alignItems = 'center';
+            enemyCar.style.justifyContent = 'center';
+            
+            field.appendChild(enemyCar);
+            
+            enemyCars.push({
+                element: enemyCar,
+                x: lane,
+                y: -90,
+                speed: Math.random() * 2 + 2
+            });
+            
+            const spawnRate = Math.max(1000 - speed * 10, 300);
+            setTimeout(spawnEnemyCars, spawnRate);
+        }
+        
+        function moveRoadLines() {
+            if (!gameRunning) return;
+            
+            roadLines.forEach(line => {
+                let top = parseInt(line.style.top);
+                top += speed / 10;
+                
+                if (top > 640) {
+                    top = -40;
+                }
+                
+                line.style.top = top + 'px';
+            });
+            
+            setTimeout(moveRoadLines, 50);
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Control player car
+            const carSpeed = 5;
+            let currentX = parseFloat(playerCar.style.left.replace('%', '')) || 50;
+            
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                currentX = Math.max(15, currentX - carSpeed);
+                playerCar.style.transform = 'translateX(-50%) rotateZ(-5deg)';
+            } else if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                currentX = Math.min(85, currentX + carSpeed);
+                playerCar.style.transform = 'translateX(-50%) rotateZ(5deg)';
+            } else {
+                playerCar.style.transform = 'translateX(-50%) rotateZ(0deg)';
+            }
+            
+            // Speed control
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) {
+                speed = Math.min(150, speed + 2);
+            } else if (keys['ArrowDown'] || keys['s'] || keys['S']) {
+                speed = Math.max(30, speed - 3);
+            } else {
+                speed = Math.max(60, speed - 0.5); // Natural deceleration
+            }
+            
+            playerCar.style.left = currentX + '%';
+            
+            // Move enemy cars
+            enemyCars.forEach((car, index) => {
+                car.y += car.speed + speed / 20;
+                car.element.style.top = car.y + 'px';
+                
+                // Remove cars that go off screen
+                if (car.y > 600) {
+                    car.element.remove();
+                    enemyCars.splice(index, 1);
+                    score += Math.floor(speed / 10); // Score for passing cars
+                }
+                
+                // Check collision
+                const playerRect = playerCar.getBoundingClientRect();
+                const carRect = car.element.getBoundingClientRect();
+                
+                if (playerRect.left < carRect.right && 
+                    playerRect.right > carRect.left && 
+                    playerRect.top < carRect.bottom && 
+                    playerRect.bottom > carRect.top) {
+                    
+                    // Collision effect
+                    playerCar.style.background = '#c0392b';
+                    car.element.style.background = '#c0392b';
+                    
+                    setTimeout(() => {
+                        alert('发生碰撞！\n最终得分: ' + score + '\n行驶距离: ' + distance.toFixed(1) + ' km');
+                        resetGame();
+                    }, 100);
+                    
+                    return;
+                }
+            });
+            
+            // Update distance and score
+            distance += speed / 1000;
+            score += Math.floor(speed / 30);
+            
+            // Increase game difficulty over time
+            gameSpeed = 1 + distance / 10;
+            
+            updateDisplay();
+            setTimeout(gameLoop, 50);
+        }
+        
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('speed').textContent = Math.floor(speed);
+            document.getElementById('distance').textContent = distance.toFixed(1);
+            
+            // Update speedometer needle
+            const needle = document.getElementById('speedNeedle');
+            const angle = (speed - 30) / 120 * 180 - 90; // Map speed to angle
+            needle.style.transform = `rotate(${angle}deg)`;
+        }
+        
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        initGame();
+    </script>
+</body>
+</html>

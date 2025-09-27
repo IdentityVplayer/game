@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>花园守护者 - 塔防策略游戏</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 50%, #6c5ce7 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #00b894;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .game-area {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(to bottom, #00b894 0%, #00a085 100%);
+            border: 3px solid #fdcb6e;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .path {
+            position: absolute;
+            width: 60px;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                #ddd 0px,
+                #ddd 20px,
+                #bbb 20px,
+                #bbb 40px
+            );
+            left: 50%;
+            transform: translateX(-50%);
+        }
+        .tower-slot {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border: 2px dashed rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .tower-slot:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: #fdcb6e;
+        }
+        .tower {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        .tower.sunflower {
+            background: radial-gradient(circle, #fdcb6e, #e17055);
+        }
+        .tower.peashooter {
+            background: radial-gradient(circle, #00b894, #00a085);
+        }
+        .tower.cherry {
+            background: radial-gradient(circle, #e84393, #fd79a8);
+        }
+        .tower:hover {
+            transform: scale(1.1);
+        }
+        .enemy {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            animation: walkPath 8s linear;
+        }
+        .enemy.zombie {
+            background: #636e72;
+        }
+        .enemy.fast-zombie {
+            background: #fd79a8;
+            animation-duration: 4s;
+        }
+        .enemy.tank-zombie {
+            background: #2d3436;
+            width: 50px;
+            height: 50px;
+            animation-duration: 12s;
+        }
+        @keyframes walkPath {
+            from {
+                top: -40px;
+                left: calc(50% - 20px);
+            }
+            to {
+                top: 100%;
+                left: calc(50% - 20px);
+            }
+        }
+        .bullet {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #fdcb6e;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(253, 203, 110, 0.8);
+        }
+        .explosion {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle, #ff6b6b, #ee5a24, transparent);
+            border-radius: 50%;
+            animation: explode 0.5s ease-out;
+            pointer-events: none;
+        }
+        @keyframes explode {
+            0% { transform: scale(0); opacity: 1; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        .ui {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+        }
+        .stat {
+            text-align: center;
+            color: #fdcb6e;
+            font-size: 1.2em;
+        }
+        .tower-shop {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+        .shop-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .shop-item:hover {
+            transform: translateY(-5px);
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .shop-item.selected {
+            border: 3px solid #fdcb6e;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            background: linear-gradient(45deg, #00b894, #00a085);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            margin: 5px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+        }
+        .instruction {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        .health-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .health-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #00b894, #00a085);
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🌻 花园守护者</h1>
+        
+        <div class="ui">
+            <div class="stat">
+                <div>金币</div>
+                <div id="money">100</div>
+            </div>
+            <div class="stat">
+                <div>波数</div>
+                <div id="wave">1</div>
+            </div>
+            <div class="stat">
+                <div>敌人</div>
+                <div id="enemies">0</div>
+            </div>
+            <div class="stat">
+                <div>花园生命</div>
+                <div class="health-bar">
+                    <div class="health-fill" id="healthBar" style="width: 100%;"></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tower-shop">
+            <div class="shop-item" onclick="selectTower('sunflower')">
+                <div style="font-size: 2em;">🌻</div>
+                <div>太阳花</div>
+                <div>50金币</div>
+            </div>
+            <div class="shop-item" onclick="selectTower('peashooter')">
+                <div style="font-size: 2em;">🌱</div>
+                <div>豌豆射手</div>
+                <div>75金币</div>
+            </div>
+            <div class="shop-item" onclick="selectTower('cherry')">
+                <div style="font-size: 2em;">🍒</div>
+                <div>樱桃炸弹</div>
+                <div>125金币</div>
+            </div>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <div class="path"></div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="startWave()">开始波数</button>
+            <button onclick="pauseGame()">暂停</button>
+            <button onclick="resetGame()">重新开始</button>
+        </div>
+        
+        <div class="instruction">
+            <h3>🎮 游玩方法：</h3>
+            <p><strong>游戏目标：</strong>保卫花园，防止僵尸入侵</p>
+            <p><strong>操作方式：</strong></p>
+            <ul>
+                <li>选择上方的植物类型</li>
+                <li>点击空地位置放置植物</li>
+                <li>植物会自动攻击进入范围的敌人</li>
+                <li>消灭敌人可获得金币奖励</li>
+            </ul>
+            <p><strong>植物类型：</strong></p>
+            <ul>
+                <li>🌻 太阳花：产生金币，提供资源</li>
+                <li>🌱 豌豆射手：发射子弹攻击敌人</li>
+                <li>🍒 樱桃炸弹：爆炸造成范围伤害</li>
+            </ul>
+            <p><strong>敌人类型：</strong></p>
+            <ul>
+                <li>🧟 普通僵尸：移动缓慢，生命低</li>
+                <li>🏃 快速僵尸：移动较快，但生命低</li>
+                <li>🛡️ 坦克僵尸：移动慢，但生命高</li>
+            </ul>
+            <p><strong>小贴士：</strong>合理搭配植物，先种太阳花积累金币！</p>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            running: false,
+            money: 100,
+            wave: 1,
+            health: 100,
+            selectedTower: null,
+            towers: [],
+            enemies: [],
+            bullets: [],
+            gameLoop: null,
+            enemySpawnTimer: 0,
+            moneyTimer: 0
+        };
+        
+        const towerTypes = {
+            sunflower: { cost: 50, damage: 0, range: 0, income: 25 },
+            peashooter: { cost: 75, damage: 25, range: 120, income: 0 },
+            cherry: { cost: 125, damage: 50, range: 80, income: 0, splash: true }
+        };
+        
+        const enemyTypes = {
+            zombie: { health: 50, speed: 2, reward: 10 },
+            'fast-zombie': { health: 30, speed: 4, reward: 15 },
+            'tank-zombie': { health: 120, speed: 1, reward: 25 }
+        };
+        
+        function selectTower(type) {
+            // 清除之前的选中状态
+            document.querySelectorAll('.shop-item').forEach(item => {
+                item.classList.remove('selected');
+            });
+            
+            // 选中当前物品
+            event.target.closest('.shop-item').classList.add('selected');
+            gameState.selectedTower = type;
+        }
+        
+        function initializeGame() {
+            const gameArea = document.getElementById('gameArea');
+            
+            // 创建塔位置
+            const positions = [
+                { x: 100, y: 100 }, { x: 300, y: 150 }, { x: 500, y: 120 },
+                { x: 700, y: 180 }, { x: 150, y: 280 }, { x: 350, y: 320 },
+                { x: 550, y: 300 }, { x: 750, y: 350 }, { x: 200, y: 400 },
+                { x: 400, y: 450 }, { x: 600, y: 420 }, { x: 800, y: 480 }
+            ];
+            
+            positions.forEach((pos, index) => {
+                const slot = document.createElement('div');
+                slot.className = 'tower-slot';
+                slot.style.left = pos.x + 'px';
+                slot.style.top = pos.y + 'px';
+                slot.dataset.index = index;
+                slot.addEventListener('click', () => placeTower(index, pos));
+                gameArea.appendChild(slot);
+            });
+        }
+        
+        function placeTower(slotIndex, position) {
+            if (!gameState.selectedTower) {
+                alert('请先选择一个植物类型！');
+                return;
+            }
+            
+            const towerType = towerTypes[gameState.selectedTower];
+            if (gameState.money < towerType.cost) {
+                alert('金币不足！');
+                return;
+            }
+            
+            // 检查位置是否已被占用
+            if (gameState.towers.find(t => t.slotIndex === slotIndex)) {
+                alert('该位置已有植物！');
+                return;
+            }
+            
+            gameState.money -= towerType.cost;
+            
+            const tower = {
+                type: gameState.selectedTower,
+                x: position.x + 30,
+                y: position.y + 30,
+                slotIndex: slotIndex,
+                lastShot: 0,
+                element: createTowerElement(gameState.selectedTower, position)
+            };
+            
+            gameState.towers.push(tower);
+            
+            // 隐藏对应的槽位
+            const slot = document.querySelector(`[data-index="${slotIndex}"]`);
+            slot.style.display = 'none';
+            
+            updateUI();
+        }
+        
+        function createTowerElement(type, position) {
+            const tower = document.createElement('div');
+            tower.className = `tower ${type}`;
+            tower.style.left = position.x + 'px';
+            tower.style.top = position.y + 'px';
+            
+            const symbols = {
+                sunflower: '🌻',
+                peashooter: '🌱',
+                cherry: '🍒'
+            };
+            
+            tower.textContent = symbols[type];
+            document.getElementById('gameArea').appendChild(tower);
+            return tower;
+        }
+        
+        function startWave() {
+            if (gameState.running) return;
+            
+            gameState.running = true;
+            gameState.enemySpawnTimer = 0;
+            gameState.gameLoop = setInterval(updateGame, 50);
+        }
+        
+        function pauseGame() {
+            gameState.running = false;
+            if (gameState.gameLoop) {
+                clearInterval(gameState.gameLoop);
+            }
+        }
+        
+        function resetGame() {
+            pauseGame();
+            
+            // 清理游戏状态
+            gameState.money = 100;
+            gameState.wave = 1;
+            gameState.health = 100;
+            gameState.towers = [];
+            gameState.enemies = [];
+            gameState.bullets = [];
+            
+            // 清理游戏区域
+            const gameArea = document.getElementById('gameArea');
+            gameArea.innerHTML = '<div class="path"></div>';
+            
+            initializeGame();
+            updateUI();
+        }
+        
+        function updateGame() {
+            if (!gameState.running) return;
+            
+            gameState.enemySpawnTimer++;
+            gameState.moneyTimer++;
+            
+            // 生成敌人
+            if (gameState.enemySpawnTimer % (100 - gameState.wave * 5) === 0) {
+                spawnEnemy();
+            }
+            
+            // 太阳花产生金币
+            if (gameState.moneyTimer % 60 === 0) {
+                gameState.towers.forEach(tower => {
+                    if (tower.type === 'sunflower') {
+                        gameState.money += towerTypes.sunflower.income;
+                    }
+                });
+            }
+            
+            // 塔攻击
+            gameState.towers.forEach(tower => {
+                if (tower.type !== 'sunflower') {
+                    attackEnemies(tower);
+                }
+            });
+            
+            // 更新子弹
+            updateBullets();
+            
+            // 更新敌人
+            updateEnemies();
+            
+            updateUI();
+        }
+        
+        function spawnEnemy() {
+            const types = ['zombie', 'fast-zombie', 'tank-zombie'];
+            const weights = [0.6, 0.3, 0.1];
+            
+            let type = 'zombie';
+            const rand = Math.random();
+            if (rand < weights[2] && gameState.wave > 2) type = 'tank-zombie';
+            else if (rand < weights[1] + weights[2]) type = 'fast-zombie';
+            
+            const enemy = {
+                type: type,
+                health: enemyTypes[type].health + gameState.wave * 10,
+                maxHealth: enemyTypes[type].health + gameState.wave * 10,
+                speed: enemyTypes[type].speed,
+                x: 50,
+                y: -40,
+                element: createEnemyElement(type)
+            };
+            
+            gameState.enemies.push(enemy);
+        }
+        
+        function createEnemyElement(type) {
+            const enemy = document.createElement('div');
+            enemy.className = `enemy ${type}`;
+            
+            const symbols = {
+                zombie: '🧟',
+                'fast-zombie': '🏃',
+                'tank-zombie': '🛡️'
+            };
+            
+            enemy.textContent = symbols[type];
+            document.getElementById('gameArea').appendChild(enemy);
+            return enemy;
+        }
+        
+        function attackEnemies(tower) {
+            const now = Date.now();
+            if (now - tower.lastShot < 1000) return;
+            
+            const towerType = towerTypes[tower.type];
+            const target = findNearestEnemy(tower, towerType.range);
+            
+            if (target) {
+                tower.lastShot = now;
+                
+                if (tower.type === 'cherry') {
+                    // 爆炸攻击
+                    createExplosion(target.x, target.y);
+                    
+                    gameState.enemies.forEach(enemy => {
+                        const distance = Math.sqrt(
+                            Math.pow(enemy.x - target.x, 2) + 
+                            Math.pow(enemy.y - target.y, 2)
+                        );
+                        
+                        if (distance < 60) {
+                            damageEnemy(enemy, towerType.damage);
+                        }
+                    });
+                } else {
+                    // 单体攻击
+                    createBullet(tower, target);
+                }
+            }
+        }
+        
+        function findNearestEnemy(tower, range) {
+            let nearest = null;
+            let minDistance = Infinity;
+            
+            gameState.enemies.forEach(enemy => {
+                const distance = Math.sqrt(
+                    Math.pow(enemy.x - tower.x, 2) + 
+                    Math.pow(enemy.y - tower.y, 2)
+                );
+                
+                if (distance < range && distance < minDistance) {
+                    minDistance = distance;
+                    nearest = enemy;
+                }
+            });
+            
+            return nearest;
+        }
+        
+        function createBullet(tower, target) {
+            const bullet = {
+                x: tower.x,
+                y: tower.y,
+                targetX: target.x,
+                targetY: target.y,
+                speed: 8,
+                damage: towerTypes[tower.type].damage,
+                element: createBulletElement(tower.x, tower.y)
+            };
+            
+            gameState.bullets.push(bullet);
+        }
+        
+        function createBulletElement(x, y) {
+            const bullet = document.createElement('div');
+            bullet.className = 'bullet';
+            bullet.style.left = x + 'px';
+            bullet.style.top = y + 'px';
+            document.getElementById('gameArea').appendChild(bullet);
+            return bullet;
+        }
+        
+        function updateBullets() {
+            gameState.bullets = gameState.bullets.filter(bullet => {
+                const dx = bullet.targetX - bullet.x;
+                const dy = bullet.targetY - bullet.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < bullet.speed) {
+                    // 命中目标
+                    const target = gameState.enemies.find(e => 
+                        Math.abs(e.x - bullet.targetX) < 20 && 
+                        Math.abs(e.y - bullet.targetY) < 20
+                    );
+                    
+                    if (target) {
+                        damageEnemy(target, bullet.damage);
+                    }
+                    
+                    bullet.element.remove();
+                    return false;
+                } else {
+                    // 移动子弹
+                    bullet.x += (dx / distance) * bullet.speed;
+                    bullet.y += (dy / distance) * bullet.speed;
+                    bullet.element.style.left = bullet.x + 'px';
+                    bullet.element.style.top = bullet.y + 'px';
+                    return true;
+                }
+            });
+        }
+        
+        function updateEnemies() {
+            gameState.enemies = gameState.enemies.filter(enemy => {
+                enemy.y += enemy.speed;
+                enemy.element.style.top = enemy.y + 'px';
+                
+                if (enemy.y > 500) {
+                    // 敌人到达终点
+                    gameState.health -= 10;
+                    enemy.element.remove();
+                    
+                    if (gameState.health <= 0) {
+                        gameOver();
+                    }
+                    
+                    return false;
+                }
+                
+                return true;
+            });
+        }
+        
+        function damageEnemy(enemy, damage) {
+            enemy.health -= damage;
+            
+            if (enemy.health <= 0) {
+                // 敌人死亡
+                gameState.money += enemyTypes[enemy.type].reward;
+                enemy.element.remove();
+                
+                const index = gameState.enemies.indexOf(enemy);
+                if (index > -1) {
+                    gameState.enemies.splice(index, 1);
+                }
+                
+                // 检查是否清空敌人
+                if (gameState.enemies.length === 0 && gameState.enemySpawnTimer > 500) {
+                    nextWave();
+                }
+            }
+        }
+        
+        function createExplosion(x, y) {
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = (x - 30) + 'px';
+            explosion.style.top = (y - 30) + 'px';
+            document.getElementById('gameArea').appendChild(explosion);
+            
+            setTimeout(() => {
+                explosion.remove();
+            }, 500);
+        }
+        
+        function nextWave() {
+            gameState.wave++;
+            gameState.enemySpawnTimer = 0;
+            gameState.money += 50; // 波数奖励
+            
+            setTimeout(() => {
+                alert(`第 ${gameState.wave} 波开始！`);
+            }, 1000);
+        }
+        
+        function gameOver() {
+            pauseGame();
+            alert(`游戏结束！\n守卫了 ${gameState.wave} 波敌人！`);
+        }
+        
+        function updateUI() {
+            document.getElementById('money').textContent = gameState.money;
+            document.getElementById('wave').textContent = gameState.wave;
+            document.getElementById('enemies').textContent = gameState.enemies.length;
+            document.getElementById('healthBar').style.width = gameState.health + '%';
+        }
+        
+        // 初始化
+        initializeGame();
+        updateUI();
+    </script>
+</body>
+</html>

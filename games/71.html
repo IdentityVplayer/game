@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时空旅行者 - 游戏世界</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(ellipse at center, #1a1a2e 0%, #16213e 30%, #0f0f23 70%, #000000 100%);
+            min-height: 100vh;
+            color: white;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .game-header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid #00d4ff;
+        }
+        .game-title {
+            font-size: 2.5em;
+            color: #00d4ff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(0, 212, 255, 0.6);
+            font-weight: bold;
+        }
+        .game-category {
+            display: inline-block;
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);
+        }
+        .game-area {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid #333;
+        }
+        .game-canvas {
+            width: 100%;
+            height: 400px;
+            border: 3px solid #00d4ff;
+            border-radius: 15px;
+            background: radial-gradient(circle at 30% 30%, #1a1a2e 0%, #16213e 40%, #0f0f23 80%, #000 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #00d4ff;
+            text-shadow: 0 0 15px rgba(0, 212, 255, 0.8);
+            position: relative;
+            overflow: hidden;
+            font-weight: bold;
+        }
+        .time-machine {
+            width: 60px;
+            height: 80px;
+            background: linear-gradient(to bottom, #4a90e2, #357abd);
+            border: 2px solid #00d4ff;
+            border-radius: 10px;
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            animation: timeMachine 4s ease-in-out infinite;
+            box-shadow: 0 0 30px rgba(0, 212, 255, 0.8);
+        }
+        .time-machine::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #00d4ff, #0099cc);
+            border-radius: 50%;
+            top: 15px;
+            left: 20px;
+            animation: energyPulse 2s ease-in-out infinite;
+        }
+        .time-machine::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 8px;
+            background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+            bottom: 10px;
+            left: 10px;
+            border-radius: 4px;
+            animation: energyFlow 3s ease-in-out infinite;
+        }
+        @keyframes timeMachine {
+            0%, 100% { transform: translate(-50%, -50%) scale(1) rotate(0deg); }
+            50% { transform: translate(-50%, -50%) scale(1.1) rotate(10deg); }
+        }
+        @keyframes energyPulse {
+            0%, 100% { opacity: 0.7; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.3); box-shadow: 0 0 20px #00d4ff; }
+        }
+        @keyframes energyFlow {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; box-shadow: 0 0 15px #00d4ff; }
+        }
+        .time-portal {
+            width: 100px;
+            height: 100px;
+            border: 3px solid #00d4ff;
+            border-radius: 50%;
+            position: absolute;
+            animation: portalSpin 6s linear infinite;
+            box-shadow: 
+                0 0 30px rgba(0, 212, 255, 0.6),
+                inset 0 0 30px rgba(0, 212, 255, 0.3);
+        }
+        .time-portal:nth-child(2) { left: 80px; top: 100px; }
+        .time-portal:nth-child(3) { right: 80px; bottom: 80px; animation-delay: -2s; }
+        .time-portal::before {
+            content: '';
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border: 2px solid #0099cc;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: portalInner 4s ease-in-out infinite reverse;
+        }
+        @keyframes portalSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        @keyframes portalInner {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(0.8); }
+        }
+        .time-particle {
+            width: 4px;
+            height: 4px;
+            background: #00d4ff;
+            border-radius: 50%;
+            position: absolute;
+            animation: particleFloat 5s ease-in-out infinite;
+            box-shadow: 0 0 10px #00d4ff;
+        }
+        .time-particle:nth-child(4) { left: 150px; top: 80px; animation-delay: 0s; }
+        .time-particle:nth-child(5) { right: 180px; top: 120px; animation-delay: 1s; }
+        .time-particle:nth-child(6) { left: 200px; bottom: 100px; animation-delay: 2s; }
+        .time-particle:nth-child(7) { right: 150px; bottom: 150px; animation-delay: 3s; }
+        .time-particle:nth-child(8) { left: 100px; bottom: 180px; animation-delay: 4s; }
+        @keyframes particleFloat {
+            0%, 100% { transform: translateY(0px) scale(1); opacity: 0.7; }
+            25% { transform: translateY(-30px) scale(1.5); opacity: 1; }
+            50% { transform: translateY(-10px) scale(0.8); opacity: 0.5; }
+            75% { transform: translateY(-40px) scale(1.2); opacity: 1; }
+        }
+        .temporal-wave {
+            position: absolute;
+            width: 150px;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00d4ff, transparent);
+            border-radius: 1px;
+            animation: waveMove 4s ease-in-out infinite;
+        }
+        .temporal-wave:nth-child(9) { top: 150px; left: 0; }
+        .temporal-wave:nth-child(10) { bottom: 150px; right: 0; animation-delay: 2s; }
+        @keyframes waveMove {
+            0%, 100% { transform: translateX(-50px) scaleX(0.5); opacity: 0.3; }
+            50% { transform: translateX(50px) scaleX(1.5); opacity: 1; }
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .control-btn {
+            padding: 12px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            color: white;
+            font-weight: bold;
+        }
+        .start-btn {
+            background: linear-gradient(45deg, #00d4ff, #0099cc);
+        }
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 212, 255, 0.4);
+        }
+        .travel-btn {
+            background: linear-gradient(45deg, #9b59b6, #8e44ad);
+        }
+        .travel-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(155, 89, 182, 0.4);
+        }
+        .description {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .description h3 {
+            color: #00d4ff;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .description p {
+            color: #bdc3c7;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .how-to-play {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .how-to-play h3 {
+            color: #9b59b6;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .how-to-play ol {
+            color: #bdc3c7;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        .how-to-play li {
+            margin-bottom: 8px;
+        }
+        .back-btn {
+            display: inline-block;
+            background: linear-gradient(45deg, #8e44ad, #9b59b6);
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(142, 68, 173, 0.3);
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(142, 68, 173, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-header">
+            <h1 class="game-title">时空旅行者</h1>
+            <div class="game-category">#科幻游戏</div>
+        </div>
+
+        <div class="game-area">
+            <div class="game-canvas">
+                <div class="time-machine"></div>
+                <div class="time-portal"></div>
+                <div class="time-portal"></div>
+                <div class="time-particle"></div>
+                <div class="time-particle"></div>
+                <div class="time-particle"></div>
+                <div class="time-particle"></div>
+                <div class="time-particle"></div>
+                <div class="temporal-wave"></div>
+                <div class="temporal-wave"></div>
+                时空旅行者
+            </div>
+            <div class="controls">
+                <button class="control-btn start-btn">开始旅行</button>
+                <button class="control-btn travel-btn">穿越时空</button>
+            </div>
+        </div>
+
+        <div class="description">
+            <h3>游戏介绍</h3>
+            <p>欢迎来到时空旅行的神奇世界！作为一名时空旅行者，你将操控先进的时间机器，穿越不同的历史时期和未来世界，体验不同时代的文明与生活。</p>
+            <p>从古代文明到远古恐龙时代，从中世纪城堡到未来科幻都市。在旅行中解决各种谜题，修复时间线的破损，保护历史的正常进程，成为时间的守护者！</p>
+        </div>
+
+        <div class="how-to-play">
+            <h3>游玩方法</h3>
+            <ol>
+                <li>选择你想要访问的历史时期或未来世界</li>
+                <li>操作时间机器穿越时空门，抵达目标时代</li>
+                <li>探索不同时代的文明和文化，与当地人交互</li>
+                <li>完成各种任务和挑战，收集特殊的时间水晶</li>
+                <li>警惕时间线的異常，及时修复可能的时空裂缝</li>
+                <li>记录你的旅行经历，成为最伟大的时空探险家</li>
+            </ol>
+        </div>
+
+        <a href="../index.html" class="back-btn">返回游戏列表</a>
+    </div>
+
+    <script>
+        document.querySelector('.start-btn').addEventListener('click', function() {
+            this.textContent = '旅行中...';
+            this.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
+            
+            setTimeout(() => {
+                this.textContent = '开始旅行';
+                this.style.background = 'linear-gradient(45deg, #00d4ff, #0099cc)';
+            }, 3000);
+        });
+
+        document.querySelector('.travel-btn').addEventListener('click', function() {
+            this.textContent = '穿越中...';
+            setTimeout(() => {
+                this.textContent = '穿越时空';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

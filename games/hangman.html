@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>猜单词</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #e17055 0%, #fdcb6e 100%);
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 500px;
+            text-align: center;
+        }
+
+        .hangman-display {
+            font-family: monospace;
+            font-size: 24px;
+            line-height: 1.2;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            white-space: pre;
+        }
+
+        .word-display {
+            font-size: 36px;
+            font-weight: bold;
+            letter-spacing: 8px;
+            margin: 30px 0;
+            color: #2d3436;
+            font-family: monospace;
+        }
+
+        .alphabet {
+            display: grid;
+            grid-template-columns: repeat(6, 1fr);
+            gap: 8px;
+            margin: 30px 0;
+            max-width: 400px;
+        }
+
+        .letter-btn {
+            background: linear-gradient(45deg, #74b9ff, #0984e3);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .letter-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .letter-btn:disabled {
+            background: #ddd;
+            color: #999;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .letter-btn.correct {
+            background: linear-gradient(45deg, #00b894, #00cec9);
+        }
+
+        .letter-btn.wrong {
+            background: linear-gradient(45deg, #e17055, #d63031);
+        }
+
+        .game-info {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #e17055;
+        }
+
+        .controls {
+            margin: 20px 0;
+        }
+
+        button {
+            background: linear-gradient(45deg, #e17055, #fdcb6e);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        .hint {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px 0;
+            font-style: italic;
+        }
+
+        .result {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .result.win {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .result.lose {
+            background: #f8d7da;
+            color: #721c24;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎨 猜单词</h1>
+    
+    <div class="game-container">
+        <div class="hangman-display" id="hangmanDisplay">
+  +---+
+  |   |
+      |
+      |
+      |
+      |
+=========
+        </div>
+        
+        <div class="word-display" id="wordDisplay">_ _ _ _ _</div>
+        
+        <div class="hint" id="hint">提示: 一种红色水果</div>
+        
+        <div class="game-info">
+            <div class="stats">
+                <div class="stat">
+                    <div class="stat-number" id="wrongGuesses">0</div>
+                    <div>错误次数</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="score">0</div>
+                    <div>得分</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-number" id="level">1</div>
+                    <div>等级</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alphabet" id="alphabet"></div>
+        
+        <div class="result" id="result" style="display: none;"></div>
+        
+        <div class="controls">
+            <button onclick="newGame()">新游戏</button>
+            <button onclick="showFullHint()">显示提示</button>
+            <button onclick="giveUp()">放弃</button>
+        </div>
+    </div>
+
+    <script>
+        class Hangman {
+            constructor() {
+                this.words = [
+                    {word: 'APPLE', hint: '一种红色水果', category: '水果'},
+                    {word: 'COMPUTER', hint: '用于计算和处理信息的机器', category: '科技'},
+                    {word: 'ELEPHANT', hint: '世界上最大的陆地动物', category: '动物'},
+                    {word: 'RAINBOW', hint: '雨后天空中的彩色弧形', category: '自然'},
+                    {word: 'MOUNTAIN', hint: '高耸的地形', category: '地理'},
+                    {word: 'OCEAN', hint: '地球上最大的水体', category: '地理'},
+                    {word: 'GUITAR', hint: '一种弦乐器', category: '音乐'},
+                    {word: 'FLOWER', hint: '植物的繁殖器官', category: '植物'},
+                    {word: 'DIAMOND', hint: '最硬的天然物质', category: '矿物'},
+                    {word: 'BUTTERFLY', hint: '会飞的美丽昆虫', category: '动物'}
+                ];
+                
+                this.hangmanParts = [
+                    "  +---+\n  |   |\n      |\n      |\n      |\n      |\n=========",
+                    "  +---+\n  |   |\n  O   |\n      |\n      |\n      |\n=========",
+                    "  +---+\n  |   |\n  O   |\n  |   |\n      |\n      |\n=========",
+                    "  +---+\n  |   |\n  O   |\n /|   |\n      |\n      |\n=========",
+                    "  +---+\n  |   |\n  O   |\n /|\\  |\n      |\n      |\n=========",
+                    "  +---+\n  |   |\n  O   |\n /|\\  |\n /    |\n      |\n=========",
+                    "  +---+\n  |   |\n  O   |\n /|\\  |\n / \\  |\n      |\n========="
+                ];
+                
+                this.currentWord = null;
+                this.guessedLetters = [];
+                this.wrongGuesses = 0;
+                this.score = 0;
+                this.level = 1;
+                this.gameOver = false;
+                
+                this.initGame();
+            }
+
+            initGame() {
+                this.selectRandomWord();
+                this.createAlphabet();
+                this.updateDisplay();
+            }
+
+            selectRandomWord() {
+                const availableWords = this.words.filter(w => w.word.length >= this.level + 3);
+                this.currentWord = availableWords[Math.floor(Math.random() * availableWords.length)] || this.words[0];
+                this.guessedLetters = [];
+                this.wrongGuesses = 0;
+                this.gameOver = false;
+            }
+
+            createAlphabet() {
+                const alphabet = document.getElementById('alphabet');
+                alphabet.innerHTML = '';
+                
+                for (let i = 65; i <= 90; i++) {
+                    const letter = String.fromCharCode(i);
+                    const button = document.createElement('button');
+                    button.className = 'letter-btn';
+                    button.textContent = letter;
+                    button.onclick = () => this.guessLetter(letter);
+                    alphabet.appendChild(button);
+                }
+            }
+
+            guessLetter(letter) {
+                if (this.gameOver || this.guessedLetters.includes(letter)) return;
+                
+                this.guessedLetters.push(letter);
+                
+                const button = [...document.querySelectorAll('.letter-btn')]
+                    .find(btn => btn.textContent === letter);
+                
+                if (this.currentWord.word.includes(letter)) {
+                    button.classList.add('correct');
+                    this.checkWin();
+                } else {
+                    button.classList.add('wrong');
+                    this.wrongGuesses++;
+                    this.checkLose();
+                }
+                
+                button.disabled = true;
+                this.updateDisplay();
+            }
+
+            updateDisplay() {
+                // 更新单词显示
+                const wordDisplay = this.currentWord.word.split('').map(letter => 
+                    this.guessedLetters.includes(letter) ? letter : '_'
+                ).join(' ');
+                document.getElementById('wordDisplay').textContent = wordDisplay;
+                
+                // 更新绝刑架
+                document.getElementById('hangmanDisplay').textContent = this.hangmanParts[this.wrongGuesses];
+                
+                // 更新提示
+                document.getElementById('hint').textContent = `提示: ${this.currentWord.hint}`;
+                
+                // 更新统计
+                document.getElementById('wrongGuesses').textContent = this.wrongGuesses;
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('level').textContent = this.level;
+            }
+
+            checkWin() {
+                const allLettersGuessed = this.currentWord.word.split('').every(letter => 
+                    this.guessedLetters.includes(letter)
+                );
+                
+                if (allLettersGuessed) {
+                    this.gameOver = true;
+                    this.score += Math.max(10 - this.wrongGuesses, 1) * this.level;
+                    
+                    const result = document.getElementById('result');
+                    result.className = 'result win';
+                    result.textContent = `🎉 恭喜你！得分: +${Math.max(10 - this.wrongGuesses, 1) * this.level}`;
+                    result.style.display = 'block';
+                    
+                    setTimeout(() => {
+                        this.level++;
+                        this.nextLevel();
+                    }, 2000);
+                }
+            }
+
+            checkLose() {
+                if (this.wrongGuesses >= 6) {
+                    this.gameOver = true;
+                    
+                    const result = document.getElementById('result');
+                    result.className = 'result lose';
+                    result.textContent = `😔 游戏结束！答案是: ${this.currentWord.word}`;
+                    result.style.display = 'block';
+                    
+                    // 显示正确答案
+                    document.getElementById('wordDisplay').textContent = this.currentWord.word.split('').join(' ');
+                }
+            }
+
+            nextLevel() {
+                document.getElementById('result').style.display = 'none';
+                this.selectRandomWord();
+                this.createAlphabet();
+                this.updateDisplay();
+            }
+
+            showFullHint() {
+                alert(`完整提示:\n分类: ${this.currentWord.category}\n描述: ${this.currentWord.hint}\n单词长度: ${this.currentWord.word.length} 个字母`);
+            }
+
+            giveUp() {
+                this.gameOver = true;
+                
+                const result = document.getElementById('result');
+                result.className = 'result lose';
+                result.textContent = `放弃了！答案是: ${this.currentWord.word}`;
+                result.style.display = 'block';
+                
+                document.getElementById('wordDisplay').textContent = this.currentWord.word.split('').join(' ');
+            }
+
+            newGame() {
+                this.score = 0;
+                this.level = 1;
+                document.getElementById('result').style.display = 'none';
+                this.initGame();
+            }
+        }
+
+        let game;
+
+        function newGame() {
+            game = new Hangman();
+        }
+
+        function showFullHint() {
+            game.showFullHint();
+        }
+
+        function giveUp() {
+            game.giveUp();
+        }
+
+        // 初始化游戏
+        newGame();
+    </script>
+</body>
+</html>

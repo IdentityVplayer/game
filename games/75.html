@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>国王的城堡 - 游戏世界</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #8b4513 0%, #daa520 30%, #32cd32 60%, #87ceeb 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .game-header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 3px solid #8b4513;
+        }
+        .game-title {
+            font-size: 2.5em;
+            color: #8b0000;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(139, 0, 0, 0.3);
+            font-weight: bold;
+        }
+        .game-category {
+            display: inline-block;
+            background: linear-gradient(45deg, #8b0000, #dc143c);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(139, 0, 0, 0.3);
+        }
+        .game-area {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 3px solid #8b4513;
+        }
+        .game-canvas {
+            width: 100%;
+            height: 400px;
+            border: 3px solid #8b4513;
+            border-radius: 15px;
+            background: linear-gradient(to bottom, #87ceeb 0%, #32cd32 40%, #daa520 80%, #8b4513 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #8b0000;
+            text-shadow: 2px 2px 4px rgba(255,255,255,0.7);
+            position: relative;
+            overflow: hidden;
+            font-weight: bold;
+        }
+        .castle {
+            width: 120px;
+            height: 100px;
+            background: linear-gradient(to bottom, #dcdcdc, #a9a9a9);
+            border: 3px solid #696969;
+            position: absolute;
+            left: 50%;
+            top: 40%;
+            transform: translate(-50%, -50%);
+            border-radius: 5px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+        }
+        .castle::before {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 40px;
+            background: linear-gradient(to bottom, #dcdcdc, #a9a9a9);
+            border: 2px solid #696969;
+            top: -30px;
+            left: 10px;
+            border-radius: 3px;
+        }
+        .castle::after {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 40px;
+            background: linear-gradient(to bottom, #dcdcdc, #a9a9a9);
+            border: 2px solid #696969;
+            top: -30px;
+            right: 10px;
+            border-radius: 3px;
+        }
+        .castle-tower {
+            width: 25px;
+            height: 50px;
+            background: linear-gradient(to bottom, #dcdcdc, #a9a9a9);
+            border: 2px solid #696969;
+            position: absolute;
+            top: -40px;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 3px;
+        }
+        .castle-tower::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-bottom: 20px solid #8b0000;
+            top: -20px;
+            left: -2px;
+        }
+        .castle-gate {
+            width: 25px;
+            height: 35px;
+            background: linear-gradient(to bottom, #654321, #8b4513);
+            border: 2px solid #2f4f4f;
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            border-radius: 12px 12px 0 0;
+        }
+        .flag {
+            width: 20px;
+            height: 15px;
+            background: linear-gradient(45deg, #ff0000, #ff4500);
+            position: absolute;
+            top: -55px;
+            left: 52px;
+            animation: flagWave 3s ease-in-out infinite;
+            border-radius: 0 3px 3px 0;
+        }
+        .flag::before {
+            content: '';
+            position: absolute;
+            width: 2px;
+            height: 25px;
+            background: #8b4513;
+            left: -2px;
+            top: 0;
+        }
+        @keyframes flagWave {
+            0%, 100% { transform: rotate(0deg); }
+            50% { transform: rotate(10deg); }
+        }
+        .knight {
+            width: 25px;
+            height: 40px;
+            background: linear-gradient(to bottom, #4682b4, #1e90ff);
+            border: 2px solid #000080;
+            border-radius: 8px;
+            position: absolute;
+            animation: knightPatrol 8s ease-in-out infinite;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .knight:nth-child(4) { left: 200px; bottom: 100px; }
+        .knight:nth-child(5) { right: 180px; bottom: 120px; animation-delay: 4s; }
+        .knight::before {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #ffd700;
+            border-radius: 50%;
+            top: 5px;
+            left: 6px;
+        }
+        .knight::after {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 6px;
+            background: #c0c0c0;
+            bottom: -3px;
+            left: 5px;
+            border-radius: 3px;
+        }
+        @keyframes knightPatrol {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(100px); }
+        }
+        .village-house {
+            width: 40px;
+            height: 30px;
+            background: linear-gradient(to bottom, #deb887, #cd853f);
+            border: 2px solid #8b4513;
+            position: absolute;
+            border-radius: 3px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .village-house:nth-child(6) { left: 80px; bottom: 80px; }
+        .village-house:nth-child(7) { right: 120px; bottom: 60px; }
+        .village-house:nth-child(8) { left: 150px; bottom: 40px; }
+        .village-house::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 22px solid transparent;
+            border-right: 22px solid transparent;
+            border-bottom: 15px solid #8b0000;
+            top: -15px;
+            left: -2px;
+        }
+        .village-house::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 15px;
+            background: #654321;
+            bottom: 0;
+            right: 8px;
+            border-radius: 2px;
+        }
+        .tree {
+            position: absolute;
+            width: 15px;
+            height: 35px;
+        }
+        .tree::before {
+            content: '';
+            position: absolute;
+            width: 4px;
+            height: 12px;
+            background: linear-gradient(to bottom, #8b4513, #654321);
+            bottom: 0;
+            left: 5px;
+            border-radius: 2px;
+        }
+        .tree::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 23px solid #228b22;
+            top: 0;
+            left: -1px;
+        }
+        .tree:nth-child(9) { left: 50px; bottom: 40px; }
+        .tree:nth-child(10) { right: 80px; bottom: 30px; }
+        .tree:nth-child(11) { left: 300px; bottom: 60px; }
+        .tree:nth-child(12) { right: 250px; bottom: 45px; }
+        .cloud {
+            width: 50px;
+            height: 25px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 25px;
+            position: absolute;
+            animation: cloudFloat 8s ease-in-out infinite;
+        }
+        .cloud:nth-child(13) { top: 40px; left: 100px; }
+        .cloud:nth-child(14) { top: 60px; right: 120px; animation-delay: 4s; }
+        @keyframes cloudFloat {
+            0%, 100% { transform: translateX(0); }
+            50% { transform: translateX(50px); }
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .control-btn {
+            padding: 12px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
+        }
+        .start-btn {
+            background: linear-gradient(45deg, #8b0000, #dc143c);
+            color: white;
+        }
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 0, 0, 0.4);
+        }
+        .build-btn {
+            background: linear-gradient(45deg, #daa520, #ffd700);
+            color: white;
+        }
+        .build-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(218, 165, 32, 0.4);
+        }
+        .description {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid #8b4513;
+        }
+        .description h3 {
+            color: #8b0000;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .description p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .how-to-play {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid #8b4513;
+        }
+        .how-to-play h3 {
+            color: #daa520;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .how-to-play ol {
+            color: #555;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        .how-to-play li {
+            margin-bottom: 8px;
+        }
+        .back-btn {
+            display: inline-block;
+            background: linear-gradient(45deg, #8b4513, #daa520);
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-header">
+            <h1 class="game-title">国王的城堡</h1>
+            <div class="game-category">#策略游戏</div>
+        </div>
+
+        <div class="game-area">
+            <div class="game-canvas">
+                <div class="castle">
+                    <div class="castle-tower"></div>
+                    <div class="castle-gate"></div>
+                    <div class="flag"></div>
+                </div>
+                <div class="knight"></div>
+                <div class="knight"></div>
+                <div class="village-house"></div>
+                <div class="village-house"></div>
+                <div class="village-house"></div>
+                <div class="tree"></div>
+                <div class="tree"></div>
+                <div class="tree"></div>
+                <div class="tree"></div>
+                <div class="cloud"></div>
+                <div class="cloud"></div>
+                国王的城堡
+            </div>
+            <div class="controls">
+                <button class="control-btn start-btn">开始统治</button>
+                <button class="control-btn build-btn">建设城堡</button>
+            </div>
+        </div>
+
+        <div class="description">
+            <h3>游戏介绍</h3>
+            <p>欢迎来到中世纪的王国！在这个充满策略的游戏中，你将扮演一位实力强大的国王，负责建设和管理你的王国，保护你的子民，扩张你的领土。</p>
+            <p>从一个小小的城堡开始，逐步建设强大的堡垒、繁华的城市和强大的军队。与其他国王进行外交或战争，管理资源和贸易，最终成为一个伟大的帝国的统治者！</p>
+        </div>
+
+        <div class="how-to-play">
+            <h3>游玩方法</h3>
+            <ol>
+                <li>选择你的起始领土和城堡位置，考虑地形和资源优势</li>
+                <li>建设住房、农场、工坊等基础设施发展经济</li>
+                <li>招募和训练军队，保护你的王国免受入侵</li>
+                <li>研究新技术提高生产力和军事能力</li>
+                <li>与邻国进行外交谈判或发动战争扩张领土</li>
+                <li>管理国家财政，平衡各项支出和投入</li>
+            </ol>
+        </div>
+
+        <a href="../index.html" class="back-btn">返回游戏列表</a>
+    </div>
+
+    <script>
+        document.querySelector('.start-btn').addEventListener('click', function() {
+            this.textContent = '统治中...';
+            this.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
+            
+            setTimeout(() => {
+                this.textContent = '开始统治';
+                this.style.background = 'linear-gradient(45deg, #8b0000, #dc143c)';
+            }, 3000);
+        });
+
+        document.querySelector('.build-btn').addEventListener('click', function() {
+            this.textContent = '建设中...';
+            setTimeout(() => {
+                this.textContent = '建设城堡';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

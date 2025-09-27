@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>电路连接大师 - 电子学习游戏</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #2d3436 0%, #636e72 50%, #2d3436 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #ffeaa7;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .circuit-area {
+            display: grid;
+            grid-template-columns: 1fr 250px;
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .circuit-board {
+            background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+            border-radius: 15px;
+            padding: 20px;
+            min-height: 500px;
+            position: relative;
+            overflow: hidden;
+        }
+        .component-panel {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+        }
+        .grid-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: 
+                linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+        .component {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            transition: all 0.2s ease;
+        }
+        .component:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+        .component.dragging {
+            transform: scale(1.2);
+            z-index: 100;
+        }
+        .battery {
+            width: 60px;
+            height: 30px;
+            background: linear-gradient(45deg, #fd79a8, #e84393);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        .resistor {
+            width: 50px;
+            height: 15px;
+            background: repeating-linear-gradient(
+                90deg,
+                #fdcb6e 0px,
+                #fdcb6e 5px,
+                #e17055 5px,
+                #e17055 10px
+            );
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.7em;
+        }
+        .led {
+            width: 20px;
+            height: 20px;
+            background: #00b894;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.6em;
+            box-shadow: 0 0 15px rgba(0, 184, 148, 0.8);
+        }
+        .led.on {
+            background: #00ff88;
+            box-shadow: 0 0 25px rgba(0, 255, 136, 1);
+            animation: glow 1s ease-in-out infinite alternate;
+        }
+        @keyframes glow {
+            from { box-shadow: 0 0 25px rgba(0, 255, 136, 0.8); }
+            to { box-shadow: 0 0 35px rgba(0, 255, 136, 1); }
+        }
+        .switch {
+            width: 40px;
+            height: 20px;
+            background: #636e72;
+            border-radius: 10px;
+            position: relative;
+            cursor: pointer;
+        }
+        .switch.on {
+            background: #00b894;
+        }
+        .switch::after {
+            content: '';
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.3s ease;
+        }
+        .switch.on::after {
+            left: 22px;
+        }
+        .wire {
+            position: absolute;
+            height: 3px;
+            background: #ffeaa7;
+            transform-origin: left center;
+            pointer-events: none;
+            z-index: 5;
+        }
+        .connection-point {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #2d3436;
+            border: 2px solid #ffeaa7;
+            border-radius: 50%;
+            cursor: crosshair;
+        }
+        .component-library {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .component-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .component-item:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateX(5px);
+        }
+        .component-preview {
+            min-width: 40px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .controls {
+            margin: 20px 0;
+            text-align: center;
+        }
+        button {
+            background: linear-gradient(45deg, #00b894, #00a085);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            margin: 5px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 184, 148, 0.4);
+        }
+        .status-panel {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+        }
+        .challenge-panel {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .challenge-title {
+            color: #ffeaa7;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .instruction {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        .measurement-display {
+            background: rgba(0, 0, 0, 0.5);
+            color: #00ff88;
+            font-family: 'Courier New', monospace;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>⚡ 电路连接大师</h1>
+        
+        <div class="circuit-area">
+            <div class="circuit-board" id="circuitBoard">
+                <div class="grid-overlay"></div>
+                <div id="components"></div>
+                <div id="wires"></div>
+            </div>
+            
+            <div class="component-panel">
+                <h3>元件库</h3>
+                <div class="component-library">
+                    <div class="component-item" onclick="addComponent('battery')">
+                        <div class="component-preview">
+                            <div class="battery" style="transform: scale(0.7);">电池</div>
+                        </div>
+                        <div>电池 (9V)</div>
+                    </div>
+                    <div class="component-item" onclick="addComponent('resistor')">
+                        <div class="component-preview">
+                            <div class="resistor" style="transform: scale(0.7);">R</div>
+                        </div>
+                        <div>电阻 (100Ω)</div>
+                    </div>
+                    <div class="component-item" onclick="addComponent('led')">
+                        <div class="component-preview">
+                            <div class="led" style="transform: scale(0.7);">LED</div>
+                        </div>
+                        <div>LED 灯</div>
+                    </div>
+                    <div class="component-item" onclick="addComponent('switch')">
+                        <div class="component-preview">
+                            <div class="switch" style="transform: scale(0.7);"></div>
+                        </div>
+                        <div>开关</div>
+                    </div>
+                </div>
+                
+                <div class="status-panel">
+                    <h4>电路状态</h4>
+                    <div class="status-item">
+                        <span>电压:</span>
+                        <span id="voltage">0V</span>
+                    </div>
+                    <div class="status-item">
+                        <span>电流:</span>
+                        <span id="current">0A</span>
+                    </div>
+                    <div class="status-item">
+                        <span>功率:</span>
+                        <span id="power">0W</span>
+                    </div>
+                </div>
+                
+                <div class="challenge-panel" id="challengePanel">
+                    <div class="challenge-title">当前挑战</div>
+                    <div id="challengeText">点击开始新挑战</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="simulateCircuit()">仿真电路</button>
+            <button onclick="clearCircuit()">清空电路</button>
+            <button onclick="newChallenge()">新挑战</button>
+            <button onclick="checkSolution()">检查答案</button>
+        </div>
+        
+        <div class="instruction">
+            <h3>🎮 游玩方法：</h3>
+            <p><strong>游戏目标：</strong>学习电路连接，理解电学原理</p>
+            <p><strong>操作方式：</strong></p>
+            <ul>
+                <li>从元件库中点击选择元件</li>
+                <li>拖拽元件到电路板上</li>
+                <li>点击元件的连接点进行连线</li>
+                <li>点击仿真按钮查看电路效果</li>
+            </ul>
+            <p><strong>元件介绍：</strong></p>
+            <ul>
+                <li>🔋 电池：提供电压和电流</li>
+                <li>🔆 电阻：限制电流大小</li>
+                <li>💡 LED：发光二极管，显示电路状态</li>
+                <li>🔌 开关：控制电路通断</li>
+            </ul>
+            <p><strong>电学定律：</strong></p>
+            <ul>
+                <li>欧姆定律：V = I × R</li>
+                <li>功率公式：P = V × I</li>
+                <li>串联电路：电流相等，电压相加</li>
+                <li>并联电路：电压相等，电流相加</li>
+            </ul>
+            <p><strong>小贴士：</strong>先连接简单的串联电路，再尝试复杂的并联电路！</p>
+        </div>
+    </div>
+
+    <script>
+        let circuitState = {
+            components: [],
+            wires: [],
+            connecting: false,
+            connectionStart: null,
+            nextId: 1,
+            currentChallenge: null
+        };
+        
+        const challenges = [
+            {
+                title: '基础串联电路',
+                description: '连接一个电池、一个LED和一个电阻，组成串联电路',
+                required: ['battery', 'led', 'resistor'],
+                check: (components) => components.length >= 3
+            },
+            {
+                title: '带开关的电路',
+                description: '在串联电路中加入开关，控制LED的亮灭',
+                required: ['battery', 'led', 'resistor', 'switch'],
+                check: (components) => components.length >= 4
+            },
+            {
+                title: '并联LED电路',
+                description: '连接两个LED并联，共享一个电池',
+                required: ['battery', 'led', 'led', 'resistor'],
+                check: (components) => components.filter(c => c.type === 'led').length >= 2
+            }
+        ];
+        
+        function addComponent(type) {
+            const board = document.getElementById('circuitBoard');
+            const rect = board.getBoundingClientRect();
+            
+            const component = {
+                id: circuitState.nextId++,
+                type: type,
+                x: Math.random() * (rect.width - 100) + 50,
+                y: Math.random() * (rect.height - 100) + 50,
+                state: type === 'switch' ? false : true
+            };
+            
+            circuitState.components.push(component);
+            renderComponent(component);
+        }
+        
+        function renderComponent(component) {
+            const componentsDiv = document.getElementById('components');
+            const element = document.createElement('div');
+            element.className = `component ${component.type}`;
+            element.id = `component-${component.id}`;
+            element.style.left = component.x + 'px';
+            element.style.top = component.y + 'px';
+            
+            if (component.type === 'battery') {
+                element.textContent = '电池';
+            } else if (component.type === 'resistor') {
+                element.textContent = 'R';
+            } else if (component.type === 'led') {
+                element.textContent = 'LED';
+            } else if (component.type === 'switch') {
+                element.addEventListener('click', () => toggleSwitch(component));
+            }
+            
+            // 添加连接点
+            if (component.type !== 'switch') {
+                const leftPoint = document.createElement('div');
+                leftPoint.className = 'connection-point';
+                leftPoint.style.left = '-5px';
+                leftPoint.style.top = '50%';
+                leftPoint.style.transform = 'translateY(-50%)';
+                leftPoint.addEventListener('click', (e) => handleConnection(e, component, 'left'));
+                element.appendChild(leftPoint);
+                
+                const rightPoint = document.createElement('div');
+                rightPoint.className = 'connection-point';
+                rightPoint.style.right = '-5px';
+                rightPoint.style.top = '50%';
+                rightPoint.style.transform = 'translateY(-50%)';
+                rightPoint.addEventListener('click', (e) => handleConnection(e, component, 'right'));
+                element.appendChild(rightPoint);
+            }
+            
+            // 添加拖拽功能
+            makeComponentDraggable(element, component);
+            
+            componentsDiv.appendChild(element);
+        }
+        
+        function makeComponentDraggable(element, component) {
+            let isDragging = false;
+            let startX, startY;
+            
+            element.addEventListener('mousedown', (e) => {
+                if (e.target.classList.contains('connection-point')) return;
+                
+                isDragging = true;
+                element.classList.add('dragging');
+                startX = e.clientX - component.x;
+                startY = e.clientY - component.y;
+                
+                e.preventDefault();
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                
+                component.x = e.clientX - startX;
+                component.y = e.clientY - startY;
+                
+                element.style.left = component.x + 'px';
+                element.style.top = component.y + 'px';
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    element.classList.remove('dragging');
+                }
+            });
+        }
+        
+        function handleConnection(e, component, side) {
+            e.stopPropagation();
+            
+            if (!circuitState.connecting) {
+                // 开始连接
+                circuitState.connecting = true;
+                circuitState.connectionStart = { component, side };
+                e.target.style.background = '#ffeaa7';
+            } else {
+                // 完成连接
+                if (circuitState.connectionStart.component.id !== component.id) {
+                    createWire(circuitState.connectionStart, { component, side });
+                }
+                
+                // 重置连接状态
+                document.querySelectorAll('.connection-point').forEach(point => {
+                    point.style.background = '#2d3436';
+                });
+                circuitState.connecting = false;
+                circuitState.connectionStart = null;
+            }
+        }
+        
+        function createWire(start, end) {
+            const wire = {
+                id: circuitState.nextId++,
+                start: start,
+                end: end
+            };
+            
+            circuitState.wires.push(wire);
+            renderWire(wire);
+        }
+        
+        function renderWire(wire) {
+            const wiresDiv = document.getElementById('wires');
+            const element = document.createElement('div');
+            element.className = 'wire';
+            element.id = `wire-${wire.id}`;
+            
+            updateWirePosition(element, wire);
+            wiresDiv.appendChild(element);
+        }
+        
+        function updateWirePosition(element, wire) {
+            const startComp = wire.start.component;
+            const endComp = wire.end.component;
+            
+            let startX = startComp.x;
+            let startY = startComp.y + 15;
+            let endX = endComp.x;
+            let endY = endComp.y + 15;
+            
+            if (wire.start.side === 'right') startX += 60;
+            if (wire.end.side === 'right') endX += 60;
+            
+            const dx = endX - startX;
+            const dy = endY - startY;
+            const length = Math.sqrt(dx * dx + dy * dy);
+            const angle = Math.atan2(dy, dx) * 180 / Math.PI;
+            
+            element.style.left = startX + 'px';
+            element.style.top = startY + 'px';
+            element.style.width = length + 'px';
+            element.style.transform = `rotate(${angle}deg)`;
+        }
+        
+        function toggleSwitch(component) {
+            component.state = !component.state;
+            const element = document.getElementById(`component-${component.id}`);
+            
+            if (component.state) {
+                element.classList.add('on');
+            } else {
+                element.classList.remove('on');
+            }
+        }
+        
+        function simulateCircuit() {
+            // 简化的电路仿真
+            const batteries = circuitState.components.filter(c => c.type === 'battery');
+            const leds = circuitState.components.filter(c => c.type === 'led');
+            const resistors = circuitState.components.filter(c => c.type === 'resistor');
+            const switches = circuitState.components.filter(c => c.type === 'switch');
+            
+            let totalVoltage = batteries.length * 9; // 每个电池9V
+            let totalResistance = resistors.length * 100; // 每个电阻100Ω
+            
+            // 检查是否有开关断开
+            const hasOpenSwitch = switches.some(s => !s.state);
+            
+            if (hasOpenSwitch || totalResistance === 0 || totalVoltage === 0) {
+                document.getElementById('voltage').textContent = '0V';
+                document.getElementById('current').textContent = '0A';
+                document.getElementById('power').textContent = '0W';
+                
+                // 关闭所有LED
+                leds.forEach(led => {
+                    const element = document.getElementById(`component-${led.id}`);
+                    element.classList.remove('on');
+                });
+            } else {
+                const current = totalVoltage / totalResistance;
+                const power = totalVoltage * current;
+                
+                document.getElementById('voltage').textContent = totalVoltage.toFixed(1) + 'V';
+                document.getElementById('current').textContent = (current * 1000).toFixed(1) + 'mA';
+                document.getElementById('power').textContent = (power * 1000).toFixed(1) + 'mW';
+                
+                // 点亮所有LED
+                leds.forEach(led => {
+                    const element = document.getElementById(`component-${led.id}`);
+                    element.classList.add('on');
+                });
+            }
+        }
+        
+        function clearCircuit() {
+            circuitState.components = [];
+            circuitState.wires = [];
+            circuitState.connecting = false;
+            circuitState.connectionStart = null;
+            
+            document.getElementById('components').innerHTML = '';
+            document.getElementById('wires').innerHTML = '';
+            
+            document.getElementById('voltage').textContent = '0V';
+            document.getElementById('current').textContent = '0A';
+            document.getElementById('power').textContent = '0W';
+        }
+        
+        function newChallenge() {
+            const challenge = challenges[Math.floor(Math.random() * challenges.length)];
+            circuitState.currentChallenge = challenge;
+            
+            document.getElementById('challengeText').innerHTML = `
+                <strong>${challenge.title}</strong><br>
+                ${challenge.description}
+            `;
+        }
+        
+        function checkSolution() {
+            if (!circuitState.currentChallenge) {
+                alert('请先开始一个挑战！');
+                return;
+            }
+            
+            const challenge = circuitState.currentChallenge;
+            const isCorrect = challenge.check(circuitState.components);
+            
+            if (isCorrect) {
+                alert('恭喜！您已经成功完成挑战！');
+            } else {
+                alert('还没有完成挑战要求，请继续尝试。');
+            }
+        }
+        
+        // 初始化
+        newChallenge();
+    </script>
+</body>
+</html>

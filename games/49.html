@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>音乐节拍大师 - 音乐节奏游戏</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        h1 {
+            text-align: center;
+            color: #fff;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .game-area {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .note-track {
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(to bottom, #1a1a1a, #333);
+            border-radius: 10px;
+            position: relative;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .hit-zone {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80px;
+            height: 80px;
+            border: 3px solid #ff6b6b;
+            border-radius: 50%;
+            background: rgba(255, 107, 107, 0.2);
+        }
+        .note {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: #4ecdc4;
+            border-radius: 50%;
+            border: 2px solid white;
+            box-shadow: 0 0 20px rgba(78, 205, 196, 0.8);
+            animation: fallDown 3s linear infinite;
+        }
+        @keyframes fallDown {
+            from {
+                top: -60px;
+            }
+            to {
+                top: 100%;
+            }
+        }
+        .score {
+            font-size: 1.5em;
+            margin: 10px 0;
+            color: #ffd93d;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 5px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        .combo {
+            font-size: 1.2em;
+            color: #ff9ff3;
+            margin: 10px 0;
+        }
+        .instruction {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 音乐节拍大师</h1>
+        
+        <div class="game-area">
+            <div class="score">得分: <span id="scoreValue">0</span></div>
+            <div class="combo">连击: <span id="comboValue">0</span></div>
+            
+            <div class="note-track" id="noteTrack">
+                <div class="hit-zone" id="hitZone"></div>
+            </div>
+            
+            <div class="controls">
+                <button onclick="startGame()">开始游戏</button>
+                <button onclick="hitNote()">击打节拍 (空格键)</button>
+                <button onclick="pauseGame()">暂停</button>
+            </div>
+        </div>
+        
+        <div class="instruction">
+            <h3>🎮 游玩方法：</h3>
+            <p><strong>游戏目标：</strong>跟随音乐节拍，准确击打下落的音符</p>
+            <p><strong>操作方式：</strong></p>
+            <ul>
+                <li>观察从上方下落的音符</li>
+                <li>当音符到达底部圆圈时，按空格键或点击击打按钮</li>
+                <li>准确击打可获得分数和连击奖励</li>
+                <li>错过音符会中断连击</li>
+            </ul>
+            <p><strong>评分系统：</strong></p>
+            <ul>
+                <li>完美击打：100分</li>
+                <li>良好击打：50分</li>
+                <li>连击奖励：每次连击额外+10分</li>
+            </ul>
+            <p><strong>小贴士：</strong>跟随音乐节奏，保持稳定的击打时机！</p>
+        </div>
+    </div>
+
+    <script>
+        let score = 0;
+        let combo = 0;
+        let gameRunning = false;
+        let noteSpeed = 3000;
+        let gameInterval;
+        
+        function startGame() {
+            if (gameRunning) return;
+            gameRunning = true;
+            score = 0;
+            combo = 0;
+            updateDisplay();
+            
+            gameInterval = setInterval(createNote, 1500);
+        }
+        
+        function pauseGame() {
+            gameRunning = false;
+            clearInterval(gameInterval);
+        }
+        
+        function createNote() {
+            if (!gameRunning) return;
+            
+            const track = document.getElementById('noteTrack');
+            const note = document.createElement('div');
+            note.className = 'note';
+            note.style.left = Math.random() * (track.offsetWidth - 60) + 'px';
+            note.style.animationDuration = noteSpeed + 'ms';
+            
+            track.appendChild(note);
+            
+            setTimeout(() => {
+                if (note.parentNode) {
+                    note.parentNode.removeChild(note);
+                    combo = 0;
+                    updateDisplay();
+                }
+            }, noteSpeed);
+        }
+        
+        function hitNote() {
+            const notes = document.querySelectorAll('.note');
+            let hitSuccess = false;
+            
+            notes.forEach(note => {
+                const noteRect = note.getBoundingClientRect();
+                const hitZone = document.getElementById('hitZone');
+                const hitRect = hitZone.getBoundingClientRect();
+                
+                const distance = Math.abs(noteRect.bottom - hitRect.top);
+                
+                if (distance < 50) {
+                    hitSuccess = true;
+                    note.parentNode.removeChild(note);
+                    
+                    if (distance < 20) {
+                        score += 100 + combo * 10;
+                        combo++;
+                        showHitEffect('完美!', '#4ecdc4');
+                    } else {
+                        score += 50 + combo * 5;
+                        combo++;
+                        showHitEffect('良好!', '#ffd93d');
+                    }
+                    
+                    updateDisplay();
+                }
+            });
+            
+            if (!hitSuccess) {
+                combo = 0;
+                showHitEffect('错过!', '#ff6b6b');
+                updateDisplay();
+            }
+        }
+        
+        function showHitEffect(text, color) {
+            const effect = document.createElement('div');
+            effect.textContent = text;
+            effect.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                color: ${color};
+                font-size: 2em;
+                font-weight: bold;
+                pointer-events: none;
+                animation: fadeUp 1s ease-out forwards;
+                z-index: 1000;
+            `;
+            
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes fadeUp {
+                    0% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+                    100% { opacity: 0; transform: translate(-50%, -70%) scale(1.2); }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            document.body.appendChild(effect);
+            setTimeout(() => {
+                document.body.removeChild(effect);
+                document.head.removeChild(style);
+            }, 1000);
+        }
+        
+        function updateDisplay() {
+            document.getElementById('scoreValue').textContent = score;
+            document.getElementById('comboValue').textContent = combo;
+        }
+        
+        // 键盘控制
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space') {
+                event.preventDefault();
+                hitNote();
+            }
+        });
+        
+        // 自动开始演示
+        setTimeout(() => {
+            if (!gameRunning) {
+                startGame();
+            }
+        }, 1000);
+    </script>
+</body>
+</html>

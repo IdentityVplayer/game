@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时空传送门</title>
+    <style>
+        body { background: linear-gradient(135deg, #667eea, #764ba2); font-family: 'Arial', sans-serif; margin: 0; color: white; overflow: hidden; }
+        .game-container { max-width: 900px; margin: 0 auto; padding: 20px; text-align: center; }
+        .game-title { font-size: 3em; margin-bottom: 10px; text-shadow: 3px 3px 6px rgba(0,0,0,0.7); }
+        .game-category { color: #00cec9; font-size: 1.2em; margin-bottom: 20px; }
+        .game-area { background: rgba(0,0,0,0.3); border-radius: 15px; padding: 30px; margin: 20px 0; }
+        .portal-field { width: 100%; height: 600px; background: linear-gradient(180deg, #0c0c0c, #1a1a2e); border-radius: 10px; position: relative; overflow: hidden; }
+        .player { width: 40px; height: 40px; background: radial-gradient(circle, #00cec9, #74b9ff); border-radius: 50%; position: absolute; left: 50px; top: 50%; transform: translateY(-50%); transition: all 0.3s ease; }
+        .portal { width: 60px; height: 60px; background: radial-gradient(circle, #fd79a8, #e84393); border-radius: 50%; position: absolute; animation: portalPulse 2s infinite; }
+        .portal.blue { background: radial-gradient(circle, #74b9ff, #0984e3); }
+        .portal.green { background: radial-gradient(circle, #00b894, #00cec9); }
+        .portal.yellow { background: radial-gradient(circle, #fdcb6e, #e17055); }
+        .obstacle { position: absolute; background: #2d3436; }
+        .moving-obstacle { background: #e17055; animation: moveObstacle 3s linear infinite; }
+        .laser { width: 4px; height: 100%; background: linear-gradient(180deg, #e74c3c, #ff0000); position: absolute; }
+        .key { width: 25px; height: 25px; background: radial-gradient(circle, #ffd700, #ffb347); border-radius: 50%; position: absolute; }
+        .particle { width: 3px; height: 3px; background: #00cec9; border-radius: 50%; position: absolute; pointer-events: none; }
+        .time-rift { width: 80px; height: 80px; background: radial-gradient(circle, rgba(116, 185, 255, 0.3), rgba(9, 132, 227, 0.1)); border: 2px solid #74b9ff; border-radius: 50%; position: absolute; animation: riftPulse 1s infinite; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 1.2em; }
+        .controls { margin: 20px 0; }
+        .btn { background: #00cec9; color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #00b894; }
+        .level-info { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; }
+        .portal-energy { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; }
+        @keyframes portalPulse { 0%, 100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.2); opacity: 0.7; } }
+        @keyframes riftPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+        @keyframes moveObstacle { 0% { left: -50px; } 100% { left: 900px; } }
+        .how-to-play { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">时空传送门</h1>
+        <div class="game-category">#科幻游戏</div>
+        
+        <div class="game-area">
+            <div class="stats">
+                <div>得分: <span id="score">0</span></div>
+                <div>关卡: <span id="level">1</span></div>
+                <div>生命: <span id="lives">3</span></div>
+                <div>时间: <span id="timer">60</span>s</div>
+            </div>
+            
+            <div class="portal-field" id="portalField">
+                <div class="level-info" id="levelInfo">
+                    <div>关卡 <span id="currentLevel">1</span></div>
+                    <div id="objective">找到传送门</div>
+                </div>
+                
+                <div class="portal-energy" id="portalEnergy">
+                    <div>传送能量: <span id="energy">100</span>%</div>
+                </div>
+                
+                <div class="player" id="player">🚀</div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="startGame()">开始传送</button>
+                <button class="btn" onclick="pauseGame()">暂停</button>
+                <button class="btn" onclick="resetGame()">重新开始</button>
+                <button class="btn" onclick="usePortal()">传送</button>
+            </div>
+        </div>
+        
+        <div class="how-to-play">
+            <h3>游玩方法：</h3>
+            <p>• 使用WASD键或方向键控制飞船移动</p>
+            <p>• 找到并进入发光的传送门</p>
+            <p>• 红色传送门：基础传送，100分</p>
+            <p>• 蓝色传送门：时空加速，150分</p>
+            <p>• 绿色传送门：能量回复，200分</p>
+            <p>• 黄色传送门：稀有传送，300分</p>
+            <p>• 收集金色能量球补充传送能量</p>
+            <p>• 避开灰色障碍物和红色激光</p>
+            <p>• 在时间用尽前完成每个关卡！</p>
+        </div>
+    </div>
+    
+    <script>
+        let score = 0;
+        let level = 1;
+        let lives = 3;
+        let timer = 60;
+        let energy = 100;
+        let gameRunning = false;
+        let player, field;
+        let portals = [];
+        let obstacles = [];
+        let keys = {};
+        let particles = [];
+        let timeRifts = [];
+        let lasers = [];
+        let energyOrbs = [];
+        
+        // Player physics
+        let playerX = 50;
+        let playerY = 300;
+        let velocityX = 0;
+        let velocityY = 0;
+        
+        function initGame() {
+            player = document.getElementById('player');
+            field = document.getElementById('portalField');
+        }
+        
+        function createLevel(levelNum) {
+            // Clear previous level
+            portals.forEach(portal => portal.element.remove());
+            obstacles.forEach(obstacle => obstacle.element.remove());
+            timeRifts.forEach(rift => rift.element.remove());
+            lasers.forEach(laser => laser.element.remove());
+            energyOrbs.forEach(orb => orb.element.remove());
+            
+            portals = [];
+            obstacles = [];
+            timeRifts = [];
+            lasers = [];
+            energyOrbs = [];
+            
+            // Create portals based on level
+            createPortals(levelNum);
+            
+            // Create obstacles
+            createObstacles(levelNum);
+            
+            // Create energy orbs
+            createEnergyOrbs(levelNum);
+            
+            // Create time rifts in higher levels
+            if (levelNum > 3) {
+                createTimeRifts();
+            }
+            
+            // Create lasers in higher levels
+            if (levelNum > 5) {
+                createLasers();
+            }
+        }
+        
+        function createPortals(levelNum) {
+            const portalTypes = ['red', 'blue', 'green', 'yellow'];
+            const portalCount = Math.min(2 + levelNum, 6);
+            
+            for (let i = 0; i < portalCount; i++) {
+                const portal = document.createElement('div');
+                portal.className = 'portal';
+                
+                const type = portalTypes[Math.floor(Math.random() * Math.min(portalTypes.length, 1 + Math.floor(levelNum / 2)))];
+                portal.classList.add(type);
+                
+                const x = 200 + Math.random() * 600;
+                const y = 50 + Math.random() * 500;
+                
+                portal.style.left = x + 'px';
+                portal.style.top = y + 'px';
+                portal.textContent = '🌀';
+                portal.style.fontSize = '40px';
+                portal.style.display = 'flex';
+                portal.style.alignItems = 'center';
+                portal.style.justifyContent = 'center';
+                
+                field.appendChild(portal);
+                
+                portals.push({
+                    element: portal,
+                    x: x,
+                    y: y,
+                    type: type,
+                    active: true
+                });
+            }
+        }
+        
+        function createObstacles(levelNum) {
+            const obstacleCount = 3 + levelNum * 2;
+            
+            for (let i = 0; i < obstacleCount; i++) {
+                const obstacle = document.createElement('div');
+                obstacle.className = Math.random() < 0.3 ? 'obstacle moving-obstacle' : 'obstacle';
+                
+                const width = 30 + Math.random() * 60;
+                const height = 30 + Math.random() * 60;
+                const x = 150 + Math.random() * 600;
+                const y = Math.random() * 540;
+                
+                obstacle.style.left = x + 'px';
+                obstacle.style.top = y + 'px';
+                obstacle.style.width = width + 'px';
+                obstacle.style.height = height + 'px';
+                
+                field.appendChild(obstacle);
+                
+                obstacles.push({
+                    element: obstacle,
+                    x: x,
+                    y: y,
+                    width: width,
+                    height: height,
+                    moving: obstacle.classList.contains('moving-obstacle')
+                });
+            }
+        }
+        
+        function createEnergyOrbs(levelNum) {
+            const orbCount = 2 + Math.floor(levelNum / 2);
+            
+            for (let i = 0; i < orbCount; i++) {
+                const orb = document.createElement('div');
+                orb.className = 'key';
+                orb.style.left = (200 + Math.random() * 600) + 'px';
+                orb.style.top = (50 + Math.random() * 500) + 'px';
+                orb.textContent = '⚡';
+                orb.style.fontSize = '20px';
+                orb.style.display = 'flex';
+                orb.style.alignItems = 'center';
+                orb.style.justifyContent = 'center';
+                
+                field.appendChild(orb);
+                
+                energyOrbs.push({
+                    element: orb,
+                    x: parseInt(orb.style.left),
+                    y: parseInt(orb.style.top),
+                    collected: false
+                });
+            }
+        }
+        
+        function createTimeRifts() {
+            for (let i = 0; i < 2; i++) {
+                const rift = document.createElement('div');
+                rift.className = 'time-rift';
+                rift.style.left = (300 + Math.random() * 400) + 'px';
+                rift.style.top = (100 + Math.random() * 400) + 'px';
+                
+                field.appendChild(rift);
+                
+                timeRifts.push({
+                    element: rift,
+                    x: parseInt(rift.style.left),
+                    y: parseInt(rift.style.top)
+                });
+            }
+        }
+        
+        function createLasers() {
+            for (let i = 0; i < 3; i++) {
+                const laser = document.createElement('div');
+                laser.className = 'laser';
+                laser.style.left = (200 + i * 200) + 'px';
+                laser.style.top = '0px';
+                
+                field.appendChild(laser);
+                
+                lasers.push({
+                    element: laser,
+                    x: 200 + i * 200,
+                    y: 0,
+                    width: 4,
+                    height: 600
+                });
+            }
+        }
+        
+        function startGame() {
+            gameRunning = true;
+            playerX = 50;
+            playerY = 300;
+            timer = 60;
+            energy = 100;
+            
+            createLevel(level);
+            gameLoop();
+            timerLoop();
+        }
+        
+        function pauseGame() {
+            gameRunning = !gameRunning;
+            if (gameRunning) {
+                gameLoop();
+                timerLoop();
+            }
+        }
+        
+        function resetGame() {
+            gameRunning = false;
+            score = 0;
+            level = 1;
+            lives = 3;
+            timer = 60;
+            energy = 100;
+            playerX = 50;
+            playerY = 300;
+            velocityX = 0;
+            velocityY = 0;
+            
+            // Clear particles
+            particles.forEach(particle => particle.element.remove());
+            particles = [];
+            
+            updateDisplay();
+        }
+        
+        function timerLoop() {
+            if (!gameRunning) return;
+            
+            timer--;
+            if (timer <= 0) {
+                lives--;
+                if (lives <= 0) {
+                    alert('游戏结束！\n最终得分: ' + score + '\n达到关卡: ' + level);
+                    resetGame();
+                    return;
+                } else {
+                    timer = 60;
+                    energy = 100;
+                    playerX = 50;
+                    playerY = 300;
+                }
+            }
+            
+            setTimeout(timerLoop, 1000);
+        }
+        
+        function usePortal() {
+            if (!gameRunning || energy < 20) return;
+            
+            // Check if player is near any portal
+            portals.forEach((portal, index) => {
+                if (!portal.active) return;
+                
+                const distance = Math.sqrt(
+                    Math.pow(playerX - portal.x, 2) + 
+                    Math.pow(playerY - portal.y, 2)
+                );
+                
+                if (distance < 50) {
+                    energy -= 20;
+                    portal.active = false;
+                    portal.element.style.opacity = '0.3';
+                    
+                    const points = {
+                        red: 100,
+                        blue: 150,
+                        green: 200,
+                        yellow: 300
+                    }[portal.type];
+                    
+                    score += points;
+                    
+                    // Special effects
+                    if (portal.type === 'blue') {
+                        timer += 10; // Time bonus
+                    } else if (portal.type === 'green') {
+                        energy = Math.min(100, energy + 30); // Energy restore
+                    }
+                    
+                    createParticles(portal.x, portal.y);
+                    
+                    // Check level completion
+                    const activePortals = portals.filter(p => p.active);
+                    if (activePortals.length === 0) {
+                        level++;
+                        timer = 60;
+                        energy = 100;
+                        playerX = 50;
+                        playerY = 300;
+                        createLevel(level);
+                    }
+                }
+            });
+        }
+        
+        function createParticles(x, y) {
+            for (let i = 0; i < 10; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = x + 'px';
+                particle.style.top = y + 'px';
+                
+                field.appendChild(particle);
+                
+                particles.push({
+                    element: particle,
+                    x: x,
+                    y: y,
+                    vx: (Math.random() - 0.5) * 8,
+                    vy: (Math.random() - 0.5) * 8,
+                    life: 30
+                });
+            }
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Handle input
+            const speed = 4;
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                velocityX = Math.max(velocityX - 0.5, -speed);
+            } else if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                velocityX = Math.min(velocityX + 0.5, speed);
+            } else {
+                velocityX *= 0.8;
+            }
+            
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) {
+                velocityY = Math.max(velocityY - 0.5, -speed);
+            } else if (keys['ArrowDown'] || keys['s'] || keys['S']) {
+                velocityY = Math.min(velocityY + 0.5, speed);
+            } else {
+                velocityY *= 0.8;
+            }
+            
+            // Update player position
+            playerX += velocityX;
+            playerY += velocityY;
+            
+            // Boundary checking
+            playerX = Math.max(20, Math.min(860, playerX));
+            playerY = Math.max(20, Math.min(560, playerY));
+            
+            player.style.left = playerX + 'px';
+            player.style.top = playerY + 'px';
+            
+            // Check collisions with obstacles
+            obstacles.forEach(obstacle => {
+                if (playerX + 20 > obstacle.x && playerX < obstacle.x + obstacle.width &&
+                    playerY + 20 > obstacle.y && playerY < obstacle.y + obstacle.height) {
+                    
+                    // Push player back
+                    playerX -= velocityX * 2;
+                    playerY -= velocityY * 2;
+                    velocityX = 0;
+                    velocityY = 0;
+                    
+                    energy -= 5;
+                    if (energy <= 0) {
+                        lives--;
+                        if (lives <= 0) {
+                            alert('游戏结束！\n最终得分: ' + score);
+                            resetGame();
+                            return;
+                        }
+                        energy = 100;
+                        playerX = 50;
+                        playerY = 300;
+                    }
+                }
+            });
+            
+            // Check collisions with lasers
+            lasers.forEach(laser => {
+                if (playerX + 20 > laser.x && playerX < laser.x + laser.width &&
+                    playerY + 20 > laser.y && playerY < laser.y + laser.height) {
+                    
+                    energy -= 10;
+                    if (energy <= 0) {
+                        lives--;
+                        if (lives <= 0) {
+                            alert('游戏结束！\n最终得分: ' + score);
+                            resetGame();
+                            return;
+                        }
+                        energy = 100;
+                        playerX = 50;
+                        playerY = 300;
+                    }
+                }
+            });
+            
+            // Check energy orb collection
+            energyOrbs.forEach((orb, index) => {
+                if (!orb.collected) {
+                    const distance = Math.sqrt(
+                        Math.pow(playerX - orb.x, 2) + 
+                        Math.pow(playerY - orb.y, 2)
+                    );
+                    
+                    if (distance < 30) {
+                        orb.collected = true;
+                        orb.element.remove();
+                        energyOrbs.splice(index, 1);
+                        energy = Math.min(100, energy + 25);
+                        score += 50;
+                    }
+                }
+            });
+            
+            // Update particles
+            particles.forEach((particle, index) => {
+                particle.x += particle.vx;
+                particle.y += particle.vy;
+                particle.life--;
+                
+                particle.element.style.left = particle.x + 'px';
+                particle.element.style.top = particle.y + 'px';
+                particle.element.style.opacity = particle.life / 30;
+                
+                if (particle.life <= 0) {
+                    particle.element.remove();
+                    particles.splice(index, 1);
+                }
+            });
+            
+            updateDisplay();
+            setTimeout(gameLoop, 16);
+        }
+        
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('level').textContent = level;
+            document.getElementById('lives').textContent = lives;
+            document.getElementById('timer').textContent = timer;
+            document.getElementById('energy').textContent = Math.max(0, energy);
+            document.getElementById('currentLevel').textContent = level;
+        }
+        
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.code === 'Space') {
+                e.preventDefault();
+                usePortal();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        initGame();
+    </script>
+</body>
+</html>

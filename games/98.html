@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>传奇宝石</title>
+    <style>
+        body { background: linear-gradient(135deg, #667eea, #764ba2); font-family: 'Arial', sans-serif; margin: 0; color: white; }
+        .game-container { max-width: 700px; margin: 0 auto; padding: 20px; text-align: center; }
+        .game-title { font-size: 3em; margin-bottom: 10px; text-shadow: 3px 3px 6px rgba(0,0,0,0.7); }
+        .game-category { color: #ffd700; font-size: 1.2em; margin-bottom: 20px; }
+        .game-area { background: rgba(0,0,0,0.3); border-radius: 15px; padding: 30px; margin: 20px 0; }
+        .gem-field { width: 560px; height: 560px; background: linear-gradient(45deg, #2d3436, #636e72); border-radius: 10px; margin: 0 auto; position: relative; display: grid; grid-template-columns: repeat(8, 1fr); grid-template-rows: repeat(8, 1fr); gap: 2px; }
+        .gem { width: 100%; height: 100%; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 30px; transition: all 0.3s ease; }
+        .gem.red { background: radial-gradient(circle, #e74c3c, #c0392b); }
+        .gem.blue { background: radial-gradient(circle, #3498db, #2980b9); }
+        .gem.green { background: radial-gradient(circle, #2ecc71, #27ae60); }
+        .gem.yellow { background: radial-gradient(circle, #f1c40f, #f39c12); }
+        .gem.purple { background: radial-gradient(circle, #9b59b6, #8e44ad); }
+        .gem.orange { background: radial-gradient(circle, #e67e22, #d35400); }
+        .gem.pink { background: radial-gradient(circle, #ff6b9d, #e91e63); }
+        .gem.selected { box-shadow: 0 0 20px #fff; transform: scale(1.1); }
+        .gem.matched { animation: matched 0.5s ease-out; }
+        .gem.falling { animation: fall 0.5s ease-in; }
+        .score-popup { position: absolute; font-size: 20px; color: #ffd700; font-weight: bold; pointer-events: none; animation: scoreFloat 1s ease-out; }
+        .combo-display { position: absolute; top: 20px; left: 20px; font-size: 24px; font-weight: bold; color: #e74c3c; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 1.2em; }
+        .controls { margin: 20px 0; }
+        .btn { background: #ffd700; color: #333; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #ffed4e; }
+        .power-ups { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .power-btn { background: #e74c3c; color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; }
+        .power-btn:hover { background: #c0392b; }
+        @keyframes matched { 0% { transform: scale(1); } 50% { transform: scale(1.3); } 100% { transform: scale(0); opacity: 0; } }
+        @keyframes fall { 0% { transform: translateY(-100px); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        @keyframes scoreFloat { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px); } }
+        .how-to-play { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">传奇宝石</h1>
+        <div class="game-category">#消除游戏</div>
+        
+        <div class="game-area">
+            <div class="stats">
+                <div>得分: <span id="score">0</span></div>
+                <div>等级: <span id="level">1</span></div>
+                <div>目标: <span id="target">1000</span></div>
+                <div>移动: <span id="moves">30</span></div>
+            </div>
+            
+            <div class="power-ups">
+                <div class="power-btn" onclick="usePowerUp('bomb')">炸弹 (<span id="bombCount">3</span>)</div>
+                <div class="power-btn" onclick="usePowerUp('rainbow')">彩虹 (<span id="rainbowCount">2</span>)</div>
+                <div class="power-btn" onclick="usePowerUp('swap')">交换 (<span id="swapCount">1</span>)</div>
+            </div>
+            
+            <div class="gem-field" id="gemField">
+                <div class="combo-display" id="comboDisplay"></div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="startGame()">开始游戏</button>
+                <button class="btn" onclick="resetGame()">重新开始</button>
+                <button class="btn" onclick="hintMove()">提示</button>
+            </div>
+        </div>
+        
+        <div class="how-to-play">
+            <h3>游玩方法：</h3>
+            <p>• 点击两个相邻的宝石进行交换</p>
+            <p>• 连成三个或更多相同颜色的宝石可消除</p>
+            <p>• 红色♥️: 10分，蓝色💎: 15分，绿色💚: 20分</p>
+            <p>• 黄色⭐: 25分，紫色🔮: 30分，橙色🥇: 35分</p>
+            <p>• 粉色🎀: 40分</p>
+            <p>• 炸弹：消除周围一圈的宝石</p>
+            <p>• 彩虹：可与任意颜色匹配</p>
+            <p>• 交换：交换任意两个宝石位置</p>
+            <p>• 在有限移动内达到目标得分！</p>
+        </div>
+    </div>
+    
+    <script>
+        let score = 0;
+        let level = 1;
+        let target = 1000;
+        let moves = 30;
+        let gameRunning = false;
+        let selectedGem = null;
+        let grid = [];
+        let combo = 0;
+        let powerUps = { bomb: 3, rainbow: 2, swap: 1 };
+        
+        const gemTypes = [
+            { color: 'red', emoji: '♥️', points: 10 },
+            { color: 'blue', emoji: '💎', points: 15 },
+            { color: 'green', emoji: '💚', points: 20 },
+            { color: 'yellow', emoji: '⭐', points: 25 },
+            { color: 'purple', emoji: '🔮', points: 30 },
+            { color: 'orange', emoji: '🥇', points: 35 },
+            { color: 'pink', emoji: '🎀', points: 40 }
+        ];
+        
+        const field = document.getElementById('gemField');
+        
+        function initGame() {
+            createGrid();
+            updateDisplay();
+        }
+        
+        function createGrid() {
+            field.innerHTML = '<div class="combo-display" id="comboDisplay"></div>';
+            grid = [];
+            
+            for (let row = 0; row < 8; row++) {
+                grid[row] = [];
+                for (let col = 0; col < 8; col++) {
+                    const gem = document.createElement('div');
+                    gem.className = 'gem';
+                    gem.dataset.row = row;
+                    gem.dataset.col = col;
+                    
+                    const gemType = getRandomGemType();
+                    gem.classList.add(gemType.color);
+                    gem.textContent = gemType.emoji;
+                    grid[row][col] = gemType;
+                    
+                    gem.addEventListener('click', () => selectGem(row, col, gem));
+                    field.appendChild(gem);
+                }
+            }
+            
+            // Remove initial matches
+            removeInitialMatches();
+        }
+        
+        function getRandomGemType() {
+            // Reduce chance of higher value gems at lower levels
+            const availableGems = gemTypes.slice(0, Math.min(4 + level, 7));
+            return availableGems[Math.floor(Math.random() * availableGems.length)];
+        }
+        
+        function removeInitialMatches() {
+            let hasMatches = true;
+            while (hasMatches) {
+                hasMatches = false;
+                
+                for (let row = 0; row < 8; row++) {
+                    for (let col = 0; col < 8; col++) {
+                        if (checkMatches(row, col).length >= 3) {
+                            grid[row][col] = getRandomGemType();
+                            hasMatches = true;
+                        }
+                    }
+                }
+            }
+            
+            updateGridDisplay();
+        }
+        
+        function selectGem(row, col, element) {
+            if (!gameRunning || moves <= 0) return;
+            
+            if (selectedGem) {
+                selectedGem.element.classList.remove('selected');
+                
+                // Check if gems are adjacent
+                const rowDiff = Math.abs(selectedGem.row - row);
+                const colDiff = Math.abs(selectedGem.col - col);
+                
+                if ((rowDiff === 1 && colDiff === 0) || (rowDiff === 0 && colDiff === 1)) {
+                    swapGems(selectedGem.row, selectedGem.col, row, col);
+                } else {
+                    // Select new gem
+                    selectedGem = { row, col, element };
+                    element.classList.add('selected');
+                }
+            } else {
+                selectedGem = { row, col, element };
+                element.classList.add('selected');
+            }
+        }
+        
+        function swapGems(row1, col1, row2, col2) {
+            // Swap in grid
+            const temp = grid[row1][col1];
+            grid[row1][col1] = grid[row2][col2];
+            grid[row2][col2] = temp;
+            
+            updateGridDisplay();
+            
+            // Check for matches
+            const matches1 = checkMatches(row1, col1);
+            const matches2 = checkMatches(row2, col2);
+            
+            if (matches1.length >= 3 || matches2.length >= 3) {
+                moves--;
+                selectedGem = null;
+                processMatches();
+            } else {
+                // Swap back if no matches
+                const temp = grid[row1][col1];
+                grid[row1][col1] = grid[row2][col2];
+                grid[row2][col2] = temp;
+                updateGridDisplay();
+                selectedGem = null;
+            }
+            
+            updateDisplay();
+        }
+        
+        function checkMatches(row, col) {
+            const gemType = grid[row][col];
+            if (!gemType) return [];
+            
+            let matches = [];
+            
+            // Check horizontal
+            let horizontal = [{ row, col }];
+            
+            // Check left
+            for (let c = col - 1; c >= 0 && grid[row][c].color === gemType.color; c--) {
+                horizontal.unshift({ row, col: c });
+            }
+            
+            // Check right
+            for (let c = col + 1; c < 8 && grid[row][c].color === gemType.color; c++) {
+                horizontal.push({ row, col: c });
+            }
+            
+            if (horizontal.length >= 3) {
+                matches = matches.concat(horizontal);
+            }
+            
+            // Check vertical
+            let vertical = [{ row, col }];
+            
+            // Check up
+            for (let r = row - 1; r >= 0 && grid[r][col].color === gemType.color; r--) {
+                vertical.unshift({ row: r, col });
+            }
+            
+            // Check down
+            for (let r = row + 1; r < 8 && grid[r][col].color === gemType.color; r++) {
+                vertical.push({ row: r, col });
+            }
+            
+            if (vertical.length >= 3) {
+                matches = matches.concat(vertical);
+            }
+            
+            return matches;
+        }
+        
+        function processMatches() {
+            let allMatches = [];
+            
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    const matches = checkMatches(row, col);
+                    allMatches = allMatches.concat(matches);
+                }
+            }
+            
+            // Remove duplicates
+            allMatches = allMatches.filter((match, index, self) => 
+                index === self.findIndex(m => m.row === match.row && m.col === match.col)
+            );
+            
+            if (allMatches.length > 0) {
+                combo++;
+                
+                // Calculate score
+                let matchScore = 0;
+                allMatches.forEach(match => {
+                    const gemType = grid[match.row][match.col];
+                    matchScore += gemType.points;
+                });
+                
+                // Apply combo multiplier
+                const comboMultiplier = 1 + (combo - 1) * 0.5;
+                const totalScore = Math.floor(matchScore * comboMultiplier);
+                score += totalScore;
+                
+                // Show score popup
+                showScorePopup(allMatches[0], totalScore);
+                
+                // Show combo
+                if (combo > 1) {
+                    const comboDisplay = document.getElementById('comboDisplay');
+                    comboDisplay.textContent = combo + ' 连击!';
+                    comboDisplay.style.display = 'block';
+                }
+                
+                // Remove matches
+                allMatches.forEach(match => {
+                    grid[match.row][match.col] = null;
+                });
+                
+                // Drop gems
+                dropGems();
+                
+                // Fill empty spaces
+                fillEmpty();
+                
+                updateGridDisplay();
+                
+                // Check for more matches
+                setTimeout(() => {
+                    if (hasAnyMatches()) {
+                        processMatches();
+                    } else {
+                        combo = 0;
+                        document.getElementById('comboDisplay').style.display = 'none';
+                    }
+                }, 300);
+            }
+        }
+        
+        function hasAnyMatches() {
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    if (grid[row][col] && checkMatches(row, col).length >= 3) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        
+        function dropGems() {
+            for (let col = 0; col < 8; col++) {
+                for (let row = 7; row >= 0; row--) {
+                    if (grid[row][col] === null) {
+                        for (let r = row - 1; r >= 0; r--) {
+                            if (grid[r][col] !== null) {
+                                grid[row][col] = grid[r][col];
+                                grid[r][col] = null;
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        
+        function fillEmpty() {
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 8; col++) {
+                    if (grid[row][col] === null) {
+                        grid[row][col] = getRandomGemType();
+                    }
+                }
+            }
+        }
+        
+        function updateGridDisplay() {
+            const gems = field.querySelectorAll('.gem');
+            for (let i = 0; i < gems.length; i++) {
+                const row = Math.floor(i / 8);
+                const col = i % 8;
+                const gem = gems[i];
+                const gemData = grid[row][col];
+                
+                if (gemData) {
+                    // Remove all color classes
+                    gemTypes.forEach(type => gem.classList.remove(type.color));
+                    
+                    // Add current color and emoji
+                    gem.classList.add(gemData.color);
+                    gem.textContent = gemData.emoji;
+                }
+            }
+        }
+        
+        function showScorePopup(match, points) {
+            const popup = document.createElement('div');
+            popup.className = 'score-popup';
+            popup.textContent = '+' + points;
+            popup.style.left = (match.col * 70 + 35) + 'px';
+            popup.style.top = (match.row * 70 + 35) + 'px';
+            
+            field.appendChild(popup);
+            
+            setTimeout(() => popup.remove(), 1000);
+        }
+        
+        function usePowerUp(type) {
+            if (!gameRunning || powerUps[type] <= 0) return;
+            
+            powerUps[type]--;
+            
+            switch (type) {
+                case 'bomb':
+                    // Remove 3x3 area around center
+                    const centerRow = 4;
+                    const centerCol = 4;
+                    for (let r = centerRow - 1; r <= centerRow + 1; r++) {
+                        for (let c = centerCol - 1; c <= centerCol + 1; c++) {
+                            if (r >= 0 && r < 8 && c >= 0 && c < 8) {
+                                grid[r][c] = getRandomGemType();
+                            }
+                        }
+                    }
+                    break;
+                    
+                case 'rainbow':
+                    // Replace all gems of one color with another
+                    const oldColor = grid[0][0].color;
+                    const newType = getRandomGemType();
+                    for (let row = 0; row < 8; row++) {
+                        for (let col = 0; col < 8; col++) {
+                            if (grid[row][col].color === oldColor) {
+                                grid[row][col] = newType;
+                            }
+                        }
+                    }
+                    break;
+                    
+                case 'swap':
+                    // Shuffle all gems
+                    const allGems = [];
+                    for (let row = 0; row < 8; row++) {
+                        for (let col = 0; col < 8; col++) {
+                            allGems.push(grid[row][col]);
+                        }
+                    }
+                    
+                    // Shuffle array
+                    for (let i = allGems.length - 1; i > 0; i--) {
+                        const j = Math.floor(Math.random() * (i + 1));
+                        [allGems[i], allGems[j]] = [allGems[j], allGems[i]];
+                    }
+                    
+                    // Redistribute
+                    let index = 0;
+                    for (let row = 0; row < 8; row++) {
+                        for (let col = 0; col < 8; col++) {
+                            grid[row][col] = allGems[index++];
+                        }
+                    }
+                    break;
+            }
+            
+            updateGridDisplay();
+            updateDisplay();
+        }
+        
+        function hintMove() {
+            // Find a possible match
+            for (let row = 0; row < 8; row++) {
+                for (let col = 0; col < 7; col++) {
+                    // Try swapping with right neighbor
+                    const temp = grid[row][col];
+                    grid[row][col] = grid[row][col + 1];
+                    grid[row][col + 1] = temp;
+                    
+                    if (checkMatches(row, col).length >= 3 || checkMatches(row, col + 1).length >= 3) {
+                        // Highlight hint
+                        const cells = field.querySelectorAll('.gem');
+                        const cell1 = cells[row * 8 + col];
+                        const cell2 = cells[row * 8 + col + 1];
+                        
+                        cell1.style.border = '3px solid #fff';
+                        cell2.style.border = '3px solid #fff';
+                        
+                        setTimeout(() => {
+                            cell1.style.border = '';
+                            cell2.style.border = '';
+                        }, 2000);
+                        
+                        // Swap back
+                        grid[row][col] = grid[row][col + 1];
+                        grid[row][col + 1] = temp;
+                        return;
+                    }
+                    
+                    // Swap back
+                    grid[row][col] = grid[row][col + 1];
+                    grid[row][col + 1] = temp;
+                }
+            }
+        }
+        
+        function startGame() {
+            gameRunning = true;
+            score = 0;
+            level = 1;
+            target = 1000;
+            moves = 30;
+            powerUps = { bomb: 3, rainbow: 2, swap: 1 };
+            combo = 0;
+            
+            createGrid();
+            updateDisplay();
+        }
+        
+        function resetGame() {
+            gameRunning = false;
+            selectedGem = null;
+            combo = 0;
+            
+            document.getElementById('comboDisplay').style.display = 'none';
+            createGrid();
+            updateDisplay();
+        }
+        
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('level').textContent = level;
+            document.getElementById('target').textContent = target;
+            document.getElementById('moves').textContent = moves;
+            
+            document.getElementById('bombCount').textContent = powerUps.bomb;
+            document.getElementById('rainbowCount').textContent = powerUps.rainbow;
+            document.getElementById('swapCount').textContent = powerUps.swap;
+            
+            // Check win/lose conditions
+            if (score >= target) {
+                level++;
+                target = target * 1.5;
+                moves = 30;
+                powerUps.bomb++;
+                if (level % 3 === 0) powerUps.rainbow++;
+                if (level % 5 === 0) powerUps.swap++;
+                
+                alert('恭喜通关！进入第' + level + '关！');
+            } else if (moves <= 0 && !hasAnyMatches()) {
+                alert('游戏结束！\n最终得分: ' + score + '\n达到等级: ' + level);
+                resetGame();
+            }
+        }
+        
+        initGame();
+    </script>
+</body>
+</html>

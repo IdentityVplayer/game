@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>太空冲浪</title>
+    <style>
+        body { background: linear-gradient(135deg, #0f0f23, #1a1a2e); font-family: 'Arial', sans-serif; margin: 0; color: white; overflow: hidden; }
+        .game-container { max-width: 900px; margin: 0 auto; padding: 20px; text-align: center; }
+        .game-title { font-size: 3em; margin-bottom: 10px; text-shadow: 3px 3px 6px rgba(0,0,0,0.7); }
+        .game-category { color: #ff6b35; font-size: 1.2em; margin-bottom: 20px; }
+        .game-area { background: rgba(0,0,0,0.5); border-radius: 15px; padding: 30px; margin: 20px 0; }
+        .surf-field { width: 100%; height: 600px; background: linear-gradient(180deg, #000428, #004e92); border-radius: 10px; position: relative; overflow: hidden; }
+        .surfer { width: 60px; height: 80px; background: #ff6b35; clip-path: polygon(30% 0%, 70% 0%, 100% 100%, 0% 100%); position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); transition: all 0.3s ease; }
+        .asteroid { width: 50px; height: 50px; background: radial-gradient(circle, #8b4513, #654321); border-radius: 50%; position: absolute; }
+        .star-particle { width: 3px; height: 3px; background: #ffff00; position: absolute; border-radius: 50%; }
+        .boost { width: 30px; height: 30px; background: #00ff00; border-radius: 50%; position: absolute; }
+        .wave { width: 100%; height: 100px; background: linear-gradient(90deg, transparent, rgba(0,255,255,0.3), transparent); position: absolute; animation: waveMove 2s ease-in-out infinite; }
+        .score-multiplier { position: absolute; font-size: 2em; color: #ffff00; pointer-events: none; animation: scoreFloat 1s ease-out; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 1.2em; }
+        .controls { margin: 20px 0; }
+        .btn { background: #ff6b35; color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #e55a2b; }
+        .speed-bar { width: 200px; height: 10px; background: #333; border-radius: 5px; margin: 0 auto 20px; position: relative; }
+        .speed-fill { height: 100%; background: linear-gradient(90deg, #00ff00, #ffff00, #ff0000); border-radius: 5px; width: 0%; transition: width 0.3s; }
+        @keyframes waveMove { 0%, 100% { transform: translateY(10px); } 50% { transform: translateY(-10px); } }
+        @keyframes scoreFloat { 0% { opacity: 1; transform: translateY(0); } 100% { opacity: 0; transform: translateY(-50px); } }
+        .how-to-play { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">太空冲浪</h1>
+        <div class="game-category">#竞速游戏</div>
+        
+        <div class="game-area">
+            <div class="stats">
+                <div>得分: <span id="score">0</span></div>
+                <div>速度: <span id="speed">1.0x</span></div>
+                <div>距离: <span id="distance">0</span>m</div>
+            </div>
+            
+            <div class="speed-bar">
+                <div class="speed-fill" id="speedFill"></div>
+            </div>
+            
+            <div class="surf-field" id="surfField">
+                <div class="surfer" id="surfer">🏄</div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="startGame()">开始冲浪</button>
+                <button class="btn" onclick="pauseGame()">暂停</button>
+                <button class="btn" onclick="resetGame()">重新开始</button>
+            </div>
+        </div>
+        
+        <div class="how-to-play">
+            <h3>游玩方法：</h3>
+            <p>• 使用左右方向键或AD键控制冲浪者</p>
+            <p>• 避开太空小行星的撞击</p>
+            <p>• 收集绿色能量球获得加速</p>
+            <p>• 随着游戏进行，速度会逐渐提升</p>
+            <p>• 速度越快，得分倍数越高</p>
+            <p>• 挑战更远的距离，成为太空冲浪之王！</p>
+        </div>
+    </div>
+    
+    <script>
+        let score = 0;
+        let speed = 1.0;
+        let distance = 0;
+        let gameRunning = false;
+        let surfer, field;
+        let obstacles = [];
+        let boosts = [];
+        let particles = [];
+        let keys = {};
+        let multiplier = 1;
+        
+        function initGame() {
+            surfer = document.getElementById('surfer');
+            field = document.getElementById('surfField');
+            createWaves();
+            createStars();
+        }
+        
+        function createWaves() {
+            for (let i = 0; i < 5; i++) {
+                setTimeout(() => {
+                    const wave = document.createElement('div');
+                    wave.className = 'wave';
+                    wave.style.top = Math.random() * 500 + 'px';
+                    wave.style.opacity = Math.random() * 0.3 + 0.1;
+                    field.appendChild(wave);
+                    
+                    setTimeout(() => wave.remove(), 2000);
+                    if (gameRunning) createWaves();
+                }, i * 400);
+            }
+        }
+        
+        function createStars() {
+            for (let i = 0; i < 30; i++) {
+                const star = document.createElement('div');
+                star.className = 'star-particle';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.animationDelay = Math.random() * 2 + 's';
+                field.appendChild(star);
+                particles.push(star);
+            }
+        }
+        
+        function startGame() {
+            gameRunning = true;
+            gameLoop();
+            spawnObstacles();
+            spawnBoosts();
+            updateSpeed();
+        }
+        
+        function pauseGame() {
+            gameRunning = !gameRunning;
+            if (gameRunning) {
+                gameLoop();
+                updateSpeed();
+            }
+        }
+        
+        function resetGame() {
+            gameRunning = false;
+            score = 0;
+            speed = 1.0;
+            distance = 0;
+            multiplier = 1;
+            
+            // Clear obstacles and boosts
+            obstacles.forEach(obs => obs.element.remove());
+            boosts.forEach(boost => boost.element.remove());
+            obstacles = [];
+            boosts = [];
+            
+            // Reset surfer position
+            surfer.style.left = '50%';
+            surfer.style.bottom = '20px';
+            surfer.style.transform = 'translateX(-50%)';
+            
+            updateDisplay();
+        }
+        
+        function spawnObstacles() {
+            if (!gameRunning) return;
+            
+            const obstacle = document.createElement('div');
+            obstacle.className = 'asteroid';
+            obstacle.style.left = Math.random() * 850 + 'px';
+            obstacle.style.top = '-50px';
+            obstacle.textContent = '☄️';
+            obstacle.style.fontSize = '40px';
+            obstacle.style.display = 'flex';
+            obstacle.style.alignItems = 'center';
+            obstacle.style.justifyContent = 'center';
+            field.appendChild(obstacle);
+            
+            obstacles.push({
+                element: obstacle,
+                x: parseInt(obstacle.style.left),
+                y: -50,
+                speed: 3 + speed
+            });
+            
+            const spawnRate = Math.max(800 - speed * 100, 200);
+            setTimeout(spawnObstacles, spawnRate);
+        }
+        
+        function spawnBoosts() {
+            if (!gameRunning) return;
+            
+            if (Math.random() < 0.3) {
+                const boost = document.createElement('div');
+                boost.className = 'boost';
+                boost.style.left = Math.random() * 870 + 'px';
+                boost.style.top = '-30px';
+                boost.textContent = '⭐';
+                boost.style.fontSize = '25px';
+                boost.style.display = 'flex';
+                boost.style.alignItems = 'center';
+                boost.style.justifyContent = 'center';
+                field.appendChild(boost);
+                
+                boosts.push({
+                    element: boost,
+                    x: parseInt(boost.style.left),
+                    y: -30,
+                    speed: 2 + speed * 0.5
+                });
+            }
+            
+            setTimeout(spawnBoosts, 2000);
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Move surfer
+            const surferSpeed = 8;
+            let currentX = parseInt(surfer.style.left.replace('%', '')) || 50;
+            
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                currentX = Math.max(5, currentX - surferSpeed * 0.1);
+                surfer.style.transform = 'translateX(-50%) rotateZ(-10deg)';
+            } else if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                currentX = Math.min(95, currentX + surferSpeed * 0.1);
+                surfer.style.transform = 'translateX(-50%) rotateZ(10deg)';
+            } else {
+                surfer.style.transform = 'translateX(-50%) rotateZ(0deg)';
+            }
+            
+            surfer.style.left = currentX + '%';
+            
+            // Move obstacles
+            obstacles.forEach((obstacle, index) => {
+                obstacle.y += obstacle.speed;
+                obstacle.element.style.top = obstacle.y + 'px';
+                
+                if (obstacle.y > 600) {
+                    obstacle.element.remove();
+                    obstacles.splice(index, 1);
+                }
+                
+                // Check collision
+                const surferRect = surfer.getBoundingClientRect();
+                const obstacleRect = obstacle.element.getBoundingClientRect();
+                
+                if (surferRect.left < obstacleRect.right && 
+                    surferRect.right > obstacleRect.left && 
+                    surferRect.top < obstacleRect.bottom && 
+                    surferRect.bottom > obstacleRect.top) {
+                    
+                    gameOver();
+                    return;
+                }
+            });
+            
+            // Move boosts
+            boosts.forEach((boost, index) => {
+                boost.y += boost.speed;
+                boost.element.style.top = boost.y + 'px';
+                
+                if (boost.y > 600) {
+                    boost.element.remove();
+                    boosts.splice(index, 1);
+                }
+                
+                // Check collection
+                const surferRect = surfer.getBoundingClientRect();
+                const boostRect = boost.element.getBoundingClientRect();
+                
+                if (surferRect.left < boostRect.right && 
+                    surferRect.right > boostRect.left && 
+                    surferRect.top < boostRect.bottom && 
+                    surferRect.bottom > boostRect.top) {
+                    
+                    boost.element.remove();
+                    boosts.splice(index, 1);
+                    speed += 0.1;
+                    multiplier = Math.min(multiplier + 0.1, 3.0);
+                    
+                    // Show score multiplier
+                    showScoreMultiplier(surferRect.left, surferRect.top);
+                }
+            });
+            
+            // Move star particles
+            particles.forEach(particle => {
+                let top = parseInt(particle.style.top);
+                top += speed * 2;
+                if (top > 600) {
+                    top = -10;
+                    particle.style.left = Math.random() * 100 + '%';
+                }
+                particle.style.top = top + 'px';
+            });
+            
+            // Update score and distance
+            score += Math.floor(speed * multiplier);
+            distance += speed;
+            
+            updateDisplay();
+            setTimeout(gameLoop, 50);
+        }
+        
+        function updateSpeed() {
+            if (!gameRunning) return;
+            
+            speed += 0.01;
+            if (speed > 5.0) speed = 5.0;
+            
+            setTimeout(updateSpeed, 1000);
+        }
+        
+        function showScoreMultiplier(x, y) {
+            const multiplierElement = document.createElement('div');
+            multiplierElement.className = 'score-multiplier';
+            multiplierElement.textContent = '+' + Math.floor(multiplier * 10);
+            multiplierElement.style.left = x + 'px';
+            multiplierElement.style.top = y + 'px';
+            field.appendChild(multiplierElement);
+            
+            setTimeout(() => multiplierElement.remove(), 1000);
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            
+            // Add crash effect
+            surfer.style.background = '#ff0000';
+            surfer.style.transform = 'translateX(-50%) rotateZ(90deg)';
+            
+            setTimeout(() => {
+                alert('游戏结束！\n最终得分: ' + score + '\n冲浪距离: ' + Math.floor(distance) + 'm');
+                resetGame();
+            }, 1000);
+        }
+        
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('speed').textContent = speed.toFixed(1) + 'x';
+            document.getElementById('distance').textContent = Math.floor(distance);
+            
+            // Update speed bar
+            const speedPercentage = Math.min((speed - 1) / 4 * 100, 100);
+            document.getElementById('speedFill').style.width = speedPercentage + '%';
+        }
+        
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        initGame();
+    </script>
+</body>
+</html>

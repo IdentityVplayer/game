@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>妖怪捕手大师 - 游戏世界</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #ff6b6b 0%, #4ecdc4 25%, #45b7d1 50%, #96ceb4 75%, #ffeaa7 100%);
+            background-size: 400% 400%;
+            animation: gradientShift 12s ease infinite;
+            min-height: 100vh;
+        }
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .game-header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 3px solid #ff6b6b;
+        }
+        .game-title {
+            font-size: 2.5em;
+            color: #ff6b6b;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(255, 107, 107, 0.3);
+            font-weight: bold;
+        }
+        .game-category {
+            display: inline-block;
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(255, 107, 107, 0.3);
+        }
+        .game-area {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 3px solid #ff6b6b;
+        }
+        .game-canvas {
+            width: 100%;
+            height: 400px;
+            border: 3px solid #ff6b6b;
+            border-radius: 15px;
+            background: linear-gradient(to bottom, #87ceeb 0%, #98fb98 30%, #f0e68c 70%, #daa520 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #ff6b6b;
+            text-shadow: 2px 2px 4px rgba(255,255,255,0.7);
+            position: relative;
+            overflow: hidden;
+            font-weight: bold;
+        }
+        .trainer {
+            width: 35px;
+            height: 50px;
+            background: linear-gradient(to bottom, #ff6b6b, #e74c3c);
+            border: 2px solid #c0392b;
+            border-radius: 8px;
+            position: absolute;
+            left: 100px;
+            bottom: 100px;
+            animation: trainerMove 8s ease-in-out infinite;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .trainer::before {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: radial-gradient(circle, #f39c12, #e67e22);
+            border-radius: 50%;
+            top: 8px;
+            left: 10px;
+        }
+        .trainer::after {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 6px;
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            bottom: -3px;
+            left: 7px;
+            border-radius: 3px;
+        }
+        @keyframes trainerMove {
+            0%, 100% { transform: translateX(0) translateY(0); }
+            25% { transform: translateX(200px) translateY(-20px); }
+            50% { transform: translateX(400px) translateY(10px); }
+            75% { transform: translateX(250px) translateY(-30px); }
+        }
+        .monster {
+            border-radius: 50%;
+            position: absolute;
+            animation: monsterFloat 4s ease-in-out infinite;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        .monster.fire {
+            width: 40px;
+            height: 40px;
+            background: radial-gradient(circle at 30% 30%, #ff6347, #ff4500, #dc143c);
+            left: 300px;
+            top: 150px;
+            animation-delay: 0s;
+        }
+        .monster.water {
+            width: 35px;
+            height: 35px;
+            background: radial-gradient(circle at 30% 30%, #4682b4, #1e90ff, #0066cc);
+            right: 150px;
+            top: 120px;
+            animation-delay: 1s;
+        }
+        .monster.grass {
+            width: 45px;
+            height: 45px;
+            background: radial-gradient(circle at 30% 30%, #32cd32, #228b22, #006400);
+            left: 180px;
+            bottom: 80px;
+            animation-delay: 2s;
+        }
+        .monster.electric {
+            width: 30px;
+            height: 30px;
+            background: radial-gradient(circle at 30% 30%, #ffd700, #ffb347, #daa520);
+            right: 200px;
+            bottom: 150px;
+            animation-delay: 3s;
+        }
+        .monster::before {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #000;
+            border-radius: 50%;
+            top: 25%;
+            left: 30%;
+        }
+        .monster::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #000;
+            border-radius: 50%;
+            top: 25%;
+            right: 30%;
+        }
+        @keyframes monsterFloat {
+            0%, 100% { transform: translateY(0px) scale(1); }
+            50% { transform: translateY(-20px) scale(1.1); }
+        }
+        .pokeball {
+            width: 25px;
+            height: 25px;
+            background: linear-gradient(180deg, #ff0000 0%, #ff0000 50%, #fff 50%, #fff 100%);
+            border: 2px solid #000;
+            border-radius: 50%;
+            position: absolute;
+            animation: pokeballSpin 3s linear infinite;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        .pokeball:nth-child(6) { left: 80px; top: 200px; }
+        .pokeball:nth-child(7) { right: 100px; top: 250px; animation-delay: 1.5s; }
+        .pokeball::before {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #fff;
+            border: 2px solid #000;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        @keyframes pokeballSpin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .tree {
+            position: absolute;
+            width: 20px;
+            height: 40px;
+        }
+        .tree::before {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 15px;
+            background: linear-gradient(to bottom, #8b4513, #654321);
+            bottom: 0;
+            left: 7px;
+            border-radius: 3px;
+        }
+        .tree::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 10px solid transparent;
+            border-right: 10px solid transparent;
+            border-bottom: 25px solid #228b22;
+            top: 0;
+            left: 0;
+        }
+        .tree:nth-child(8) { left: 50px; bottom: 40px; }
+        .tree:nth-child(9) { right: 80px; bottom: 30px; }
+        .tree:nth-child(10) { left: 400px; bottom: 50px; }
+        .grass-patch {
+            width: 60px;
+            height: 15px;
+            background: repeating-linear-gradient(
+                90deg,
+                #32cd32 0px,
+                #32cd32 5px,
+                #228b22 5px,
+                #228b22 10px
+            );
+            position: absolute;
+            border-radius: 7px;
+            animation: grassRustle 4s ease-in-out infinite;
+        }
+        .grass-patch:nth-child(11) { left: 200px; bottom: 60px; }
+        .grass-patch:nth-child(12) { right: 180px; bottom: 40px; animation-delay: 2s; }
+        @keyframes grassRustle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        .energy-spark {
+            width: 6px;
+            height: 6px;
+            background: #ffd700;
+            border-radius: 50%;
+            position: absolute;
+            animation: sparkleEnergy 2s ease-in-out infinite;
+            box-shadow: 0 0 10px #ffd700;
+        }
+        .energy-spark:nth-child(13) { left: 250px; top: 100px; animation-delay: 0s; }
+        .energy-spark:nth-child(14) { right: 120px; top: 180px; animation-delay: 1s; }
+        .energy-spark:nth-child(15) { left: 350px; bottom: 120px; animation-delay: 2s; }
+        @keyframes sparkleEnergy {
+            0%, 100% { opacity: 0.5; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1.5); }
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .control-btn {
+            padding: 12px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
+        }
+        .start-btn {
+            background: linear-gradient(45deg, #ff6b6b, #4ecdc4);
+            color: white;
+        }
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
+        }
+        .catch-btn {
+            background: linear-gradient(45deg, #45b7d1, #96ceb4);
+            color: white;
+        }
+        .catch-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(69, 183, 209, 0.4);
+        }
+        .description {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid #ff6b6b;
+        }
+        .description h3 {
+            color: #ff6b6b;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .description p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .how-to-play {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid #ff6b6b;
+        }
+        .how-to-play h3 {
+            color: #4ecdc4;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .how-to-play ol {
+            color: #555;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        .how-to-play li {
+            margin-bottom: 8px;
+        }
+        .back-btn {
+            display: inline-block;
+            background: linear-gradient(45deg, #8e44ad, #9b59b6);
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(142, 68, 173, 0.3);
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(142, 68, 173, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-header">
+            <h1 class="game-title">妖怪捕手大师</h1>
+            <div class="game-category">#收集游戏</div>
+        </div>
+
+        <div class="game-area">
+            <div class="game-canvas">
+                <div class="trainer"></div>
+                <div class="monster fire"></div>
+                <div class="monster water"></div>
+                <div class="monster grass"></div>
+                <div class="monster electric"></div>
+                <div class="pokeball"></div>
+                <div class="pokeball"></div>
+                <div class="tree"></div>
+                <div class="tree"></div>
+                <div class="tree"></div>
+                <div class="grass-patch"></div>
+                <div class="grass-patch"></div>
+                <div class="energy-spark"></div>
+                <div class="energy-spark"></div>
+                <div class="energy-spark"></div>
+                妖怪捕手大师
+            </div>
+            <div class="controls">
+                <button class="control-btn start-btn">开始冒险</button>
+                <button class="control-btn catch-btn">捕捕妖怪</button>
+            </div>
+        </div>
+
+        <div class="description">
+            <h3>游戏介绍</h3>
+            <p>欢迎来到充满奇幻生物的世界！作为一名年轻的妖怪训练师，你将踏上一段充满冒险和挑战的旅程。在这个广阔的世界中，你需要探索各种环境，捕捉不同类型的妖怪。</p>
+            <p>从火系到水系，从草系到电系，每种厘怪都有其独特的属性和技能。训练你的厘怪小队，参加各种比赛，挑战道馆主，最终成为传说中的厘怪大师！</p>
+        </div>
+
+        <div class="how-to-play">
+            <h3>游玩方法</h3>
+            <ol>
+                <li>选择你的初始合作厘怪，开始你的冒险之旅</li>
+                <li>探索不同的环境：森林、水域、山脉、城市等</li>
+                <li>遇到野生厘怪时，使用你的厘怪进行战斗</li>
+                <li>成功击败后使用精灵球捕捉厘怪添加到你的团队</li>
+                <li>训练你的厘怪提升等级，学习新的技能</li>
+                <li>挑战道馆主和其他训练师，成为最强的厘怪大师</li>
+            </ol>
+        </div>
+
+        <a href="../index.html" class="back-btn">返回游戏列表</a>
+    </div>
+
+    <script>
+        document.querySelector('.start-btn').addEventListener('click', function() {
+            this.textContent = '冒险中...';
+            this.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
+            
+            setTimeout(() => {
+                this.textContent = '开始冒险';
+                this.style.background = 'linear-gradient(45deg, #ff6b6b, #4ecdc4)';
+            }, 3000);
+        });
+
+        document.querySelector('.catch-btn').addEventListener('click', function() {
+            this.textContent = '捕捉中...';
+            setTimeout(() => {
+                this.textContent = '捕捕厘怪';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

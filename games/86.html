@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>城堡守卫</title>
+    <style>
+        body { background: linear-gradient(135deg, #8b4513, #a0522d); font-family: 'Arial', sans-serif; margin: 0; color: white; }
+        .game-container { max-width: 900px; margin: 0 auto; padding: 20px; text-align: center; }
+        .game-title { font-size: 3em; margin-bottom: 10px; text-shadow: 3px 3px 6px rgba(0,0,0,0.7); }
+        .game-category { color: #ffd700; font-size: 1.2em; margin-bottom: 20px; }
+        .game-area { background: rgba(0,0,0,0.3); border-radius: 15px; padding: 30px; margin: 20px 0; }
+        .castle-field { width: 100%; height: 500px; background: linear-gradient(180deg, #87ceeb, #228b22); border-radius: 10px; position: relative; overflow: hidden; }
+        .castle { width: 200px; height: 150px; background: #696969; position: absolute; bottom: 0; left: 50%; transform: translateX(-50%); }
+        .castle::before { content: ''; width: 220px; height: 30px; background: #2f4f4f; position: absolute; top: -15px; left: -10px; }
+        .castle::after { content: '🏰'; font-size: 100px; position: absolute; top: 25px; left: 50px; }
+        .archer { width: 20px; height: 30px; background: #8b4513; position: absolute; bottom: 150px; left: 50%; transform: translateX(-50%); }
+        .archer::before { content: '🏹'; font-size: 25px; position: absolute; top: -5px; left: -2px; }
+        .enemy { width: 40px; height: 50px; background: #8b0000; position: absolute; bottom: 0; }
+        .arrow { width: 3px; height: 15px; background: #8b4513; position: absolute; }
+        .health-bar { width: 200px; height: 20px; background: #333; position: absolute; top: 20px; left: 50%; transform: translateX(-50%); border-radius: 10px; }
+        .health-fill { height: 100%; background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00); border-radius: 10px; width: 100%; transition: width 0.3s; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 1.2em; }
+        .controls { margin: 20px 0; }
+        .btn { background: #ffd700; color: #333; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #ffed4e; }
+        .upgrade-panel { display: flex; justify-content: center; gap: 10px; margin-bottom: 20px; }
+        .upgrade-btn { background: #4169e1; color: white; padding: 10px 15px; border-radius: 8px; cursor: pointer; font-size: 0.9em; }
+        .upgrade-btn:hover { background: #1e90ff; }
+        .wave-info { position: absolute; top: 50px; right: 20px; background: rgba(0,0,0,0.7); padding: 10px; border-radius: 5px; }
+        .how-to-play { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">城堡守卫</h1>
+        <div class="game-category">#策略游戏</div>
+        
+        <div class="game-area">
+            <div class="stats">
+                <div>金币: <span id="money">100</span></div>
+                <div>敌人: <span id="enemiesLeft">10</span></div>
+                <div>波次: <span id="wave">1</span></div>
+            </div>
+            
+            <div class="upgrade-panel">
+                <div class="upgrade-btn" onclick="upgradeArcher('damage')">攻击力 +1 (20金)</div>
+                <div class="upgrade-btn" onclick="upgradeArcher('speed')">射速 +1 (30金)</div>
+                <div class="upgrade-btn" onclick="upgradeArcher('range')">射程 +1 (25金)</div>
+                <div class="upgrade-btn" onclick="repairCastle()">修理城堡 (50金)</div>
+            </div>
+            
+            <div class="castle-field" id="castleField">
+                <div class="health-bar">
+                    <div class="health-fill" id="healthFill"></div>
+                </div>
+                
+                <div class="wave-info" id="waveInfo">
+                    <div>下一波: <span id="nextWave">10秒</span></div>
+                </div>
+                
+                <div class="castle" id="castle">
+                    <div class="archer" id="archer"></div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="startGame()">开始守卫</button>
+                <button class="btn" onclick="pauseGame()">暂停</button>
+                <button class="btn" onclick="resetGame()">重新开始</button>
+            </div>
+        </div>
+        
+        <div class="how-to-play">
+            <h3>游玩方法：</h3>
+            <p>• 点击敌人让弓箭手射击目标</p>
+            <p>• 击败敌人获得金币奖励</p>
+            <p>• 使用金币升级弓箭手能力</p>
+            <p>• 攻击力：增加对敌人的伤害</p>
+            <p>• 射速：减少攻击间隔时间</p>
+            <p>• 射程：增加攻击距离</p>
+            <p>• 保护城堡，不让敌人突破防线！</p>
+        </div>
+    </div>
+    
+    <script>
+        let money = 100;
+        let wave = 1;
+        let enemiesLeft = 10;
+        let castleHealth = 100;
+        let gameRunning = false;
+        let enemies = [];
+        let arrows = [];
+        let archer = { damage: 1, speed: 1, range: 2 };
+        let lastShot = 0;
+        let waveTimer = 10;
+        
+        const field = document.getElementById('castleField');
+        const archerElement = document.getElementById('archer');
+        
+        function startGame() {
+            gameRunning = true;
+            gameLoop();
+            waveCountdown();
+        }
+        
+        function pauseGame() {
+            gameRunning = !gameRunning;
+            if (gameRunning) {
+                gameLoop();
+                waveCountdown();
+            }
+        }
+        
+        function resetGame() {
+            gameRunning = false;
+            money = 100;
+            wave = 1;
+            enemiesLeft = 10;
+            castleHealth = 100;
+            archer = { damage: 1, speed: 1, range: 2 };
+            waveTimer = 10;
+            
+            // Clear enemies and arrows
+            enemies.forEach(enemy => enemy.element.remove());
+            arrows.forEach(arrow => arrow.element.remove());
+            enemies = [];
+            arrows = [];
+            
+            updateDisplay();
+        }
+        
+        function waveCountdown() {
+            if (!gameRunning) return;
+            
+            if (waveTimer > 0) {
+                waveTimer--;
+                document.getElementById('nextWave').textContent = waveTimer + '秒';
+                setTimeout(waveCountdown, 1000);
+            } else {
+                spawnWave();
+                waveTimer = 15 + wave * 2;
+            }
+        }
+        
+        function spawnWave() {
+            const enemyCount = 5 + wave * 2;
+            enemiesLeft = enemyCount;
+            
+            for (let i = 0; i < enemyCount; i++) {
+                setTimeout(() => {
+                    spawnEnemy();
+                }, i * 1000);
+            }
+        }
+        
+        function spawnEnemy() {
+            const enemy = document.createElement('div');
+            enemy.className = 'enemy';
+            enemy.style.left = (Math.random() < 0.5 ? -40 : 900) + 'px';
+            enemy.style.bottom = '0px';
+            enemy.textContent = '👹';
+            enemy.style.fontSize = '35px';
+            enemy.style.display = 'flex';
+            enemy.style.alignItems = 'center';
+            enemy.style.justifyContent = 'center';
+            enemy.style.cursor = 'crosshair';
+            
+            enemy.addEventListener('click', () => shootAtEnemy(enemy));
+            field.appendChild(enemy);
+            
+            enemies.push({
+                element: enemy,
+                x: parseInt(enemy.style.left),
+                y: 0,
+                health: wave * 2,
+                maxHealth: wave * 2,
+                speed: 0.5 + wave * 0.1,
+                direction: parseInt(enemy.style.left) < 0 ? 1 : -1
+            });
+        }
+        
+        function shootAtEnemy(targetElement) {
+            const now = Date.now();
+            const shootCooldown = Math.max(500 - archer.speed * 100, 100);
+            
+            if (now - lastShot < shootCooldown) return;
+            
+            const target = enemies.find(e => e.element === targetElement);
+            if (!target) return;
+            
+            const distance = Math.abs(target.x - 450);
+            const maxRange = archer.range * 200;
+            
+            if (distance > maxRange) return;
+            
+            lastShot = now;
+            
+            const arrow = document.createElement('div');
+            arrow.className = 'arrow';
+            arrow.style.left = '450px';
+            arrow.style.bottom = '150px';
+            arrow.style.background = '#8b4513';
+            field.appendChild(arrow);
+            
+            const deltaX = target.x - 450;
+            const deltaY = target.y - 150;
+            const distance_full = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            arrows.push({
+                element: arrow,
+                x: 450,
+                y: 150,
+                vx: (deltaX / distance_full) * 10,
+                vy: (deltaY / distance_full) * 10,
+                target: target
+            });
+            
+            // Visual feedback
+            archerElement.style.transform = `translateX(-50%) rotate(${Math.atan2(deltaY, deltaX) * 180 / Math.PI}deg)`;
+            setTimeout(() => {
+                archerElement.style.transform = 'translateX(-50%)';
+            }, 200);
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Move enemies
+            enemies.forEach((enemy, index) => {
+                enemy.x += enemy.speed * enemy.direction;
+                enemy.element.style.left = enemy.x + 'px';
+                
+                // Check if enemy reached castle
+                if (Math.abs(enemy.x - 450) < 100) {
+                    enemy.element.remove();
+                    enemies.splice(index, 1);
+                    castleHealth -= 10;
+                    enemiesLeft--;
+                    
+                    if (castleHealth <= 0) {
+                        alert('城堡被摧毁！游戏结束！');
+                        resetGame();
+                        return;
+                    }
+                }
+                
+                // Remove enemies that go off screen
+                if (enemy.x < -100 || enemy.x > 1000) {
+                    enemy.element.remove();
+                    enemies.splice(index, 1);
+                    enemiesLeft--;
+                }
+            });
+            
+            // Move arrows
+            arrows.forEach((arrow, index) => {
+                arrow.x += arrow.vx;
+                arrow.y += arrow.vy;
+                arrow.element.style.left = arrow.x + 'px';
+                arrow.element.style.bottom = arrow.y + 'px';
+                
+                // Check collision with target
+                if (arrow.target && enemies.includes(arrow.target)) {
+                    const distance = Math.sqrt(
+                        Math.pow(arrow.x - arrow.target.x, 2) + 
+                        Math.pow(arrow.y - arrow.target.y, 2)
+                    );
+                    
+                    if (distance < 30) {
+                        arrow.target.health -= archer.damage;
+                        arrow.element.remove();
+                        arrows.splice(index, 1);
+                        
+                        if (arrow.target.health <= 0) {
+                            arrow.target.element.remove();
+                            const enemyIndex = enemies.indexOf(arrow.target);
+                            enemies.splice(enemyIndex, 1);
+                            money += 10 + wave;
+                            enemiesLeft--;
+                        }
+                    }
+                }
+                
+                // Remove arrows that go off screen
+                if (arrow.x < -50 || arrow.x > 950 || arrow.y < -50 || arrow.y > 550) {
+                    arrow.element.remove();
+                    arrows.splice(index, 1);
+                }
+            });
+            
+            // Check wave completion
+            if (enemiesLeft <= 0 && enemies.length === 0) {
+                wave++;
+                money += 50;
+                waveTimer = 10;
+                enemiesLeft = 5 + wave * 2;
+            }
+            
+            updateDisplay();
+            setTimeout(gameLoop, 50);
+        }
+        
+        function upgradeArcher(type) {
+            const costs = { damage: 20, speed: 30, range: 25 };
+            const cost = costs[type] * archer[type];
+            
+            if (money >= cost) {
+                money -= cost;
+                archer[type]++;
+                updateDisplay();
+            }
+        }
+        
+        function repairCastle() {
+            if (money >= 50 && castleHealth < 100) {
+                money -= 50;
+                castleHealth = Math.min(100, castleHealth + 30);
+                updateDisplay();
+            }
+        }
+        
+        function updateDisplay() {
+            document.getElementById('money').textContent = money;
+            document.getElementById('enemiesLeft').textContent = enemiesLeft;
+            document.getElementById('wave').textContent = wave;
+            
+            const healthPercentage = Math.max(0, castleHealth);
+            document.getElementById('healthFill').style.width = healthPercentage + '%';
+        }
+        
+        updateDisplay();
+    </script>
+</body>
+</html>

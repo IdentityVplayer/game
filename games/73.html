@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>机器人工厂大亨 - 游戏世界</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 40%, #95a5a6 100%);
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .game-header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 3px solid #2c3e50;
+        }
+        .game-title {
+            font-size: 2.5em;
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(44, 62, 80, 0.3);
+            font-weight: bold;
+        }
+        .game-category {
+            display: inline-block;
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(44, 62, 80, 0.3);
+        }
+        .game-area {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            border: 3px solid #2c3e50;
+        }
+        .game-canvas {
+            width: 100%;
+            height: 400px;
+            border: 3px solid #2c3e50;
+            border-radius: 15px;
+            background: linear-gradient(to bottom, #ecf0f1 0%, #bdc3c7 30%, #95a5a6 70%, #7f8c8d 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #2c3e50;
+            text-shadow: 2px 2px 4px rgba(255,255,255,0.7);
+            position: relative;
+            overflow: hidden;
+            font-weight: bold;
+        }
+        .assembly-line {
+            position: absolute;
+            bottom: 100px;
+            left: 0;
+            right: 0;
+            height: 15px;
+            background: linear-gradient(90deg, #34495e, #2c3e50, #34495e);
+            border-radius: 7px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .assembly-line::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 8px;
+            background: repeating-linear-gradient(
+                90deg,
+                #f39c12 0px,
+                #f39c12 20px,
+                #e67e22 20px,
+                #e67e22 40px
+            );
+            top: 3px;
+            border-radius: 4px;
+            animation: beltMove 3s linear infinite;
+        }
+        @keyframes beltMove {
+            0% { transform: translateX(0); }
+            100% { transform: translateX(-40px); }
+        }
+        .robot {
+            width: 50px;
+            height: 70px;
+            background: linear-gradient(to bottom, #3498db, #2980b9);
+            border: 2px solid #2c3e50;
+            border-radius: 8px;
+            position: absolute;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .robot:nth-child(2) { 
+            left: 80px; 
+            top: 150px; 
+            animation: robotWork1 4s ease-in-out infinite;
+        }
+        .robot:nth-child(3) { 
+            right: 100px; 
+            top: 120px; 
+            animation: robotWork2 4s ease-in-out infinite 2s;
+        }
+        .robot::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #e74c3c, #c0392b);
+            border-radius: 50%;
+            top: 15px;
+            left: 15px;
+            animation: robotEye 2s ease-in-out infinite;
+        }
+        .robot::after {
+            content: '';
+            position: absolute;
+            width: 30px;
+            height: 8px;
+            background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+            bottom: -5px;
+            left: 10px;
+            border-radius: 4px;
+        }
+        .robot-arm {
+            width: 25px;
+            height: 6px;
+            background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+            position: absolute;
+            top: 35px;
+            border-radius: 3px;
+            animation: armMove 2s ease-in-out infinite;
+        }
+        .robot:nth-child(2) .robot-arm {
+            right: -15px;
+        }
+        .robot:nth-child(3) .robot-arm {
+            left: -15px;
+        }
+        @keyframes robotWork1 {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(5deg); }
+        }
+        @keyframes robotWork2 {
+            0%, 100% { transform: translateY(0) rotate(0deg); }
+            50% { transform: translateY(-15px) rotate(-5deg); }
+        }
+        @keyframes robotEye {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        @keyframes armMove {
+            0%, 100% { transform: scaleX(1); }
+            50% { transform: scaleX(1.5); }
+        }
+        .product {
+            width: 20px;
+            height: 20px;
+            background: linear-gradient(45deg, #f1c40f, #f39c12);
+            border: 2px solid #e67e22;
+            border-radius: 5px;
+            position: absolute;
+            bottom: 108px;
+            animation: productMove 6s linear infinite;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .product:nth-child(5) { left: 50px; animation-delay: 0s; }
+        .product:nth-child(6) { left: 150px; animation-delay: 2s; }
+        .product:nth-child(7) { left: 250px; animation-delay: 4s; }
+        @keyframes productMove {
+            0% { left: -30px; }
+            100% { left: calc(100% + 30px); }
+        }
+        .machine {
+            width: 60px;
+            height: 80px;
+            background: linear-gradient(to bottom, #7f8c8d, #95a5a6);
+            border: 2px solid #2c3e50;
+            position: absolute;
+            left: 50%;
+            top: 50px;
+            transform: translateX(-50%);
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        .machine::before {
+            content: '';
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: linear-gradient(45deg, #27ae60, #2ecc71);
+            border-radius: 50%;
+            top: 20px;
+            left: 22px;
+            animation: machineLight 3s ease-in-out infinite;
+        }
+        .machine::after {
+            content: '';
+            position: absolute;
+            width: 40px;
+            height: 5px;
+            background: #34495e;
+            bottom: 10px;
+            left: 10px;
+            border-radius: 2px;
+        }
+        @keyframes machineLight {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 1; box-shadow: 0 0 15px #27ae60; }
+        }
+        .spark {
+            width: 6px;
+            height: 6px;
+            background: #f39c12;
+            border-radius: 50%;
+            position: absolute;
+            animation: sparkFly 2s ease-in-out infinite;
+            box-shadow: 0 0 10px #f39c12;
+        }
+        .spark:nth-child(9) { left: 120px; top: 180px; animation-delay: 0s; }
+        .spark:nth-child(10) { right: 140px; top: 160px; animation-delay: 1s; }
+        @keyframes sparkFly {
+            0%, 100% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1.5); }
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .control-btn {
+            padding: 12px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            font-weight: bold;
+        }
+        .start-btn {
+            background: linear-gradient(45deg, #2c3e50, #34495e);
+            color: white;
+        }
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(44, 62, 80, 0.4);
+        }
+        .upgrade-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            color: white;
+        }
+        .upgrade-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(52, 152, 219, 0.4);
+        }
+        .description {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid #2c3e50;
+        }
+        .description h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .description p {
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .how-to-play {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+            border: 2px solid #2c3e50;
+        }
+        .how-to-play h3 {
+            color: #34495e;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .how-to-play ol {
+            color: #555;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        .how-to-play li {
+            margin-bottom: 8px;
+        }
+        .back-btn {
+            display: inline-block;
+            background: linear-gradient(45deg, #95a5a6, #7f8c8d);
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(149, 165, 166, 0.3);
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(149, 165, 166, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-header">
+            <h1 class="game-title">机器人工厂大亨</h1>
+            <div class="game-category">#模拟游戏</div>
+        </div>
+
+        <div class="game-area">
+            <div class="game-canvas">
+                <div class="assembly-line"></div>
+                <div class="robot">
+                    <div class="robot-arm"></div>
+                </div>
+                <div class="robot">
+                    <div class="robot-arm"></div>
+                </div>
+                <div class="machine"></div>
+                <div class="product"></div>
+                <div class="product"></div>
+                <div class="product"></div>
+                <div class="spark"></div>
+                <div class="spark"></div>
+                机器人工厂大亨
+            </div>
+            <div class="controls">
+                <button class="control-btn start-btn">开始生产</button>
+                <button class="control-btn upgrade-btn">升级设备</button>
+            </div>
+        </div>
+
+        <div class="description">
+            <h3>游戏介绍</h3>
+            <p>欢迎来到未来的智能工厂！在这个机器人工厂模拟游戏中，你将扮演一名工厂管理者，负责设计、建设和管理一个高度自动化的机器人生产线。</p>
+            <p>从简单的手工组装开始，逐步升级为全自动化的智能工厂。管理机器人工人，优化生产效率，研发新技术，打造属于你的工业帝国！</p>
+        </div>
+
+        <div class="how-to-play">
+            <h3>游玩方法</h3>
+            <ol>
+                <li>建设你的第一条机器人组装线，开始生产简单产品</li>
+                <li>雇佣和训练机器人工人，提高他们的技能和效率</li>
+                <li>管理原材料供应链，确保生产线的正常运转</li>
+                <li>研发新技术和设备，升级你的机器人和生产线</li>
+                <li>扩展工厂规模，生产更复杂和高价值的产品</li>
+                <li>与其他玩家竟争，成为全球顶尖的机器人工厂大亨</li>
+            </ol>
+        </div>
+
+        <a href="../index.html" class="back-btn">返回游戏列表</a>
+    </div>
+
+    <script>
+        document.querySelector('.start-btn').addEventListener('click', function() {
+            this.textContent = '生产中...';
+            this.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
+            
+            setTimeout(() => {
+                this.textContent = '开始生产';
+                this.style.background = 'linear-gradient(45deg, #2c3e50, #34495e)';
+            }, 3000);
+        });
+
+        document.querySelector('.upgrade-btn').addEventListener('click', function() {
+            this.textContent = '升级中...';
+            setTimeout(() => {
+                this.textContent = '升级设备';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

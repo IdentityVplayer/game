@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水果忍者</title>
+    <style>
+        body { background: linear-gradient(135deg, #a8e6cf, #dcedc1); font-family: 'Arial', sans-serif; margin: 0; color: white; }
+        .game-container { max-width: 800px; margin: 0 auto; padding: 20px; text-align: center; }
+        .game-title { font-size: 3em; margin-bottom: 10px; text-shadow: 3px 3px 6px rgba(0,0,0,0.7); color: #2d5016; }
+        .game-category { color: #ff6b6b; font-size: 1.2em; margin-bottom: 20px; }
+        .game-area { background: rgba(255,255,255,0.9); border-radius: 15px; padding: 30px; margin: 20px 0; color: #333; }
+        .fruit-field { width: 100%; height: 500px; background: linear-gradient(180deg, #87ceeb, #98fb98); border-radius: 10px; position: relative; overflow: hidden; cursor: crosshair; }
+        .fruit { position: absolute; font-size: 60px; cursor: pointer; animation: fall 3s linear; pointer-events: all; }
+        .ninja-blade { position: absolute; width: 100px; height: 3px; background: linear-gradient(90deg, #c0c0c0, #fff); transform-origin: left; pointer-events: none; }
+        .score-popup { position: absolute; font-size: 24px; font-weight: bold; color: #ff6b35; pointer-events: none; animation: scoreFloat 1s ease-out; }
+        .combo-display { position: absolute; top: 20px; left: 20px; font-size: 20px; font-weight: bold; color: #ff6b35; }
+        .bomb { position: absolute; font-size: 50px; cursor: pointer; animation: fall 3s linear; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 1.2em; }
+        .controls { margin: 20px 0; }
+        .btn { background: #ff6b6b; color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #ff5252; }
+        .life-display { position: absolute; top: 20px; right: 20px; }
+        .life { font-size: 30px; margin: 0 5px; }
+        @keyframes fall { 0% { top: -80px; transform: rotate(0deg); } 100% { top: 500px; transform: rotate(360deg); } }
+        @keyframes scoreFloat { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-50px) scale(1.5); } }
+        .how-to-play { background: rgba(0,0,0,0.1); border-radius: 10px; padding: 20px; margin-top: 20px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">水果忍者</h1>
+        <div class="game-category">#动作游戏</div>
+        
+        <div class="game-area">
+            <div class="stats">
+                <div>得分: <span id="score">0</span></div>
+                <div>等级: <span id="level">1</span></div>
+                <div>最高连击: <span id="bestCombo">0</span></div>
+            </div>
+            
+            <div class="fruit-field" id="fruitField">
+                <div class="combo-display" id="comboDisplay"></div>
+                <div class="life-display" id="lifeDisplay">
+                    <span class="life">❤️</span>
+                    <span class="life">❤️</span>
+                    <span class="life">❤️</span>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="startGame()">开始游戏</button>
+                <button class="btn" onclick="pauseGame()">暂停</button>
+                <button class="btn" onclick="resetGame()">重新开始</button>
+            </div>
+        </div>
+        
+        <div class="how-to-play">
+            <h3>游玩方法：</h3>
+            <p>• 用鼠标在水果上划过进行切割</p>
+            <p>• 切割不同水果获得不同分数</p>
+            <p>• 🍎苹果: 10分，🍊橙子: 15分，🍌香蕉: 20分</p>
+            <p>• 🍉西瓜: 25分，🍓草莓: 30分</p>
+            <p>• 连续切割可获得连击奖励</p>
+            <p>• 避免切割炸弹💣，否则扣生命</p>
+            <p>• 三条生命全部失去游戏结束</p>
+            <p>• 成为水果切割大师！</p>
+        </div>
+    </div>
+    
+    <script>
+        let score = 0;
+        let level = 1;
+        let lives = 3;
+        let combo = 0;
+        let bestCombo = 0;
+        let gameRunning = false;
+        let fruits = [];
+        let bombs = [];
+        let field;
+        let lastSliceTime = 0;
+        
+        const fruitTypes = [
+            { emoji: '🍎', points: 10 },
+            { emoji: '🍊', points: 15 },
+            { emoji: '🍌', points: 20 },
+            { emoji: '🍉', points: 25 },
+            { emoji: '🍓', points: 30 }
+        ];
+        
+        function initGame() {
+            field = document.getElementById('fruitField');
+        }
+        
+        function startGame() {
+            gameRunning = true;
+            spawnItems();
+            gameLoop();
+        }
+        
+        function pauseGame() {
+            gameRunning = !gameRunning;
+            if (gameRunning) {
+                spawnItems();
+                gameLoop();
+            }
+        }
+        
+        function resetGame() {
+            gameRunning = false;
+            score = 0;
+            level = 1;
+            lives = 3;
+            combo = 0;
+            bestCombo = 0;
+            
+            // Clear all fruits and bombs
+            fruits.forEach(fruit => fruit.element.remove());
+            bombs.forEach(bomb => bomb.element.remove());
+            fruits = [];
+            bombs = [];
+            
+            // Clear score popups
+            field.querySelectorAll('.score-popup').forEach(popup => popup.remove());
+            field.querySelectorAll('.ninja-blade').forEach(blade => blade.remove());
+            
+            updateDisplay();
+        }
+        
+        function spawnItems() {
+            if (!gameRunning) return;
+            
+            // Spawn fruit
+            if (Math.random() < 0.7) {
+                spawnFruit();
+            }
+            
+            // Spawn bomb (less frequent)
+            if (Math.random() < 0.15) {
+                spawnBomb();
+            }
+            
+            const spawnRate = Math.max(800 - level * 50, 300);
+            setTimeout(spawnItems, spawnRate);
+        }
+        
+        function spawnFruit() {
+            const fruitType = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
+            
+            const fruit = document.createElement('div');
+            fruit.className = 'fruit';
+            fruit.textContent = fruitType.emoji;
+            fruit.style.left = Math.random() * 740 + 'px';
+            fruit.style.top = '-80px';
+            
+            fruit.addEventListener('mouseenter', () => sliceFruit(fruit, fruitType.points));
+            fruit.addEventListener('click', () => sliceFruit(fruit, fruitType.points));
+            
+            field.appendChild(fruit);
+            
+            fruits.push({
+                element: fruit,
+                points: fruitType.points,
+                sliced: false
+            });
+        }
+        
+        function spawnBomb() {
+            const bomb = document.createElement('div');
+            bomb.className = 'bomb';
+            bomb.textContent = '💣';
+            bomb.style.left = Math.random() * 740 + 'px';
+            bomb.style.top = '-80px';
+            
+            bomb.addEventListener('mouseenter', () => hitBomb(bomb));
+            bomb.addEventListener('click', () => hitBomb(bomb));
+            
+            field.appendChild(bomb);
+            
+            bombs.push({
+                element: bomb,
+                exploded: false
+            });
+        }
+        
+        function sliceFruit(fruitElement, points) {
+            const fruitObj = fruits.find(f => f.element === fruitElement);
+            if (!fruitObj || fruitObj.sliced) return;
+            
+            fruitObj.sliced = true;
+            
+            // Update combo
+            const now = Date.now();
+            if (now - lastSliceTime < 1000) {
+                combo++;
+            } else {
+                combo = 1;
+            }
+            lastSliceTime = now;
+            
+            // Calculate score with combo bonus
+            const comboMultiplier = Math.min(combo / 10 + 1, 3);
+            const earnedPoints = Math.floor(points * comboMultiplier);
+            score += earnedPoints;
+            
+            // Update best combo
+            if (combo > bestCombo) {
+                bestCombo = combo;
+            }
+            
+            // Create slice effect
+            createSliceEffect(fruitElement);
+            
+            // Show score popup
+            showScorePopup(fruitElement, earnedPoints);
+            
+            // Remove fruit with animation
+            fruitElement.style.animation = 'none';
+            fruitElement.style.transform = 'scale(0)';
+            fruitElement.style.opacity = '0';
+            fruitElement.style.transition = 'all 0.3s ease';
+            
+            setTimeout(() => {
+                fruitElement.remove();
+                const index = fruits.indexOf(fruitObj);
+                if (index > -1) fruits.splice(index, 1);
+            }, 300);
+            
+            // Level up check
+            if (score > level * 500) {
+                level++;
+            }
+            
+            updateDisplay();
+        }
+        
+        function hitBomb(bombElement) {
+            const bombObj = bombs.find(b => b.element === bombElement);
+            if (!bombObj || bombObj.exploded) return;
+            
+            bombObj.exploded = true;
+            lives--;
+            combo = 0; // Reset combo
+            
+            // Explosion effect
+            bombElement.style.animation = 'none';
+            bombElement.style.transform = 'scale(2)';
+            bombElement.style.opacity = '0';
+            bombElement.style.transition = 'all 0.5s ease';
+            bombElement.textContent = '💥';
+            
+            // Flash screen red
+            field.style.background = 'linear-gradient(180deg, #ff6b6b, #ff8e8e)';
+            setTimeout(() => {
+                field.style.background = 'linear-gradient(180deg, #87ceeb, #98fb98)';
+            }, 200);
+            
+            setTimeout(() => {
+                bombElement.remove();
+                const index = bombs.indexOf(bombObj);
+                if (index > -1) bombs.splice(index, 1);
+            }, 500);
+            
+            if (lives <= 0) {
+                alert('游戏结束！\n最终得分: ' + score + '\n最高连击: ' + bestCombo);
+                resetGame();
+                return;
+            }
+            
+            updateDisplay();
+        }
+        
+        function createSliceEffect(fruitElement) {
+            const rect = fruitElement.getBoundingClientRect();
+            const fieldRect = field.getBoundingClientRect();
+            
+            const blade = document.createElement('div');
+            blade.className = 'ninja-blade';
+            blade.style.left = (rect.left - fieldRect.left) + 'px';
+            blade.style.top = (rect.top - fieldRect.top + 30) + 'px';
+            blade.style.transform = 'rotate(' + (Math.random() * 60 - 30) + 'deg)';
+            
+            field.appendChild(blade);
+            
+            setTimeout(() => blade.remove(), 500);
+        }
+        
+        function showScorePopup(fruitElement, points) {
+            const rect = fruitElement.getBoundingClientRect();
+            const fieldRect = field.getBoundingClientRect();
+            
+            const popup = document.createElement('div');
+            popup.className = 'score-popup';
+            popup.textContent = '+' + points;
+            popup.style.left = (rect.left - fieldRect.left + 30) + 'px';
+            popup.style.top = (rect.top - fieldRect.top) + 'px';
+            
+            field.appendChild(popup);
+            
+            setTimeout(() => popup.remove(), 1000);
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Remove fruits and bombs that fall off screen
+            fruits.forEach((fruit, index) => {
+                const rect = fruit.element.getBoundingClientRect();
+                if (rect.top > window.innerHeight) {
+                    if (!fruit.sliced) {
+                        // Missed fruit, break combo
+                        combo = 0;
+                    }
+                    fruit.element.remove();
+                    fruits.splice(index, 1);
+                }
+            });
+            
+            bombs.forEach((bomb, index) => {
+                const rect = bomb.element.getBoundingClientRect();
+                if (rect.top > window.innerHeight) {
+                    bomb.element.remove();
+                    bombs.splice(index, 1);
+                }
+            });
+            
+            updateDisplay();
+            setTimeout(gameLoop, 100);
+        }
+        
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('level').textContent = level;
+            document.getElementById('bestCombo').textContent = bestCombo;
+            
+            // Update combo display
+            const comboDisplay = document.getElementById('comboDisplay');
+            if (combo > 1) {
+                comboDisplay.textContent = combo + ' 连击!';
+                comboDisplay.style.display = 'block';
+            } else {
+                comboDisplay.style.display = 'none';
+            }
+            
+            // Update life display
+            const lifeDisplay = document.getElementById('lifeDisplay');
+            lifeDisplay.innerHTML = '';
+            for (let i = 0; i < lives; i++) {
+                const life = document.createElement('span');
+                life.className = 'life';
+                life.textContent = '❤️';
+                lifeDisplay.appendChild(life);
+            }
+        }
+        
+        // Mouse movement for blade effect
+        let isMouseDown = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+        
+        field.addEventListener('mousedown', (e) => {
+            isMouseDown = true;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+        });
+        
+        field.addEventListener('mouseup', () => {
+            isMouseDown = false;
+        });
+        
+        field.addEventListener('mousemove', (e) => {
+            if (!gameRunning || !isMouseDown) return;
+            
+            const rect = field.getBoundingClientRect();
+            const currentX = e.clientX - rect.left;
+            const currentY = e.clientY - rect.top;
+            
+            // Create blade trail
+            if (Math.abs(e.clientX - lastMouseX) > 10 || Math.abs(e.clientY - lastMouseY) > 10) {
+                const blade = document.createElement('div');
+                blade.className = 'ninja-blade';
+                blade.style.left = currentX + 'px';
+                blade.style.top = currentY + 'px';
+                blade.style.width = '50px';
+                blade.style.opacity = '0.7';
+                
+                const angle = Math.atan2(e.clientY - lastMouseY, e.clientX - lastMouseX) * 180 / Math.PI;
+                blade.style.transform = 'rotate(' + angle + 'deg)';
+                
+                field.appendChild(blade);
+                
+                setTimeout(() => blade.remove(), 200);
+                
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+            }
+        });
+        
+        initGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>魔法塔防传奇</title>
+    <style>
+        body { background: linear-gradient(135deg, #2d3436, #636e72); font-family: 'Arial', sans-serif; margin: 0; color: white; }
+        .game-container { max-width: 1000px; margin: 0 auto; padding: 20px; text-align: center; }
+        .game-title { font-size: 3em; margin-bottom: 10px; text-shadow: 3px 3px 6px rgba(0,0,0,0.7); }
+        .game-category { color: #fd79a8; font-size: 1.2em; margin-bottom: 20px; }
+        .game-area { background: rgba(0,0,0,0.4); border-radius: 15px; padding: 30px; margin: 20px 0; }
+        .tower-field { width: 100%; height: 600px; background: linear-gradient(180deg, #00b894, #00cec9); border-radius: 10px; position: relative; overflow: hidden; }
+        .path { position: absolute; width: 60px; height: 60px; background: #8b4513; }
+        .tower { width: 50px; height: 50px; border-radius: 50%; position: absolute; display: flex; align-items: center; justify-content: center; font-size: 30px; cursor: pointer; }
+        .tower.fire { background: radial-gradient(circle, #ff6b35, #e55039); }
+        .tower.ice { background: radial-gradient(circle, #74b9ff, #0984e3); }
+        .tower.earth { background: radial-gradient(circle, #a29bfe, #6c5ce7); }
+        .tower.lightning { background: radial-gradient(circle, #fdcb6e, #f39c12); }
+        .enemy { width: 30px; height: 30px; border-radius: 50%; position: absolute; z-index: 10; }
+        .enemy.goblin { background: #2d3436; }
+        .enemy.orc { background: #636e72; }
+        .enemy.dragon { background: #e17055; }
+        .enemy.boss { background: #a29bfe; }
+        .projectile { width: 8px; height: 8px; border-radius: 50%; position: absolute; z-index: 5; }
+        .projectile.fire { background: #ff6b35; box-shadow: 0 0 10px #ff6b35; }
+        .projectile.ice { background: #74b9ff; box-shadow: 0 0 10px #74b9ff; }
+        .projectile.earth { background: #a29bfe; box-shadow: 0 0 10px #a29bfe; }
+        .projectile.lightning { background: #fdcb6e; box-shadow: 0 0 10px #fdcb6e; }
+        .explosion { position: absolute; border-radius: 50%; animation: explode 0.5s ease-out; z-index: 15; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 1.2em; }
+        .controls { margin: 20px 0; }
+        .btn { background: #fd79a8; color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #e84393; }
+        .tower-shop { display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; }
+        .tower-option { background: #2d3436; padding: 15px; border-radius: 10px; cursor: pointer; min-width: 100px; border: 2px solid transparent; }
+        .tower-option:hover { border-color: #fd79a8; }
+        .tower-option.selected { border-color: #00cec9; background: #636e72; }
+        .wave-info { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; }
+        @keyframes explode { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(3); opacity: 0; } }
+        .how-to-play { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">魔法塔防传奇</h1>
+        <div class="game-category">#策略游戏</div>
+        
+        <div class="game-area">
+            <div class="stats">
+                <div>生命值: <span id="health">20</span></div>
+                <div>魔法石: <span id="mana">150</span></div>
+                <div>波次: <span id="wave">1</span></div>
+                <div>敌人: <span id="enemiesLeft">0</span></div>
+            </div>
+            
+            <div class="tower-shop">
+                <div class="tower-option" onclick="selectTower('fire')">
+                    <div>🔥 火焰塔</div>
+                    <div>50 魔法石</div>
+                    <div>高伤害</div>
+                </div>
+                <div class="tower-option" onclick="selectTower('ice')">
+                    <div>❄️ 冰霜塔</div>
+                    <div>40 魔法石</div>
+                    <div>减速效果</div>
+                </div>
+                <div class="tower-option" onclick="selectTower('earth')">
+                    <div>🪨 大地塔</div>
+                    <div>60 魔法石</div>
+                    <div>群体攻击</div>
+                </div>
+                <div class="tower-option" onclick="selectTower('lightning')">
+                    <div>⚡ 闪电塔</div>
+                    <div>70 魔法石</div>
+                    <div>连锁闪电</div>
+                </div>
+            </div>
+            
+            <div class="tower-field" id="towerField">
+                <div class="wave-info" id="waveInfo">
+                    <div>当前波次: <span id="currentWave">1</span></div>
+                    <div>下波倒计: <span id="countdown">10</span>s</div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="startGame()">开始游戏</button>
+                <button class="btn" onclick="pauseGame()">暂停</button>
+                <button class="btn" onclick="resetGame()">重新开始</button>
+                <button class="btn" onclick="startWave()">立即开始波次</button>
+            </div>
+        </div>
+        
+        <div class="how-to-play">
+            <h3>游玩方法：</h3>
+            <p>• 选择魔法塔类型，然后点击空地放置防御塔</p>
+            <p>• 火焰塔：高伤害单体攻击，适合对付高血量敌人</p>
+            <p>• 冰霜塔：伤害较低但可减缓敌人移动速度</p>
+            <p>• 大地塔：群体伤害，可同时攻击多个敌人</p>
+            <p>• 闪电塔：连锁闪电，伤害会在敌人间传递</p>
+            <p>• 合理搭配不同类型的防御塔，阻止敌人入侵</p>
+            <p>• 击败敌人获得魔法石，用于建造更多防御塔</p>
+        </div>
+    </div>
+    
+    <script>
+        let health = 20;
+        let mana = 150;
+        let wave = 1;
+        let enemiesLeft = 0;
+        let gameRunning = false;
+        let selectedTowerType = null;
+        let towers = [];
+        let enemies = [];
+        let projectiles = [];
+        let waveCountdown = 10;
+        let waveActive = false;
+        
+        const towerTypes = {
+            fire: { cost: 50, damage: 35, range: 120, speed: 1000, emoji: '🔥' },
+            ice: { cost: 40, damage: 15, range: 100, speed: 800, emoji: '❄️', slow: 0.5 },
+            earth: { cost: 60, damage: 25, range: 80, speed: 1200, emoji: '🪨', splash: 50 },
+            lightning: { cost: 70, damage: 20, range: 150, speed: 600, emoji: '⚡', chain: 3 }
+        };
+        
+        const enemyTypes = {
+            goblin: { health: 30, speed: 2, reward: 10, emoji: '👹' },
+            orc: { health: 60, speed: 1.5, reward: 20, emoji: '👺' },
+            dragon: { health: 120, speed: 1, reward: 50, emoji: '🐉' },
+            boss: { health: 300, speed: 0.8, reward: 100, emoji: '💀' }
+        };
+        
+        const path = [
+            {x: 0, y: 300}, {x: 100, y: 300}, {x: 200, y: 300}, {x: 300, y: 300},
+            {x: 400, y: 300}, {x: 500, y: 300}, {x: 600, y: 300}, {x: 700, y: 300},
+            {x: 800, y: 300}, {x: 900, y: 300}, {x: 1000, y: 300}
+        ];
+        
+        function initGame() {
+            createPath();
+            updateDisplay();
+        }
+        
+        function createPath() {
+            const field = document.getElementById('towerField');
+            
+            // Clear existing path
+            field.querySelectorAll('.path').forEach(p => p.remove());
+            
+            // Create visible path
+            for (let i = 0; i < path.length - 1; i++) {
+                const pathSegment = document.createElement('div');
+                pathSegment.className = 'path';
+                pathSegment.style.left = path[i].x + 'px';
+                pathSegment.style.top = (path[i].y - 30) + 'px';
+                field.appendChild(pathSegment);
+            }
+        }
+        
+        function selectTower(type) {
+            selectedTowerType = type;
+            
+            // Update UI
+            document.querySelectorAll('.tower-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            event.target.closest('.tower-option').classList.add('selected');
+        }
+        
+        function startGame() {
+            gameRunning = true;
+            gameLoop();
+            waveTimer();
+        }
+        
+        function pauseGame() {
+            gameRunning = !gameRunning;
+            if (gameRunning) {
+                gameLoop();
+                waveTimer();
+            }
+        }
+        
+        function resetGame() {
+            gameRunning = false;
+            health = 20;
+            mana = 150;
+            wave = 1;
+            enemiesLeft = 0;
+            waveCountdown = 10;
+            waveActive = false;
+            selectedTowerType = null;
+            
+            // Clear all game objects
+            towers.forEach(tower => tower.element.remove());
+            enemies.forEach(enemy => enemy.element.remove());
+            projectiles.forEach(proj => proj.element.remove());
+            
+            towers = [];
+            enemies = [];
+            projectiles = [];
+            
+            // Reset UI
+            document.querySelectorAll('.tower-option').forEach(option => {
+                option.classList.remove('selected');
+            });
+            
+            createPath();
+            updateDisplay();
+        }
+        
+        function waveTimer() {
+            if (!gameRunning || waveActive) return;
+            
+            if (waveCountdown > 0) {
+                waveCountdown--;
+                document.getElementById('countdown').textContent = waveCountdown;
+                setTimeout(waveTimer, 1000);
+            } else {
+                startWave();
+            }
+        }
+        
+        function startWave() {
+            if (waveActive) return;
+            
+            waveActive = true;
+            waveCountdown = 15;
+            
+            // Determine enemies for this wave
+            const waveEnemies = generateWaveEnemies();
+            enemiesLeft = waveEnemies.length;
+            
+            // Spawn enemies with delay
+            waveEnemies.forEach((enemyType, index) => {
+                setTimeout(() => {
+                    spawnEnemy(enemyType);
+                }, index * 1000);
+            });
+            
+            updateDisplay();
+        }
+        
+        function generateWaveEnemies() {
+            const waveEnemies = [];
+            const baseCount = 5 + wave * 2;
+            
+            for (let i = 0; i < baseCount; i++) {
+                if (wave <= 3) {
+                    waveEnemies.push('goblin');
+                } else if (wave <= 6) {
+                    waveEnemies.push(Math.random() < 0.7 ? 'goblin' : 'orc');
+                } else if (wave <= 10) {
+                    const rand = Math.random();
+                    if (rand < 0.5) waveEnemies.push('goblin');
+                    else if (rand < 0.8) waveEnemies.push('orc');
+                    else waveEnemies.push('dragon');
+                } else {
+                    const rand = Math.random();
+                    if (rand < 0.3) waveEnemies.push('goblin');
+                    else if (rand < 0.6) waveEnemies.push('orc');
+                    else if (rand < 0.9) waveEnemies.push('dragon');
+                    else waveEnemies.push('boss');
+                }
+            }
+            
+            return waveEnemies;
+        }
+        
+        function spawnEnemy(type) {
+            const enemyData = enemyTypes[type];
+            
+            const enemy = document.createElement('div');
+            enemy.className = 'enemy ' + type;
+            enemy.style.left = path[0].x + 'px';
+            enemy.style.top = path[0].y + 'px';
+            enemy.textContent = enemyData.emoji;
+            enemy.style.fontSize = '25px';
+            enemy.style.display = 'flex';
+            enemy.style.alignItems = 'center';
+            enemy.style.justifyContent = 'center';
+            
+            document.getElementById('towerField').appendChild(enemy);
+            
+            enemies.push({
+                element: enemy,
+                type: type,
+                health: enemyData.health,
+                maxHealth: enemyData.health,
+                speed: enemyData.speed,
+                pathIndex: 0,
+                x: path[0].x,
+                y: path[0].y,
+                slowEffect: 1
+            });
+        }
+        
+        function placeTower(x, y) {
+            if (!selectedTowerType || !gameRunning) return;
+            
+            const towerData = towerTypes[selectedTowerType];
+            
+            if (mana < towerData.cost) {
+                alert('魔法石不足！');
+                return;
+            }
+            
+            // Check if position is valid (not on path)
+            const onPath = path.some(point => 
+                Math.abs(x - point.x) < 60 && Math.abs(y - point.y) < 60
+            );
+            
+            if (onPath) {
+                alert('不能在路径上建造防御塔！');
+                return;
+            }
+            
+            // Check if position is occupied
+            const occupied = towers.some(tower => 
+                Math.abs(x - tower.x) < 50 && Math.abs(y - tower.y) < 50
+            );
+            
+            if (occupied) {
+                alert('该位置已有防御塔！');
+                return;
+            }
+            
+            mana -= towerData.cost;
+            
+            const tower = document.createElement('div');
+            tower.className = 'tower ' + selectedTowerType;
+            tower.style.left = (x - 25) + 'px';
+            tower.style.top = (y - 25) + 'px';
+            tower.textContent = towerData.emoji;
+            
+            document.getElementById('towerField').appendChild(tower);
+            
+            towers.push({
+                element: tower,
+                type: selectedTowerType,
+                x: x,
+                y: y,
+                lastShot: 0
+            });
+            
+            updateDisplay();
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Move enemies
+            enemies.forEach((enemy, index) => {
+                if (enemy.pathIndex < path.length - 1) {
+                    const target = path[enemy.pathIndex + 1];
+                    const dx = target.x - enemy.x;
+                    const dy = target.y - enemy.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+                    
+                    if (distance < 5) {
+                        enemy.pathIndex++;
+                    } else {
+                        const speed = enemy.speed * enemy.slowEffect;
+                        enemy.x += (dx / distance) * speed;
+                        enemy.y += (dy / distance) * speed;
+                    }
+                    
+                    enemy.element.style.left = enemy.x + 'px';
+                    enemy.element.style.top = enemy.y + 'px';
+                    
+                    // Reset slow effect
+                    enemy.slowEffect = Math.min(1, enemy.slowEffect + 0.02);
+                } else {
+                    // Enemy reached end
+                    enemy.element.remove();
+                    enemies.splice(index, 1);
+                    enemiesLeft--;
+                    health--;
+                    
+                    if (health <= 0) {
+                        alert('游戏结束！你在第 ' + wave + ' 波败北了！');
+                        resetGame();
+                        return;
+                    }
+                }
+            });
+            
+            // Tower shooting
+            towers.forEach(tower => {
+                const towerData = towerTypes[tower.type];
+                const now = Date.now();
+                
+                if (now - tower.lastShot > towerData.speed) {
+                    const target = findTargetInRange(tower, towerData.range);
+                    if (target) {
+                        shoot(tower, target);
+                        tower.lastShot = now;
+                    }
+                }
+            });
+            
+            // Move projectiles
+            projectiles.forEach((proj, index) => {
+                const dx = proj.targetX - proj.x;
+                const dy = proj.targetY - proj.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+                
+                if (distance < 10 || proj.age > 60) {
+                    // Hit target or expired
+                    handleProjectileImpact(proj);
+                    proj.element.remove();
+                    projectiles.splice(index, 1);
+                } else {
+                    proj.x += (dx / distance) * 8;
+                    proj.y += (dy / distance) * 8;
+                    proj.element.style.left = proj.x + 'px';
+                    proj.element.style.top = proj.y + 'px';
+                    proj.age++;
+                }
+            });
+            
+            // Check wave completion
+            if (waveActive && enemies.length === 0 && projectiles.length === 0) {
+                waveActive = false;
+                wave++;
+                mana += 50;
+                waveCountdown = 10;
+                waveTimer();
+            }
+            
+            updateDisplay();
+            setTimeout(gameLoop, 33);
+        }
+        
+        function findTargetInRange(tower, range) {
+            let bestTarget = null;
+            let maxProgress = -1;
+            
+            enemies.forEach(enemy => {
+                const distance = Math.sqrt(
+                    Math.pow(tower.x - enemy.x, 2) + 
+                    Math.pow(tower.y - enemy.y, 2)
+                );
+                
+                if (distance <= range && enemy.pathIndex > maxProgress) {
+                    bestTarget = enemy;
+                    maxProgress = enemy.pathIndex;
+                }
+            });
+            
+            return bestTarget;
+        }
+        
+        function shoot(tower, target) {
+            const projectile = document.createElement('div');
+            projectile.className = 'projectile ' + tower.type;
+            projectile.style.left = tower.x + 'px';
+            projectile.style.top = tower.y + 'px';
+            
+            document.getElementById('towerField').appendChild(projectile);
+            
+            projectiles.push({
+                element: projectile,
+                type: tower.type,
+                x: tower.x,
+                y: tower.y,
+                targetX: target.x,
+                targetY: target.y,
+                target: target,
+                age: 0
+            });
+        }
+        
+        function handleProjectileImpact(proj) {
+            const towerData = towerTypes[proj.type];
+            
+            if (proj.type === 'earth') {
+                // Splash damage
+                enemies.forEach(enemy => {
+                    const distance = Math.sqrt(
+                        Math.pow(proj.targetX - enemy.x, 2) + 
+                        Math.pow(proj.targetY - enemy.y, 2)
+                    );
+                    
+                    if (distance <= towerData.splash) {
+                        damageEnemy(enemy, towerData.damage);
+                    }
+                });
+            } else if (proj.type === 'lightning') {
+                // Chain lightning
+                let currentTarget = proj.target;
+                let chainCount = 0;
+                
+                while (currentTarget && chainCount < towerData.chain) {
+                    damageEnemy(currentTarget, towerData.damage * (1 - chainCount * 0.2));
+                    
+                    // Find next target
+                    let nextTarget = null;
+                    let minDistance = 100;
+                    
+                    enemies.forEach(enemy => {
+                        if (enemy !== currentTarget) {
+                            const distance = Math.sqrt(
+                                Math.pow(currentTarget.x - enemy.x, 2) + 
+                                Math.pow(currentTarget.y - enemy.y, 2)
+                            );
+                            
+                            if (distance < minDistance) {
+                                nextTarget = enemy;
+                                minDistance = distance;
+                            }
+                        }
+                    });
+                    
+                    currentTarget = nextTarget;
+                    chainCount++;
+                }
+            } else {
+                // Single target
+                if (proj.target) {
+                    damageEnemy(proj.target, towerData.damage);
+                    
+                    if (proj.type === 'ice') {
+                        proj.target.slowEffect = towerData.slow;
+                    }
+                }
+            }
+            
+            // Create explosion effect
+            createExplosion(proj.targetX, proj.targetY, proj.type);
+        }
+        
+        function damageEnemy(enemy, damage) {
+            enemy.health -= damage;
+            
+            if (enemy.health <= 0) {
+                // Enemy destroyed
+                const reward = enemyTypes[enemy.type].reward;
+                mana += reward;
+                
+                enemy.element.remove();
+                const index = enemies.indexOf(enemy);
+                if (index > -1) {
+                    enemies.splice(index, 1);
+                    enemiesLeft--;
+                }
+            }
+        }
+        
+        function createExplosion(x, y, type) {
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = x + 'px';
+            explosion.style.top = y + 'px';
+            explosion.style.width = '30px';
+            explosion.style.height = '30px';
+            
+            switch (type) {
+                case 'fire':
+                    explosion.style.background = 'radial-gradient(circle, #ff6b35, #e55039)';
+                    break;
+                case 'ice':
+                    explosion.style.background = 'radial-gradient(circle, #74b9ff, #0984e3)';
+                    break;
+                case 'earth':
+                    explosion.style.background = 'radial-gradient(circle, #a29bfe, #6c5ce7)';
+                    break;
+                case 'lightning':
+                    explosion.style.background = 'radial-gradient(circle, #fdcb6e, #f39c12)';
+                    break;
+            }
+            
+            document.getElementById('towerField').appendChild(explosion);
+            
+            setTimeout(() => explosion.remove(), 500);
+        }
+        
+        function updateDisplay() {
+            document.getElementById('health').textContent = health;
+            document.getElementById('mana').textContent = mana;
+            document.getElementById('wave').textContent = wave;
+            document.getElementById('enemiesLeft').textContent = enemiesLeft;
+            document.getElementById('currentWave').textContent = wave;
+        }
+        
+        // Event listeners
+        document.getElementById('towerField').addEventListener('click', (e) => {
+            if (!selectedTowerType) return;
+            
+            const rect = e.target.getBoundingClientRect();
+            const fieldRect = document.getElementById('towerField').getBoundingClientRect();
+            
+            const x = e.clientX - fieldRect.left;
+            const y = e.clientY - fieldRect.top;
+            
+            placeTower(x, y);
+        });
+        
+        initGame();
+    </script>
+</body>
+</html>

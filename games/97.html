@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>最终关卡</title>
+    <style>
+        body { background: linear-gradient(135deg, #2c3e50, #4a6741); font-family: 'Arial', sans-serif; margin: 0; color: white; }
+        .game-container { max-width: 900px; margin: 0 auto; padding: 20px; text-align: center; }
+        .game-title { font-size: 3em; margin-bottom: 10px; text-shadow: 3px 3px 6px rgba(0,0,0,0.7); color: #f39c12; }
+        .game-category { color: #e74c3c; font-size: 1.2em; margin-bottom: 20px; }
+        .game-area { background: rgba(0,0,0,0.4); border-radius: 15px; padding: 30px; margin: 20px 0; }
+        .boss-field { width: 100%; height: 600px; background: linear-gradient(180deg, #8b4513, #654321); border-radius: 10px; position: relative; overflow: hidden; border: 3px solid #f39c12; }
+        .player { width: 50px; height: 50px; background: radial-gradient(circle, #00cec9, #74b9ff); border-radius: 50%; position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); }
+        .boss { width: 150px; height: 150px; background: radial-gradient(circle, #e17055, #8b0000); position: absolute; top: 50px; left: 50%; transform: translateX(-50%); border-radius: 20px; }
+        .player-bullet { width: 8px; height: 15px; background: #00cec9; border-radius: 4px; position: absolute; }
+        .boss-bullet { width: 12px; height: 12px; background: #e74c3c; border-radius: 50%; position: absolute; }
+        .laser-beam { width: 150px; height: 8px; background: linear-gradient(90deg, #e74c3c, #ff0000); position: absolute; }
+        .shield { width: 60px; height: 60px; border: 3px solid #00cec9; border-radius: 50%; position: absolute; background: rgba(0, 206, 201, 0.2); }
+        .explosion { width: 80px; height: 80px; background: radial-gradient(circle, #ff7675, #e17055); border-radius: 50%; position: absolute; animation: explode 0.5s ease-out; }
+        .health-bar { position: absolute; top: 20px; width: 80%; height: 20px; background: #333; border-radius: 10px; }
+        .health-fill { height: 100%; background: linear-gradient(90deg, #ff0000, #ffff00, #00ff00); border-radius: 10px; transition: width 0.3s; }
+        .boss-health-bar { left: 10%; }
+        .player-health-bar { left: 10%; top: 50px; }
+        .phase-indicator { position: absolute; top: 20px; right: 20px; background: rgba(0,0,0,0.8); padding: 15px; border-radius: 10px; }
+        .warning { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 3em; color: #e74c3c; animation: blink 0.5s infinite; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 1.2em; }
+        .controls { margin: 20px 0; }
+        .btn { background: #f39c12; color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #e67e22; }
+        @keyframes explode { 0% { transform: scale(0); opacity: 1; } 100% { transform: scale(2); opacity: 0; } }
+        @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+        .how-to-play { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">最终关卡</h1>
+        <div class="game-category">#BOSS战</div>
+        
+        <div class="game-area">
+            <div class="stats">
+                <div>得分: <span id="score">0</span></div>
+                <div>阶段: <span id="phase">1</span></div>
+                <div>时间: <span id="timer">0</span>s</div>
+            </div>
+            
+            <div class="boss-field" id="bossField">
+                <div class="health-bar boss-health-bar">
+                    <div class="health-fill" id="bossHealth" style="width: 100%;"></div>
+                </div>
+                <div class="health-bar player-health-bar">
+                    <div class="health-fill" id="playerHealth" style="width: 100%;"></div>
+                </div>
+                
+                <div class="phase-indicator" id="phaseIndicator">
+                    <div>阶段 <span id="currentPhase">1</span></div>
+                    <div id="phaseDescription">普通攻击</div>
+                </div>
+                
+                <div class="boss" id="boss">💀</div>
+                <div class="player" id="player">🚀</div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="startGame()">开始战斗</button>
+                <button class="btn" onclick="pauseGame()">暂停</button>
+                <button class="btn" onclick="resetGame()">重新开始</button>
+            </div>
+        </div>
+        
+        <div class="how-to-play">
+            <h3>游玩方法：</h3>
+            <p>• 使用WASD键或方向键控制飞船移动</p>
+            <p>• 按空格键或点击鼠标射击</p>
+            <p>• 阶段1：BOSS进行单发射击</p>
+            <p>• 阶段2：BOSS进行多发射击</p>
+            <p>• 阶段3：BOSS释放激光攻击</p>
+            <p>• 阶段4：BOSS的最终攻击模式</p>
+            <p>• 避开BOSS的所有攻击，击败最终BOSS！</p>
+            <p>• 这是第100个游戏，最终挑战！</p>
+        </div>
+    </div>
+    
+    <script>
+        let score = 0;
+        let gameTime = 0;
+        let gameRunning = false;
+        let player, boss, field;
+        let playerBullets = [];
+        let bossBullets = [];
+        let laserBeams = [];
+        let explosions = [];
+        let keys = {};
+        
+        // Game state
+        let playerHealth = 100;
+        let bossHealth = 400;
+        let maxBossHealth = 400;
+        let currentPhase = 1;
+        let lastShot = 0;
+        let bossLastShot = 0;
+        let bossDirection = 1;
+        let shieldActive = false;
+        let shieldTimer = 0;
+        
+        // Boss patterns
+        let bossPattern = 0;
+        let patternTimer = 0;
+        
+        function initGame() {
+            player = document.getElementById('player');
+            boss = document.getElementById('boss');
+            field = document.getElementById('bossField');
+        }
+        
+        function startGame() {
+            gameRunning = true;
+            gameLoop();
+            gameTimer();
+            bossAI();
+        }
+        
+        function pauseGame() {
+            gameRunning = !gameRunning;
+            if (gameRunning) {
+                gameLoop();
+                gameTimer();
+                bossAI();
+            }
+        }
+        
+        function resetGame() {
+            gameRunning = false;
+            score = 0;
+            gameTime = 0;
+            playerHealth = 100;
+            bossHealth = 400;
+            maxBossHealth = 400;
+            currentPhase = 1;
+            lastShot = 0;
+            bossLastShot = 0;
+            bossDirection = 1;
+            shieldActive = false;
+            shieldTimer = 0;
+            bossPattern = 0;
+            patternTimer = 0;
+            
+            // Clear all projectiles and effects
+            playerBullets.forEach(bullet => bullet.element.remove());
+            bossBullets.forEach(bullet => bullet.element.remove());
+            laserBeams.forEach(laser => laser.element.remove());
+            explosions.forEach(explosion => explosion.element.remove());
+            
+            playerBullets = [];
+            bossBullets = [];
+            laserBeams = [];
+            explosions = [];
+            
+            // Reset positions
+            player.style.left = '50%';
+            player.style.bottom = '30px';
+            boss.style.left = '50%';
+            boss.style.top = '50px';
+            
+            // Clear warnings and shields
+            field.querySelectorAll('.warning').forEach(w => w.remove());
+            field.querySelectorAll('.shield').forEach(s => s.remove());
+            
+            updateDisplay();
+        }
+        
+        function gameTimer() {
+            if (!gameRunning) return;
+            
+            gameTime++;
+            setTimeout(gameTimer, 1000);
+        }
+        
+        function bossAI() {
+            if (!gameRunning) return;
+            
+            const now = Date.now();
+            
+            // Determine phase based on health
+            const healthPercentage = bossHealth / maxBossHealth;
+            if (healthPercentage > 0.75) {
+                currentPhase = 1;
+            } else if (healthPercentage > 0.5) {
+                currentPhase = 2;
+            } else if (healthPercentage > 0.25) {
+                currentPhase = 3;
+            } else {
+                currentPhase = 4;
+            }
+            
+            // Boss movement
+            let bossX = parseInt(boss.style.left.replace('%', '')) * 9 || 375;
+            bossX += bossDirection * 2;
+            
+            if (bossX <= 75 || bossX >= 675) {
+                bossDirection *= -1;
+            }
+            
+            boss.style.left = (bossX / 9) + '%';
+            
+            // Boss attack patterns
+            switch (currentPhase) {
+                case 1:
+                    // Single shot pattern
+                    if (now - bossLastShot > 1500) {
+                        bossSingleShot();
+                        bossLastShot = now;
+                    }
+                    break;
+                    
+                case 2:
+                    // Multi-shot pattern
+                    if (now - bossLastShot > 1000) {
+                        bossMultiShot();
+                        bossLastShot = now;
+                    }
+                    break;
+                    
+                case 3:
+                    // Laser pattern
+                    patternTimer++;
+                    if (patternTimer > 180) { // 3 seconds warning
+                        bossLaserAttack();
+                        patternTimer = 0;
+                    } else if (patternTimer === 120) { // 2 seconds warning
+                        showLaserWarning();
+                    }
+                    break;
+                    
+                case 4:
+                    // Final pattern - combination
+                    if (bossPattern === 0) {
+                        if (now - bossLastShot > 800) {
+                            bossMultiShot();
+                            bossLastShot = now;
+                        }
+                        patternTimer++;
+                        if (patternTimer > 300) {
+                            bossPattern = 1;
+                            patternTimer = 0;
+                        }
+                    } else {
+                        patternTimer++;
+                        if (patternTimer === 60) {
+                            showLaserWarning();
+                        } else if (patternTimer > 120) {
+                            bossLaserAttack();
+                            bossPattern = 0;
+                            patternTimer = 0;
+                        }
+                    }
+                    break;
+            }
+            
+            setTimeout(bossAI, 50);
+        }
+        
+        function bossSingleShot() {
+            const bossRect = boss.getBoundingClientRect();
+            const fieldRect = field.getBoundingClientRect();
+            
+            const bullet = document.createElement('div');
+            bullet.className = 'boss-bullet';
+            bullet.style.left = (bossRect.left - fieldRect.left + 69) + 'px';
+            bullet.style.top = '200px';
+            
+            field.appendChild(bullet);
+            
+            bossBullets.push({
+                element: bullet,
+                x: bossRect.left - fieldRect.left + 69,
+                y: 200,
+                vx: 0,
+                vy: 4
+            });
+        }
+        
+        function bossMultiShot() {
+            const bossRect = boss.getBoundingClientRect();
+            const fieldRect = field.getBoundingClientRect();
+            
+            for (let i = -2; i <= 2; i++) {
+                const bullet = document.createElement('div');
+                bullet.className = 'boss-bullet';
+                bullet.style.left = (bossRect.left - fieldRect.left + 69) + 'px';
+                bullet.style.top = '200px';
+                
+                field.appendChild(bullet);
+                
+                bossBullets.push({
+                    element: bullet,
+                    x: bossRect.left - fieldRect.left + 69,
+                    y: 200,
+                    vx: i * 1.5,
+                    vy: 4
+                });
+            }
+        }
+        
+        function showLaserWarning() {
+            const warning = document.createElement('div');
+            warning.className = 'warning';
+            warning.textContent = '警告: 激光攻击!';
+            field.appendChild(warning);
+            
+            setTimeout(() => warning.remove(), 2000);
+        }
+        
+        function bossLaserAttack() {
+            const bossRect = boss.getBoundingClientRect();
+            const fieldRect = field.getBoundingClientRect();
+            
+            const laser = document.createElement('div');
+            laser.className = 'laser-beam';
+            laser.style.left = (bossRect.left - fieldRect.left) + 'px';
+            laser.style.top = '200px';
+            
+            field.appendChild(laser);
+            
+            laserBeams.push({
+                element: laser,
+                x: bossRect.left - fieldRect.left,
+                y: 200,
+                width: 150,
+                height: 8,
+                duration: 60
+            });
+        }
+        
+        function shoot() {
+            const now = Date.now();
+            if (now - lastShot < 150) return; // Rate limit
+            
+            lastShot = now;
+            
+            const bullet = document.createElement('div');
+            bullet.className = 'player-bullet';
+            
+            const playerRect = player.getBoundingClientRect();
+            const fieldRect = field.getBoundingClientRect();
+            
+            bullet.style.left = (playerRect.left - fieldRect.left + 21) + 'px';
+            bullet.style.bottom = '80px';
+            
+            field.appendChild(bullet);
+            
+            playerBullets.push({
+                element: bullet,
+                x: playerRect.left - fieldRect.left + 21,
+                y: 520
+            });
+        }
+        
+        function activateShield() {
+            if (shieldActive) return;
+            
+            shieldActive = true;
+            shieldTimer = 180; // 3 seconds
+            
+            const shield = document.createElement('div');
+            shield.className = 'shield';
+            shield.id = 'playerShield';
+            field.appendChild(shield);
+        }
+        
+        function createExplosion(x, y, size = 80) {
+            const explosion = document.createElement('div');
+            explosion.className = 'explosion';
+            explosion.style.left = x + 'px';
+            explosion.style.top = y + 'px';
+            explosion.style.width = size + 'px';
+            explosion.style.height = size + 'px';
+            
+            field.appendChild(explosion);
+            
+            setTimeout(() => explosion.remove(), 500);
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Move player
+            const speed = 6;
+            let currentX = parseInt(player.style.left.replace('%', '')) * 9 || 400;
+            let currentY = parseInt(player.style.bottom.replace('px', '')) || 30;
+            
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                currentX = Math.max(0, currentX - speed);
+            }
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                currentX = Math.min(850, currentX + speed);
+            }
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) {
+                currentY = Math.min(570, currentY + speed);
+            }
+            if (keys['ArrowDown'] || keys['s'] || keys['S']) {
+                currentY = Math.max(0, currentY - speed);
+            }
+            
+            player.style.left = (currentX / 9) + '%';
+            player.style.bottom = currentY + 'px';
+            
+            // Update shield position
+            if (shieldActive) {
+                shieldTimer--;
+                const shield = document.getElementById('playerShield');
+                if (shield) {
+                    shield.style.left = (currentX - 5) + 'px';
+                    shield.style.bottom = (currentY - 5) + 'px';
+                }
+                
+                if (shieldTimer <= 0) {
+                    shieldActive = false;
+                    if (shield) shield.remove();
+                }
+            }
+            
+            // Move player bullets
+            playerBullets.forEach((bullet, index) => {
+                bullet.y -= 8;
+                bullet.element.style.bottom = (600 - bullet.y) + 'px';
+                
+                if (bullet.y < 0) {
+                    bullet.element.remove();
+                    playerBullets.splice(index, 1);
+                }
+                
+                // Check collision with boss
+                const bossRect = boss.getBoundingClientRect();
+                const fieldRect = field.getBoundingClientRect();
+                const bossX = bossRect.left - fieldRect.left;
+                const bossY = 50;
+                
+                if (bullet.x > bossX && bullet.x < bossX + 150 &&
+                    bullet.y > bossY && bullet.y < bossY + 150) {
+                    
+                    bullet.element.remove();
+                    playerBullets.splice(index, 1);
+                    
+                    bossHealth -= 5;
+                    score += 10;
+                    
+                    createExplosion(bullet.x, bullet.y, 40);
+                    
+                    if (bossHealth <= 0) {
+                        victory();
+                        return;
+                    }
+                }
+            });
+            
+            // Move boss bullets
+            bossBullets.forEach((bullet, index) => {
+                bullet.x += bullet.vx;
+                bullet.y += bullet.vy;
+                
+                bullet.element.style.left = bullet.x + 'px';
+                bullet.element.style.top = bullet.y + 'px';
+                
+                if (bullet.y > 600 || bullet.x < 0 || bullet.x > 900) {
+                    bullet.element.remove();
+                    bossBullets.splice(index, 1);
+                }
+                
+                // Check collision with player
+                if (!shieldActive && 
+                    bullet.x > currentX && bullet.x < currentX + 50 &&
+                    bullet.y > (600 - currentY - 50) && bullet.y < (600 - currentY)) {
+                    
+                    bullet.element.remove();
+                    bossBullets.splice(index, 1);
+                    
+                    playerHealth -= 10;
+                    createExplosion(currentX + 25, 600 - currentY - 25, 60);
+                    
+                    if (playerHealth <= 0) {
+                        gameOver();
+                        return;
+                    }
+                }
+            });
+            
+            // Handle laser beams
+            laserBeams.forEach((laser, index) => {
+                laser.duration--;
+                
+                if (laser.duration <= 0) {
+                    laser.element.remove();
+                    laserBeams.splice(index, 1);
+                } else {
+                    // Check collision with player
+                    if (!shieldActive &&
+                        currentX + 50 > laser.x && currentX < laser.x + laser.width &&
+                        (600 - currentY - 50) < laser.y + laser.height && (600 - currentY) > laser.y) {
+                        
+                        playerHealth -= 2; // Continuous damage
+                        
+                        if (playerHealth <= 0) {
+                            gameOver();
+                            return;
+                        }
+                    }
+                }
+            });
+            
+            updateDisplay();
+            setTimeout(gameLoop, 16);
+        }
+        
+        function victory() {
+            gameRunning = false;
+            
+            createExplosion(400, 125, 200);
+            
+            setTimeout(() => {
+                alert('恭喜你！\n你击败了最终BOSS！\n\n最终得分: ' + score + '\n战斗时间: ' + gameTime + '秒\n\n你已经完成了所有100个游戏！\n感谢游玩！');
+            }, 1000);
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            
+            createExplosion(currentX + 25, 600 - currentY - 25, 100);
+            
+            setTimeout(() => {
+                alert('游戏结束！\n你被最终BOSS击败了！\n\n得分: ' + score + '\n生存时间: ' + gameTime + '秒\nBOSS剩余血量: ' + Math.max(0, bossHealth));
+            }, 1000);
+        }
+        
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('phase').textContent = currentPhase;
+            document.getElementById('timer').textContent = gameTime;
+            document.getElementById('currentPhase').textContent = currentPhase;
+            
+            // Update health bars
+            const bossHealthPercent = Math.max(0, (bossHealth / maxBossHealth) * 100);
+            const playerHealthPercent = Math.max(0, playerHealth);
+            
+            document.getElementById('bossHealth').style.width = bossHealthPercent + '%';
+            document.getElementById('playerHealth').style.width = playerHealthPercent + '%';
+            
+            // Update phase description
+            const descriptions = {
+                1: '普通攻击',
+                2: '多发射击',
+                3: '激光攻击',
+                4: '最终攻击'
+            };
+            
+            document.getElementById('phaseDescription').textContent = descriptions[currentPhase];
+        }
+        
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.code === 'Space') {
+                e.preventDefault();
+                shoot();
+            }
+            if (e.key.toLowerCase() === 'x') {
+                activateShield();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        field.addEventListener('click', shoot);
+        
+        initGame();
+    </script>
+</body>
+</html>

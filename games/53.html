@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>超级马里奥跑阉 - 跑阉闯关游戏</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98FB98 50%, #DEB887 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #e74c3c;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .game-area {
+            position: relative;
+            width: 100%;
+            height: 400px;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98FB98 70%, #DEB887 100%);
+            border: 3px solid #8B4513;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .ground {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            height: 60px;
+            background: repeating-linear-gradient(
+                90deg,
+                #8B4513 0px,
+                #8B4513 20px,
+                #A0522D 20px,
+                #A0522D 40px
+            );
+        }
+        .player {
+            position: absolute;
+            bottom: 60px;
+            left: 100px;
+            width: 40px;
+            height: 50px;
+            background: #ff6b6b;
+            border-radius: 8px 8px 0 0;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        .player::before {
+            content: '😃';
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.5em;
+        }
+        .player.jumping {
+            animation: jump 0.6s ease;
+        }
+        @keyframes jump {
+            0%, 100% { bottom: 60px; }
+            50% { bottom: 160px; }
+        }
+        .obstacle {
+            position: absolute;
+            bottom: 60px;
+            width: 30px;
+            height: 40px;
+            background: #2c3e50;
+            border-radius: 4px;
+            animation: moveLeft 3s linear infinite;
+        }
+        .obstacle.pipe {
+            width: 40px;
+            height: 80px;
+            background: linear-gradient(to bottom, #27ae60, #2ecc71);
+        }
+        .obstacle.goomba {
+            width: 35px;
+            height: 30px;
+            background: #8B4513;
+            border-radius: 15px;
+        }
+        .obstacle.goomba::before {
+            content: '😡';
+            position: absolute;
+            top: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 1.2em;
+        }
+        @keyframes moveLeft {
+            from { right: -50px; }
+            to { right: 100%; }
+        }
+        .coin {
+            position: absolute;
+            width: 25px;
+            height: 25px;
+            background: #f1c40f;
+            border-radius: 50%;
+            animation: moveLeft 4s linear infinite, spin 1s linear infinite;
+            box-shadow: 0 0 10px rgba(241, 196, 15, 0.8);
+        }
+        .coin::before {
+            content: '💰';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1em;
+        }
+        @keyframes spin {
+            from { transform: rotateY(0deg); }
+            to { transform: rotateY(360deg); }
+        }
+        .cloud {
+            position: absolute;
+            background: white;
+            border-radius: 25px;
+            opacity: 0.8;
+            animation: moveLeftSlow 8s linear infinite;
+        }
+        .cloud::before, .cloud::after {
+            content: '';
+            position: absolute;
+            background: white;
+            border-radius: 25px;
+        }
+        @keyframes moveLeftSlow {
+            from { right: -100px; }
+            to { right: 100%; }
+        }
+        .ui {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .stat {
+            text-align: center;
+            font-size: 1.2em;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 5px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        .instruction {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            line-height: 1.6;
+        }
+        .power-up {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #9b59b6;
+            border-radius: 50%;
+            animation: moveLeft 5s linear infinite, bounce 0.5s ease-in-out infinite alternate;
+        }
+        .power-up::before {
+            content: '⭐';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2em;
+        }
+        @keyframes bounce {
+            from { transform: translateY(0); }
+            to { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 超级马里奥跑阉</h1>
+        
+        <div class="ui">
+            <div class="stat">
+                <div>得分</div>
+                <div id="score">0</div>
+            </div>
+            <div class="stat">
+                <div>金币</div>
+                <div id="coins">0</div>
+            </div>
+            <div class="stat">
+                <div>生命</div>
+                <div id="lives">3</div>
+            </div>
+            <div class="stat">
+                <div>等级</div>
+                <div id="level">1</div>
+            </div>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <div class="ground"></div>
+            <div class="player" id="player"></div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="startGame()">开始游戏</button>
+            <button onclick="pauseGame()">暂停</button>
+            <button onclick="jump()" id="jumpBtn">跳跃 (空格键)</button>
+        </div>
+        
+        <div class="instruction">
+            <h3>🎮 游玩方法：</h3>
+            <p><strong>游戏目标：</strong>操控马里奥跑跳，躲避障碍，收集金币</p>
+            <p><strong>操作方式：</strong></p>
+            <ul>
+                <li>按空格键或点击跳跃按钮进行跳跃</li>
+                <li>躲避管道、怪物等障碍物</li>
+                <li>收集路上的金币和道具</li>
+                <li>保持跑阉，不要擞到障碍物</li>
+            </ul>
+            <p><strong>游戏元素：</strong></p>
+            <ul>
+                <li>💰 金币：收集可获得分数</li>
+                <li>⭐ 道具：提供特殊能力</li>
+                <li>😡 怪物：要小心躲避</li>
+                <li>🌿 管道：需要跳跃过去</li>
+            </ul>
+            <p><strong>小贴士：</strong>掌握好跳跃的时机，节奏感很重要！</p>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            running: false,
+            score: 0,
+            coins: 0,
+            lives: 3,
+            level: 1,
+            speed: 3,
+            isJumping: false,
+            obstacles: [],
+            collectibles: [],
+            gameLoop: null,
+            spawnTimer: 0
+        };
+        
+        function startGame() {
+            if (gameState.running) return;
+            
+            gameState.running = true;
+            gameState.gameLoop = setInterval(updateGame, 50);
+            
+            // 创建云彩
+            setTimeout(createClouds, 1000);
+        }
+        
+        function pauseGame() {
+            gameState.running = false;
+            if (gameState.gameLoop) {
+                clearInterval(gameState.gameLoop);
+            }
+        }
+        
+        function jump() {
+            if (!gameState.running || gameState.isJumping) return;
+            
+            gameState.isJumping = true;
+            const player = document.getElementById('player');
+            player.classList.add('jumping');
+            
+            setTimeout(() => {
+                gameState.isJumping = false;
+                player.classList.remove('jumping');
+            }, 600);
+        }
+        
+        function updateGame() {
+            if (!gameState.running) return;
+            
+            gameState.spawnTimer++;
+            
+            // 生成障碍物
+            if (gameState.spawnTimer % (60 - gameState.level * 5) === 0) {
+                createObstacle();
+            }
+            
+            // 生成金币
+            if (gameState.spawnTimer % 80 === 0) {
+                createCoin();
+            }
+            
+            // 生成道具
+            if (gameState.spawnTimer % 300 === 0) {
+                createPowerUp();
+            }
+            
+            // 检查碰撞
+            checkCollisions();
+            
+            // 更新分数
+            gameState.score += 1;
+            
+            // 升级检查
+            if (gameState.score > gameState.level * 1000) {
+                gameState.level++;
+                gameState.speed += 0.5;
+            }
+            
+            updateUI();
+        }
+        
+        function createObstacle() {
+            const gameArea = document.getElementById('gameArea');
+            const obstacle = document.createElement('div');
+            
+            const types = ['obstacle', 'pipe', 'goomba'];
+            const type = types[Math.floor(Math.random() * types.length)];
+            
+            obstacle.className = `obstacle ${type}`;
+            obstacle.style.animationDuration = (3 / gameState.speed) + 's';
+            
+            if (type === 'pipe') {
+                obstacle.style.bottom = '60px';
+            } else if (type === 'goomba') {
+                obstacle.style.bottom = '60px';
+            }
+            
+            gameArea.appendChild(obstacle);
+            gameState.obstacles.push(obstacle);
+            
+            // 移除超出屏幕的障碍物
+            setTimeout(() => {
+                if (obstacle.parentNode) {
+                    obstacle.parentNode.removeChild(obstacle);
+                    const index = gameState.obstacles.indexOf(obstacle);
+                    if (index > -1) {
+                        gameState.obstacles.splice(index, 1);
+                    }
+                }
+            }, 3000 / gameState.speed * 1000);
+        }
+        
+        function createCoin() {
+            const gameArea = document.getElementById('gameArea');
+            const coin = document.createElement('div');
+            coin.className = 'coin';
+            coin.style.bottom = Math.random() > 0.5 ? '120px' : '80px';
+            coin.style.animationDuration = (4 / gameState.speed) + 's';
+            
+            gameArea.appendChild(coin);
+            gameState.collectibles.push({ element: coin, type: 'coin' });
+            
+            setTimeout(() => {
+                if (coin.parentNode) {
+                    coin.parentNode.removeChild(coin);
+                    const index = gameState.collectibles.findIndex(c => c.element === coin);
+                    if (index > -1) {
+                        gameState.collectibles.splice(index, 1);
+                    }
+                }
+            }, 4000 / gameState.speed * 1000);
+        }
+        
+        function createPowerUp() {
+            const gameArea = document.getElementById('gameArea');
+            const powerUp = document.createElement('div');
+            powerUp.className = 'power-up';
+            powerUp.style.bottom = '100px';
+            powerUp.style.animationDuration = (5 / gameState.speed) + 's';
+            
+            gameArea.appendChild(powerUp);
+            gameState.collectibles.push({ element: powerUp, type: 'powerup' });
+            
+            setTimeout(() => {
+                if (powerUp.parentNode) {
+                    powerUp.parentNode.removeChild(powerUp);
+                    const index = gameState.collectibles.findIndex(c => c.element === powerUp);
+                    if (index > -1) {
+                        gameState.collectibles.splice(index, 1);
+                    }
+                }
+            }, 5000 / gameState.speed * 1000);
+        }
+        
+        function createClouds() {
+            const gameArea = document.getElementById('gameArea');
+            
+            setInterval(() => {
+                if (!gameState.running) return;
+                
+                const cloud = document.createElement('div');
+                cloud.className = 'cloud';
+                cloud.style.top = Math.random() * 100 + 'px';
+                cloud.style.width = Math.random() * 60 + 40 + 'px';
+                cloud.style.height = Math.random() * 30 + 20 + 'px';
+                
+                gameArea.appendChild(cloud);
+                
+                setTimeout(() => {
+                    if (cloud.parentNode) {
+                        cloud.parentNode.removeChild(cloud);
+                    }
+                }, 8000);
+            }, 3000);
+        }
+        
+        function checkCollisions() {
+            const player = document.getElementById('player');
+            const playerRect = player.getBoundingClientRect();
+            
+            // 检查障碍物碰撞
+            gameState.obstacles.forEach(obstacle => {
+                const obstacleRect = obstacle.getBoundingClientRect();
+                if (isColliding(playerRect, obstacleRect)) {
+                    hitObstacle();
+                }
+            });
+            
+            // 检查收集品碰撞
+            gameState.collectibles.forEach((collectible, index) => {
+                const collectibleRect = collectible.element.getBoundingClientRect();
+                if (isColliding(playerRect, collectibleRect)) {
+                    collectItem(collectible);
+                    gameState.collectibles.splice(index, 1);
+                }
+            });
+        }
+        
+        function isColliding(rect1, rect2) {
+            return !(rect1.right < rect2.left || 
+                     rect1.left > rect2.right || 
+                     rect1.bottom < rect2.top || 
+                     rect1.top > rect2.bottom);
+        }
+        
+        function hitObstacle() {
+            gameState.lives--;
+            
+            // 闪烁效果
+            const player = document.getElementById('player');
+            player.style.opacity = '0.5';
+            setTimeout(() => {
+                player.style.opacity = '1';
+            }, 1000);
+            
+            if (gameState.lives <= 0) {
+                gameOver();
+            }
+        }
+        
+        function collectItem(collectible) {
+            if (collectible.type === 'coin') {
+                gameState.coins++;
+                gameState.score += 50;
+            } else if (collectible.type === 'powerup') {
+                gameState.score += 200;
+                gameState.lives++; // 额外生命
+            }
+            
+            // 移除元素
+            if (collectible.element.parentNode) {
+                collectible.element.parentNode.removeChild(collectible.element);
+            }
+            
+            // 收集效果
+            showCollectEffect(collectible.type);
+        }
+        
+        function showCollectEffect(type) {
+            const effect = document.createElement('div');
+            effect.textContent = type === 'coin' ? '+50' : '+200';
+            effect.style.cssText = `
+                position: absolute;
+                top: 30%;
+                left: 200px;
+                color: ${type === 'coin' ? '#f1c40f' : '#9b59b6'};
+                font-size: 2em;
+                font-weight: bold;
+                pointer-events: none;
+                animation: floatUp 1s ease-out forwards;
+                z-index: 1000;
+            `;
+            
+            document.getElementById('gameArea').appendChild(effect);
+            
+            setTimeout(() => {
+                if (effect.parentNode) {
+                    effect.parentNode.removeChild(effect);
+                }
+            }, 1000);
+        }
+        
+        function gameOver() {
+            pauseGame();
+            alert(`游戏结束！\n最终得分：${gameState.score}\n收集金币：${gameState.coins}\n到达等级：${gameState.level}`);
+        }
+        
+        function updateUI() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('coins').textContent = gameState.coins;
+            document.getElementById('lives').textContent = gameState.lives;
+            document.getElementById('level').textContent = gameState.level;
+        }
+        
+        // 键盘事件
+        document.addEventListener('keydown', function(event) {
+            if (event.code === 'Space') {
+                event.preventDefault();
+                jump();
+            }
+        });
+        
+        // 添加CSS动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes floatUp {
+                0% { opacity: 1; transform: translateY(0); }
+                100% { opacity: 0; transform: translateY(-50px); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // 初始化
+        updateUI();
+    </script>
+</body>
+</html>

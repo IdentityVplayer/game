@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>求生大逃亡</title>
+    <style>
+        body { background: linear-gradient(135deg, #2c3e50, #4a6741); font-family: 'Arial', sans-serif; margin: 0; color: white; }
+        .game-container { max-width: 800px; margin: 0 auto; padding: 20px; text-align: center; }
+        .game-title { font-size: 3em; margin-bottom: 10px; text-shadow: 3px 3px 6px rgba(0,0,0,0.7); }
+        .game-category { color: #e74c3c; font-size: 1.2em; margin-bottom: 20px; }
+        .game-area { background: rgba(0,0,0,0.3); border-radius: 15px; padding: 30px; margin: 20px 0; }
+        .survival-field { width: 100%; height: 500px; background: linear-gradient(180deg, #34495e, #2c3e50); border-radius: 10px; position: relative; overflow: hidden; }
+        .player { width: 40px; height: 40px; background: #3498db; border-radius: 50%; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .zombie { width: 35px; height: 35px; background: #27ae60; border-radius: 50%; position: absolute; }
+        .bullet { width: 6px; height: 6px; background: #f39c12; border-radius: 50%; position: absolute; }
+        .health-pack { width: 25px; height: 25px; background: #e74c3c; border-radius: 50%; position: absolute; }
+        .ammo-pack { width: 25px; height: 25px; background: #9b59b6; border-radius: 50%; position: absolute; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 1.2em; }
+        .controls { margin: 20px 0; }
+        .btn { background: #e74c3c; color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #c0392b; }
+        .mini-map { position: absolute; top: 20px; right: 20px; width: 100px; height: 100px; background: rgba(0,0,0,0.7); border-radius: 5px; }
+        .crosshair { position: absolute; top: 50%; left: 50%; width: 20px; height: 20px; transform: translate(-50%, -50%); pointer-events: none; }
+        .crosshair::before, .crosshair::after { content: ''; position: absolute; background: #fff; }
+        .crosshair::before { width: 20px; height: 2px; top: 9px; }
+        .crosshair::after { width: 2px; height: 20px; left: 9px; }
+        .how-to-play { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">求生大逃亡</h1>
+        <div class="game-category">#动作游戏</div>
+        
+        <div class="game-area">
+            <div class="stats">
+                <div>生命值: <span id="health">100</span></div>
+                <div>子弹: <span id="ammo">30</span></div>
+                <div>杀敌: <span id="kills">0</span></div>
+                <div>波次: <span id="wave">1</span></div>
+            </div>
+            
+            <div class="survival-field" id="survivalField">
+                <div class="mini-map" id="miniMap"></div>
+                <div class="crosshair"></div>
+                <div class="player" id="player">👤</div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="startGame()">开始求生</button>
+                <button class="btn" onclick="pauseGame()">暂停</button>
+                <button class="btn" onclick="resetGame()">重新开始</button>
+            </div>
+        </div>
+        
+        <div class="how-to-play">
+            <h3>游玩方法：</h3>
+            <p>• 使用WASD键控制角色移动</p>
+            <p>• 鼠标移动控制射击方向</p>
+            <p>• 点击鼠标或按空格键射击</p>
+            <p>• 击败僵尸获得分数</p>
+            <p>• 收集红色补给包恢复生命值</p>
+            <p>• 收集紫色弹药包补充子弹</p>
+            <p>• 生存越久，僵尸越多越强</p>
+            <p>• 挑战你的极限生存能力！</p>
+        </div>
+    </div>
+    
+    <script>
+        let health = 100;
+        let ammo = 30;
+        let kills = 0;
+        let wave = 1;
+        let gameRunning = false;
+        let player, field;
+        let zombies = [];
+        let bullets = [];
+        let healthPacks = [];
+        let ammoPacks = [];
+        let keys = {};
+        let mouseX = 0, mouseY = 0;
+        
+        function initGame() {
+            player = document.getElementById('player');
+            field = document.getElementById('survivalField');
+        }
+        
+        function startGame() {
+            gameRunning = true;
+            gameLoop();
+            spawnZombies();
+            spawnSupplies();
+            waveTimer();
+        }
+        
+        function pauseGame() {
+            gameRunning = !gameRunning;
+            if (gameRunning) {
+                gameLoop();
+                waveTimer();
+            }
+        }
+        
+        function resetGame() {
+            gameRunning = false;
+            health = 100;
+            ammo = 30;
+            kills = 0;
+            wave = 1;
+            
+            // Clear all game objects
+            zombies.forEach(zombie => zombie.element.remove());
+            bullets.forEach(bullet => bullet.element.remove());
+            healthPacks.forEach(pack => pack.element.remove());
+            ammoPacks.forEach(pack => pack.element.remove());
+            
+            zombies = [];
+            bullets = [];
+            healthPacks = [];
+            ammoPacks = [];
+            
+            // Reset player position
+            player.style.left = '50%';
+            player.style.top = '50%';
+            player.style.transform = 'translate(-50%, -50%)';
+            
+            updateDisplay();
+        }
+        
+        function waveTimer() {
+            if (!gameRunning) return;
+            
+            setTimeout(() => {
+                wave++;
+                if (gameRunning) waveTimer();
+            }, 30000); // New wave every 30 seconds
+        }
+        
+        function spawnZombies() {
+            if (!gameRunning) return;
+            
+            const zombieCount = Math.min(2 + wave, 8);
+            for (let i = 0; i < zombieCount; i++) {
+                setTimeout(() => {
+                    if (gameRunning) createZombie();
+                }, i * 1000);
+            }
+            
+            const spawnRate = Math.max(3000 - wave * 200, 1000);
+            setTimeout(spawnZombies, spawnRate);
+        }
+        
+        function createZombie() {
+            const zombie = document.createElement('div');
+            zombie.className = 'zombie';
+            
+            // Spawn at random edge
+            const edge = Math.floor(Math.random() * 4);
+            switch (edge) {
+                case 0: // Top
+                    zombie.style.left = Math.random() * 800 + 'px';
+                    zombie.style.top = '-35px';
+                    break;
+                case 1: // Right
+                    zombie.style.left = '800px';
+                    zombie.style.top = Math.random() * 500 + 'px';
+                    break;
+                case 2: // Bottom
+                    zombie.style.left = Math.random() * 800 + 'px';
+                    zombie.style.top = '500px';
+                    break;
+                case 3: // Left
+                    zombie.style.left = '-35px';
+                    zombie.style.top = Math.random() * 500 + 'px';
+                    break;
+            }
+            
+            zombie.textContent = '🧟';
+            zombie.style.fontSize = '30px';
+            zombie.style.display = 'flex';
+            zombie.style.alignItems = 'center';
+            zombie.style.justifyContent = 'center';
+            
+            field.appendChild(zombie);
+            
+            zombies.push({
+                element: zombie,
+                x: parseInt(zombie.style.left),
+                y: parseInt(zombie.style.top),
+                health: 1 + Math.floor(wave / 3),
+                speed: 0.5 + wave * 0.1
+            });
+        }
+        
+        function spawnSupplies() {
+            if (!gameRunning) return;
+            
+            // Spawn health pack
+            if (Math.random() < 0.3 && health < 80) {
+                const healthPack = document.createElement('div');
+                healthPack.className = 'health-pack';
+                healthPack.style.left = Math.random() * 775 + 'px';
+                healthPack.style.top = Math.random() * 475 + 'px';
+                healthPack.textContent = '❤️';
+                healthPack.style.fontSize = '20px';
+                healthPack.style.display = 'flex';
+                healthPack.style.alignItems = 'center';
+                healthPack.style.justifyContent = 'center';
+                
+                field.appendChild(healthPack);
+                healthPacks.push({
+                    element: healthPack,
+                    x: parseInt(healthPack.style.left),
+                    y: parseInt(healthPack.style.top)
+                });
+            }
+            
+            // Spawn ammo pack
+            if (Math.random() < 0.2 && ammo < 15) {
+                const ammoPack = document.createElement('div');
+                ammoPack.className = 'ammo-pack';
+                ammoPack.style.left = Math.random() * 775 + 'px';
+                ammoPack.style.top = Math.random() * 475 + 'px';
+                ammoPack.textContent = '💣';
+                ammoPack.style.fontSize = '20px';
+                ammoPack.style.display = 'flex';
+                ammoPack.style.alignItems = 'center';
+                ammoPack.style.justifyContent = 'center';
+                
+                field.appendChild(ammoPack);
+                ammoPacks.push({
+                    element: ammoPack,
+                    x: parseInt(ammoPack.style.left),
+                    y: parseInt(ammoPack.style.top)
+                });
+            }
+            
+            setTimeout(spawnSupplies, 5000);
+        }
+        
+        function shoot() {
+            if (ammo <= 0) return;
+            
+            ammo--;
+            
+            const bullet = document.createElement('div');
+            bullet.className = 'bullet';
+            
+            const playerRect = player.getBoundingClientRect();
+            const fieldRect = field.getBoundingClientRect();
+            
+            const startX = playerRect.left - fieldRect.left + 20;
+            const startY = playerRect.top - fieldRect.top + 20;
+            
+            bullet.style.left = startX + 'px';
+            bullet.style.top = startY + 'px';
+            
+            field.appendChild(bullet);
+            
+            // Calculate direction to mouse
+            const deltaX = mouseX - startX;
+            const deltaY = mouseY - startY;
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            bullets.push({
+                element: bullet,
+                x: startX,
+                y: startY,
+                vx: (deltaX / distance) * 8,
+                vy: (deltaY / distance) * 8
+            });
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Move player
+            const speed = 3;
+            let currentX = parseInt(player.style.left.replace('%', '')) * 8 || 400;
+            let currentY = parseInt(player.style.top.replace('%', '')) * 5 || 250;
+            
+            if (keys['w'] || keys['W']) currentY = Math.max(0, currentY - speed);
+            if (keys['s'] || keys['S']) currentY = Math.min(460, currentY + speed);
+            if (keys['a'] || keys['A']) currentX = Math.max(0, currentX - speed);
+            if (keys['d'] || keys['D']) currentX = Math.min(760, currentX + speed);
+            
+            player.style.left = (currentX / 8) + '%';
+            player.style.top = (currentY / 5) + '%';
+            
+            // Move zombies towards player
+            zombies.forEach((zombie, index) => {
+                const deltaX = currentX - zombie.x;
+                const deltaY = currentY - zombie.y;
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                
+                if (distance > 0) {
+                    zombie.x += (deltaX / distance) * zombie.speed;
+                    zombie.y += (deltaY / distance) * zombie.speed;
+                }
+                
+                zombie.element.style.left = zombie.x + 'px';
+                zombie.element.style.top = zombie.y + 'px';
+                
+                // Check collision with player
+                if (distance < 30) {
+                    zombie.element.remove();
+                    zombies.splice(index, 1);
+                    health -= 15;
+                    
+                    if (health <= 0) {
+                        alert('你被僵尸吃了！\n生存时间: ' + Math.floor(kills / 2) + '分钟\n杀敌数: ' + kills);
+                        resetGame();
+                        return;
+                    }
+                }
+            });
+            
+            // Move bullets
+            bullets.forEach((bullet, bulletIndex) => {
+                bullet.x += bullet.vx;
+                bullet.y += bullet.vy;
+                bullet.element.style.left = bullet.x + 'px';
+                bullet.element.style.top = bullet.y + 'px';
+                
+                // Remove bullets that go off screen
+                if (bullet.x < 0 || bullet.x > 800 || bullet.y < 0 || bullet.y > 500) {
+                    bullet.element.remove();
+                    bullets.splice(bulletIndex, 1);
+                    return;
+                }
+                
+                // Check collision with zombies
+                zombies.forEach((zombie, zombieIndex) => {
+                    const distance = Math.sqrt(
+                        Math.pow(bullet.x - zombie.x, 2) + 
+                        Math.pow(bullet.y - zombie.y, 2)
+                    );
+                    
+                    if (distance < 20) {
+                        bullet.element.remove();
+                        bullets.splice(bulletIndex, 1);
+                        
+                        zombie.health--;
+                        if (zombie.health <= 0) {
+                            zombie.element.remove();
+                            zombies.splice(zombieIndex, 1);
+                            kills++;
+                        }
+                    }
+                });
+            });
+            
+            // Check supply collection
+            healthPacks.forEach((pack, index) => {
+                const distance = Math.sqrt(
+                    Math.pow(currentX - pack.x, 2) + 
+                    Math.pow(currentY - pack.y, 2)
+                );
+                
+                if (distance < 30) {
+                    pack.element.remove();
+                    healthPacks.splice(index, 1);
+                    health = Math.min(100, health + 25);
+                }
+            });
+            
+            ammoPacks.forEach((pack, index) => {
+                const distance = Math.sqrt(
+                    Math.pow(currentX - pack.x, 2) + 
+                    Math.pow(currentY - pack.y, 2)
+                );
+                
+                if (distance < 30) {
+                    pack.element.remove();
+                    ammoPacks.splice(index, 1);
+                    ammo += 15;
+                }
+            });
+            
+            updateDisplay();
+            setTimeout(gameLoop, 50);
+        }
+        
+        function updateDisplay() {
+            document.getElementById('health').textContent = Math.max(0, health);
+            document.getElementById('ammo').textContent = ammo;
+            document.getElementById('kills').textContent = kills;
+            document.getElementById('wave').textContent = wave;
+        }
+        
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+            if (e.code === 'Space') {
+                e.preventDefault();
+                shoot();
+            }
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        field.addEventListener('mousemove', (e) => {
+            const rect = field.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+        
+        field.addEventListener('click', (e) => {
+            e.preventDefault();
+            shoot();
+        });
+        
+        initGame();
+    </script>
+</body>
+</html>

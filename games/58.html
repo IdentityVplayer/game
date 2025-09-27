@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>水果忍者 - 动作闯关游戏</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            min-height: 100vh;
+            color: #333;
+            overflow-x: hidden;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #e74c3c;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .game-area {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98FB98 100%);
+            border: 3px solid #8B4513;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+        .ninja {
+            position: absolute;
+            bottom: 50px;
+            left: 50px;
+            width: 50px;
+            height: 50px;
+            background: #2c3e50;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+        .ninja::before {
+            content: '🥷';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5em;
+        }
+        .ninja.jumping {
+            animation: ninjaJump 0.6s ease;
+        }
+        @keyframes ninjaJump {
+            0%, 100% { bottom: 50px; }
+            50% { bottom: 200px; }
+        }
+        .ninja.sliding {
+            animation: ninjaSlide 0.8s ease;
+        }
+        @keyframes ninjaSlide {
+            0%, 100% { height: 50px; bottom: 50px; }
+            50% { height: 25px; bottom: 25px; }
+        }
+        .fruit {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            animation: fruitFloat 8s linear;
+        }
+        .fruit.apple {
+            background: #e74c3c;
+        }
+        .fruit.apple::before {
+            content: '🍎';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5em;
+        }
+        .fruit.banana {
+            background: #f1c40f;
+        }
+        .fruit.banana::before {
+            content: '🍌';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5em;
+        }
+        .fruit.orange {
+            background: #e67e22;
+        }
+        .fruit.orange::before {
+            content: '🍊';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.5em;
+        }
+        @keyframes fruitFloat {
+            from {
+                right: -50px;
+                transform: translateY(0);
+            }
+            to {
+                right: 100%;
+                transform: translateY(0);
+            }
+        }
+        .bomb {
+            position: absolute;
+            width: 35px;
+            height: 35px;
+            background: #2c3e50;
+            border-radius: 50%;
+            animation: bombFloat 6s linear;
+        }
+        .bomb::before {
+            content: '💣';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.2em;
+        }
+        @keyframes bombFloat {
+            from { right: -40px; }
+            to { right: 100%; }
+        }
+        .slash {
+            position: absolute;
+            width: 60px;
+            height: 8px;
+            background: #3498db;
+            border-radius: 4px;
+            opacity: 0;
+            animation: slashEffect 0.3s ease;
+        }
+        @keyframes slashEffect {
+            0% { opacity: 0; transform: scale(0); }
+            50% { opacity: 1; transform: scale(1.2); }
+            100% { opacity: 0; transform: scale(0.8); }
+        }
+        .fruit-pieces {
+            position: absolute;
+            pointer-events: none;
+        }
+        .piece {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            animation: scatter 1s ease-out;
+        }
+        @keyframes scatter {
+            from {
+                opacity: 1;
+                transform: translate(0, 0) scale(1);
+            }
+            to {
+                opacity: 0;
+                transform: translate(var(--dx), var(--dy)) scale(0);
+            }
+        }
+        .ui {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .stat {
+            text-align: center;
+            font-size: 1.2em;
+        }
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 5px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        .instruction {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            line-height: 1.6;
+            border-left: 5px solid #e74c3c;
+        }
+        .combo {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #ffd93d;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1.5em;
+            font-weight: bold;
+            display: none;
+        }
+        .power-up {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            background: #9b59b6;
+            border-radius: 50%;
+            animation: powerFloat 10s linear;
+            cursor: pointer;
+        }
+        .power-up::before {
+            content: '⭐';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 1.8em;
+        }
+        @keyframes powerFloat {
+            from { right: -60px; }
+            to { right: 100%; }
+        }
+        .life-bar {
+            width: 100%;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        .life-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+            transition: width 0.5s ease;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🥷 水果忍者</h1>
+        
+        <div class="ui">
+            <div class="stat">
+                <div>得分</div>
+                <div id="score">0</div>
+            </div>
+            <div class="stat">
+                <div>连击</div>
+                <div id="combo">0</div>
+            </div>
+            <div class="stat">
+                <div>生命</div>
+                <div class="life-bar">
+                    <div class="life-fill" id="lifeBar" style="width: 100%;"></div>
+                </div>
+            </div>
+            <div class="stat">
+                <div>等级</div>
+                <div id="level">1</div>
+            </div>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <div class="ninja" id="ninja"></div>
+            <div class="combo" id="comboDisplay">COMBO x<span id="comboCount">0</span></div>
+        </div>
+        
+        <div class="controls">
+            <button onclick="startGame()">开始游戏</button>
+            <button onclick="pauseGame()">暂停</button>
+            <button onclick="jump()" id="jumpBtn">跳跃 (↑)</button>
+            <button onclick="slide()" id="slideBtn">滑行 (↓)</button>
+        </div>
+        
+        <div class="instruction">
+            <h3>🎮 游玩方法：</h3>
+            <p><strong>游戏目标：</strong>操控忍者切割水果，躲避炸弹</p>
+            <p><strong>操作方式：</strong></p>
+            <ul>
+                <li>点击水果或用鼠标划过水果进行切割</li>
+                <li>按上箭头键或点击跳跃按钮跳跃</li>
+                <li>按下箭头键或点击滑行按钮滑行</li>
+                <li>躲避炸弹，切割水果获得分数</li>
+            </ul>
+            <p><strong>游戏元素：</strong></p>
+            <ul>
+                <li>🍎 红苹果：普通水果，10分</li>
+                <li>🍌 香蕉：高分水果，20分</li>
+                <li>🍊 橙子：特殊水果，30分</li>
+                <li>💣 炸弹：必须躲避，碰到会扣生命</li>
+                <li>⭐ 道具：提供特殊能力</li>
+            </ul>
+            <p><strong>切割技巧：</strong></p>
+            <ul>
+                <li>连续切割可获得连击奖励</li>
+                <li>精准切割水果中心可获得高分</li>
+                <li>切割多个水果可获得组合奖励</li>
+            </ul>
+            <p><strong>小贴士：</strong>观察炸弹的运动轨迹，提前做好躲避准备！</p>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            running: false,
+            score: 0,
+            combo: 0,
+            life: 100,
+            level: 1,
+            ninja: { jumping: false, sliding: false },
+            objects: [],
+            gameLoop: null,
+            spawnTimer: 0,
+            powerMode: false,
+            powerTimer: 0
+        };
+        
+        const fruitTypes = [
+            { type: 'apple', score: 10, color: '#e74c3c' },
+            { type: 'banana', score: 20, color: '#f1c40f' },
+            { type: 'orange', score: 30, color: '#e67e22' }
+        ];
+        
+        function startGame() {
+            if (gameState.running) return;
+            
+            gameState.running = true;
+            gameState.spawnTimer = 0;
+            gameState.gameLoop = setInterval(updateGame, 50);
+        }
+        
+        function pauseGame() {
+            gameState.running = false;
+            if (gameState.gameLoop) {
+                clearInterval(gameState.gameLoop);
+            }
+        }
+        
+        function jump() {
+            if (!gameState.running || gameState.ninja.jumping) return;
+            
+            gameState.ninja.jumping = true;
+            const ninja = document.getElementById('ninja');
+            ninja.classList.add('jumping');
+            
+            setTimeout(() => {
+                gameState.ninja.jumping = false;
+                ninja.classList.remove('jumping');
+            }, 600);
+        }
+        
+        function slide() {
+            if (!gameState.running || gameState.ninja.sliding) return;
+            
+            gameState.ninja.sliding = true;
+            const ninja = document.getElementById('ninja');
+            ninja.classList.add('sliding');
+            
+            setTimeout(() => {
+                gameState.ninja.sliding = false;
+                ninja.classList.remove('sliding');
+            }, 800);
+        }
+        
+        function updateGame() {
+            if (!gameState.running) return;
+            
+            gameState.spawnTimer++;
+            
+            // 生成水果
+            if (gameState.spawnTimer % (40 - gameState.level * 2) === 0) {
+                spawnFruit();
+            }
+            
+            // 生成炸弹
+            if (gameState.spawnTimer % (120 - gameState.level * 5) === 0) {
+                spawnBomb();
+            }
+            
+            // 生成道具
+            if (gameState.spawnTimer % 600 === 0) {
+                spawnPowerUp();
+            }
+            
+            // 更新能力状态
+            if (gameState.powerMode) {
+                gameState.powerTimer--;
+                if (gameState.powerTimer <= 0) {
+                    gameState.powerMode = false;
+                }
+            }
+            
+            // 检查碰撞
+            checkCollisions();
+            
+            // 检查连击超时
+            if (gameState.combo > 0 && gameState.spawnTimer % 100 === 0) {
+                gameState.combo = Math.max(0, gameState.combo - 1);
+            }
+            
+            // 等级提升
+            if (gameState.score > gameState.level * 500) {
+                gameState.level++;
+            }
+            
+            updateUI();
+        }
+        
+        function spawnFruit() {
+            const gameArea = document.getElementById('gameArea');
+            const fruitType = fruitTypes[Math.floor(Math.random() * fruitTypes.length)];
+            
+            const fruit = document.createElement('div');
+            fruit.className = `fruit ${fruitType.type}`;
+            fruit.style.top = Math.random() * 200 + 50 + 'px';
+            fruit.style.right = '-50px';
+            fruit.dataset.type = 'fruit';
+            fruit.dataset.subtype = fruitType.type;
+            fruit.dataset.score = fruitType.score;
+            
+            fruit.addEventListener('click', () => slashFruit(fruit));
+            fruit.addEventListener('mouseenter', (e) => {
+                if (e.buttons === 1) { // 鼠标左键按下
+                    slashFruit(fruit);
+                }
+            });
+            
+            gameArea.appendChild(fruit);
+            gameState.objects.push(fruit);
+            
+            // 自动清理
+            setTimeout(() => {
+                if (fruit.parentNode) {
+                    fruit.parentNode.removeChild(fruit);
+                    const index = gameState.objects.indexOf(fruit);
+                    if (index > -1) {
+                        gameState.objects.splice(index, 1);
+                    }
+                }
+            }, 8000);
+        }
+        
+        function spawnBomb() {
+            const gameArea = document.getElementById('gameArea');
+            
+            const bomb = document.createElement('div');
+            bomb.className = 'bomb';
+            bomb.style.top = Math.random() * 200 + 50 + 'px';
+            bomb.style.right = '-50px';
+            bomb.dataset.type = 'bomb';
+            
+            gameArea.appendChild(bomb);
+            gameState.objects.push(bomb);
+            
+            setTimeout(() => {
+                if (bomb.parentNode) {
+                    bomb.parentNode.removeChild(bomb);
+                    const index = gameState.objects.indexOf(bomb);
+                    if (index > -1) {
+                        gameState.objects.splice(index, 1);
+                    }
+                }
+            }, 6000);
+        }
+        
+        function spawnPowerUp() {
+            const gameArea = document.getElementById('gameArea');
+            
+            const powerUp = document.createElement('div');
+            powerUp.className = 'power-up';
+            powerUp.style.top = Math.random() * 150 + 100 + 'px';
+            powerUp.style.right = '-60px';
+            powerUp.dataset.type = 'powerup';
+            
+            powerUp.addEventListener('click', () => collectPowerUp(powerUp));
+            
+            gameArea.appendChild(powerUp);
+            gameState.objects.push(powerUp);
+            
+            setTimeout(() => {
+                if (powerUp.parentNode) {
+                    powerUp.parentNode.removeChild(powerUp);
+                    const index = gameState.objects.indexOf(powerUp);
+                    if (index > -1) {
+                        gameState.objects.splice(index, 1);
+                    }
+                }
+            }, 10000);
+        }
+        
+        function slashFruit(fruit) {
+            const score = parseInt(fruit.dataset.score);
+            gameState.score += score + gameState.combo * 2;
+            gameState.combo++;
+            
+            // 创建切割效果
+            createSlashEffect(fruit);
+            createFruitPieces(fruit);
+            
+            // 显示分数
+            showScoreEffect(fruit, score + gameState.combo * 2);
+            
+            // 移除水果
+            fruit.parentNode.removeChild(fruit);
+            const index = gameState.objects.indexOf(fruit);
+            if (index > -1) {
+                gameState.objects.splice(index, 1);
+            }
+        }
+        
+        function createSlashEffect(fruit) {
+            const slash = document.createElement('div');
+            slash.className = 'slash';
+            slash.style.left = fruit.offsetLeft + 'px';
+            slash.style.top = fruit.offsetTop + 15 + 'px';
+            slash.style.transform = `rotate(${Math.random() * 360}deg)`;
+            
+            document.getElementById('gameArea').appendChild(slash);
+            
+            setTimeout(() => {
+                if (slash.parentNode) {
+                    slash.parentNode.removeChild(slash);
+                }
+            }, 300);
+        }
+        
+        function createFruitPieces(fruit) {
+            const pieces = document.createElement('div');
+            pieces.className = 'fruit-pieces';
+            pieces.style.left = fruit.offsetLeft + 20 + 'px';
+            pieces.style.top = fruit.offsetTop + 20 + 'px';
+            
+            for (let i = 0; i < 6; i++) {
+                const piece = document.createElement('div');
+                piece.className = 'piece';
+                piece.style.background = getComputedStyle(fruit).background;
+                
+                const dx = (Math.random() - 0.5) * 100;
+                const dy = (Math.random() - 0.5) * 100;
+                piece.style.setProperty('--dx', dx + 'px');
+                piece.style.setProperty('--dy', dy + 'px');
+                
+                pieces.appendChild(piece);
+            }
+            
+            document.getElementById('gameArea').appendChild(pieces);
+            
+            setTimeout(() => {
+                if (pieces.parentNode) {
+                    pieces.parentNode.removeChild(pieces);
+                }
+            }, 1000);
+        }
+        
+        function showScoreEffect(fruit, score) {
+            const effect = document.createElement('div');
+            effect.textContent = '+' + score;
+            effect.style.cssText = `
+                position: absolute;
+                left: ${fruit.offsetLeft + 20}px;
+                top: ${fruit.offsetTop}px;
+                color: #f1c40f;
+                font-size: 1.5em;
+                font-weight: bold;
+                pointer-events: none;
+                animation: scoreFloat 1s ease-out forwards;
+                z-index: 1000;
+            `;
+            
+            document.getElementById('gameArea').appendChild(effect);
+            
+            setTimeout(() => {
+                if (effect.parentNode) {
+                    effect.parentNode.removeChild(effect);
+                }
+            }, 1000);
+        }
+        
+        function collectPowerUp(powerUp) {
+            gameState.powerMode = true;
+            gameState.powerTimer = 300; // 15秒
+            gameState.score += 100;
+            
+            // 移除道具
+            powerUp.parentNode.removeChild(powerUp);
+            const index = gameState.objects.indexOf(powerUp);
+            if (index > -1) {
+                gameState.objects.splice(index, 1);
+            }
+            
+            showScoreEffect(powerUp, 100);
+        }
+        
+        function checkCollisions() {
+            const ninja = document.getElementById('ninja');
+            const ninjaRect = ninja.getBoundingClientRect();
+            
+            gameState.objects.forEach(obj => {
+                if (obj.dataset.type === 'bomb') {
+                    const objRect = obj.getBoundingClientRect();
+                    
+                    if (isColliding(ninjaRect, objRect)) {
+                        hitBomb();
+                        obj.parentNode.removeChild(obj);
+                        const index = gameState.objects.indexOf(obj);
+                        if (index > -1) {
+                            gameState.objects.splice(index, 1);
+                        }
+                    }
+                }
+            });
+        }
+        
+        function isColliding(rect1, rect2) {
+            return !(rect1.right < rect2.left || 
+                     rect1.left > rect2.right || 
+                     rect1.bottom < rect2.top || 
+                     rect1.top > rect2.bottom);
+        }
+        
+        function hitBomb() {
+            gameState.life -= 25;
+            gameState.combo = 0;
+            
+            // 闪烁效果
+            const ninja = document.getElementById('ninja');
+            ninja.style.opacity = '0.5';
+            setTimeout(() => {
+                ninja.style.opacity = '1';
+            }, 1000);
+            
+            if (gameState.life <= 0) {
+                gameOver();
+            }
+        }
+        
+        function gameOver() {
+            pauseGame();
+            alert(`游戏结束！\n最终得分：${gameState.score}\n最高连击：${gameState.combo}\n到达等级：${gameState.level}`);
+        }
+        
+        function updateUI() {
+            document.getElementById('score').textContent = gameState.score;
+            document.getElementById('combo').textContent = gameState.combo;
+            document.getElementById('level').textContent = gameState.level;
+            document.getElementById('lifeBar').style.width = gameState.life + '%';
+            
+            // 更新连击显示
+            const comboDisplay = document.getElementById('comboDisplay');
+            const comboCount = document.getElementById('comboCount');
+            
+            if (gameState.combo > 2) {
+                comboDisplay.style.display = 'block';
+                comboCount.textContent = gameState.combo;
+            } else {
+                comboDisplay.style.display = 'none';
+            }
+        }
+        
+        // 键盘控制
+        document.addEventListener('keydown', function(event) {
+            if (event.key === 'ArrowUp') {
+                event.preventDefault();
+                jump();
+            } else if (event.key === 'ArrowDown') {
+                event.preventDefault();
+                slide();
+            }
+        });
+        
+        // 添加CSS动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes scoreFloat {
+                0% { opacity: 1; transform: translateY(0) scale(1); }
+                100% { opacity: 0; transform: translateY(-50px) scale(1.2); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // 初始化
+        updateUI();
+    </script>
+</body>
+</html>

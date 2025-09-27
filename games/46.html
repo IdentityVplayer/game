@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能迗宫解谜 - Smart Maze Solver</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .game-header {
+            display: flex;
+            justify-content: space-around;
+            margin: 20px 0;
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        .header-item {
+            text-align: center;
+        }
+        .header-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #ffd700;
+        }
+        .maze-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+        }
+        .maze-grid {
+            display: grid;
+            gap: 1px;
+            max-width: 600px;
+            margin: 0 auto;
+            background: #333;
+            padding: 10px;
+            border-radius: 10px;
+        }
+        .maze-cell {
+            aspect-ratio: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 16px;
+            border-radius: 3px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .cell-wall {
+            background: #2c3e50;
+            color: #34495e;
+        }
+        .cell-path {
+            background: #ecf0f1;
+            color: #2c3e50;
+            cursor: pointer;
+        }
+        .cell-path:hover {
+            background: #bdc3c7;
+        }
+        .cell-start {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+            color: white;
+            box-shadow: 0 0 15px rgba(46, 204, 113, 0.5);
+        }
+        .cell-end {
+            background: linear-gradient(45deg, #e74c3c, #c0392b);
+            color: white;
+            box-shadow: 0 0 15px rgba(231, 76, 60, 0.5);
+        }
+        .cell-player {
+            background: linear-gradient(45deg, #3498db, #2980b9) !important;
+            color: white;
+            box-shadow: 0 0 20px rgba(52, 152, 219, 0.7);
+            animation: playerPulse 1.5s ease-in-out infinite;
+        }
+        .cell-solution {
+            background: rgba(241, 196, 15, 0.7) !important;
+            color: #2c3e50;
+        }
+        .cell-visited {
+            background: rgba(155, 89, 182, 0.6) !important;
+            color: white;
+        }
+        .cell-hint {
+            background: rgba(52, 152, 219, 0.6) !important;
+            color: white;
+            animation: hintPulse 1s ease-in-out infinite;
+        }
+        @keyframes playerPulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+        @keyframes hintPulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+        .ai-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+        .ai-btn {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid rgba(255,255,255,0.3);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        .ai-btn:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+        .ai-btn.active {
+            border-color: #ffd700;
+            background: rgba(255, 215, 0, 0.3);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        .btn {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+        .difficulty {
+            margin: 20px 0;
+        }
+        .difficulty button {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid transparent;
+        }
+        .difficulty button.active {
+            border-color: #ffd700;
+            background: rgba(255,215,0,0.3);
+        }
+        .algorithm-info {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: left;
+        }
+        .speed-control {
+            margin: 20px 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+        }
+        .speed-slider {
+            width: 200px;
+            height: 5px;
+            border-radius: 5px;
+            background: rgba(255,255,255,0.3);
+            outline: none;
+            -webkit-appearance: none;
+        }
+        .speed-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #ffd700;
+            cursor: pointer;
+        }
+        .statistics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        .win-modal {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            font-size: 24px;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🤖 智能迷宫解谜 Smart Maze Solver</h1>
+        
+        <div class="game-header">
+            <div class="header-item">
+                <div>关卡</div>
+                <div class="header-value" id="level">1</div>
+            </div>
+            <div class="header-item">
+                <div>步数</div>
+                <div class="header-value" id="steps">0</div>
+            </div>
+            <div class="header-item">
+                <div>算法</div>
+                <div class="header-value" id="currentAlgorithm">BFS</div>
+            </div>
+            <div class="header-item">
+                <div>状态</div>
+                <div class="header-value" id="status">准备中</div>
+            </div>
+        </div>
+        
+        <div class="ai-controls">
+            <button class="ai-btn active" onclick="selectAlgorithm('BFS')">BFS 广度优先</button>
+            <button class="ai-btn" onclick="selectAlgorithm('DFS')">DFS 深度优先</button>
+            <button class="ai-btn" onclick="selectAlgorithm('AStar')">A* 启发式</button>
+            <button class="ai-btn" onclick="selectAlgorithm('Dijkstra')">Dijkstra 算法</button>
+        </div>
+        
+        <div class="speed-control">
+            <span>解题速度:</span>
+            <input type="range" id="speedSlider" class="speed-slider" min="1" max="100" value="50">
+            <span id="speedValue">50ms</span>
+        </div>
+        
+        <div class="difficulty">
+            <button class="btn active" onclick="setDifficulty('easy')">简单 (10x10)</button>
+            <button class="btn" onclick="setDifficulty('medium')">中等 (15x15)</button>
+            <button class="btn" onclick="setDifficulty('hard')">困难 (20x20)</button>
+        </div>
+        
+        <div class="maze-container">
+            <div id="mazeGrid" class="maze-grid"></div>
+        </div>
+        
+        <div class="controls">
+            <button class="btn" onclick="generateMaze()">生成迷宫</button>
+            <button class="btn" id="solveBtn" onclick="solveMaze()">智能求解</button>
+            <button class="btn" onclick="resetMaze()">重置迷宫</button>
+            <button class="btn" onclick="showSolution()">显示答案</button>
+            <button class="btn" onclick="clearPath()">清除路径</button>
+        </div>
+        
+        <div class="statistics">
+            <div class="stat-card">
+                <div>搜索节点</div>
+                <div class="header-value" id="searchedNodes">0</div>
+            </div>
+            <div class="stat-card">
+                <div>路径长度</div>
+                <div class="header-value" id="pathLength">0</div>
+            </div>
+            <div class="stat-card">
+                <div>执行时间</div>
+                <div class="header-value" id="executionTime">0ms</div>
+            </div>
+            <div class="stat-card">
+                <div>成功率</div>
+                <div class="header-value" id="successRate">0%</div>
+            </div>
+        </div>
+        
+        <div class="algorithm-info" id="algorithmInfo">
+            <h4>🤖 BFS (广度优先搜索)</h4>
+            <p>• 保证找到最短路径</p>
+            <p>• 适用于无权重图</p>
+            <p>• 内存消耗较高</p>
+        </div>
+        
+        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 15px; margin-top: 20px; backdrop-filter: blur(10px);">
+            <h3>🎮 游玩方法:</h3>
+            <p>• 选择不同的搜索算法观察求解过程</p>
+            <p>• 调节解题速度观察算法执行过程</p>
+            <p>• 比较不同算法的效率和特点</p>
+            <p>• 绿色为起点，红色为终点，蓝色为玩家</p>
+            <p>• 黄色路径为最优解，紫色为已搜索节点</p>
+        </div>
+        
+        <a href="../index.html" style="color: #ffd700; text-decoration: none; margin-top: 20px; display: inline-block;">← 返回游戏列表</a>
+    </div>
+    
+    <div id="winModal" class="win-modal">
+        <h2>🎉 求解完成！</h2>
+        <p id="winMessage"></p>
+        <button class="btn" onclick="nextLevel()">下一关</button>
+        <button class="btn" onclick="hideWinModal()">继续游戏</button>
+    </div>
+
+    <script>
+        let game = {
+            maze: [],
+            level: 1,
+            steps: 0,
+            difficulty: 'easy',
+            size: 10,
+            algorithm: 'BFS',
+            startPos: { x: 1, y: 1 },
+            endPos: { x: 8, y: 8 },
+            playerPos: { x: 1, y: 1 },
+            solving: false,
+            speed: 50,
+            statistics: {
+                searchedNodes: 0,
+                pathLength: 0,
+                executionTime: 0,
+                successRate: 0,
+                totalAttempts: 0,
+                successfulAttempts: 0
+            }
+        };
+        
+        const difficulties = {
+            easy: { size: 10, density: 0.3 },
+            medium: { size: 15, density: 0.35 },
+            hard: { size: 20, density: 0.4 }
+        };
+        
+        const algorithmInfo = {
+            BFS: {
+                name: 'BFS (广度优先搜索)',
+                description: [
+                    '• 保证找到最短路径',
+                    '• 适用于无权重图',
+                    '• 内存消耗较高'
+                ]
+            },
+            DFS: {
+                name: 'DFS (深度优先搜索)',
+                description: [
+                    '• 不保证最短路径',
+                    '• 内存消耗低',
+                    '• 可能陷入死循环'
+                ]
+            },
+            AStar: {
+                name: 'A* (启发式搜索)',
+                description: [
+                    '• 使用启发式函数',
+                    '• 通常最高效',
+                    '• 保证最优解'
+                ]
+            },
+            Dijkstra: {
+                name: 'Dijkstra 算法',
+                description: [
+                    '• 适用于有权重图',
+                    '• 保证最短路径',
+                    '• 对正权重有效'
+                ]
+            }
+        };
+        
+        function setDifficulty(level) {
+            game.difficulty = level;
+            game.size = difficulties[level].size;
+            
+            document.querySelectorAll('.difficulty .btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            generateMaze();
+        }
+        
+        function selectAlgorithm(algorithm) {
+            game.algorithm = algorithm;
+            
+            document.querySelectorAll('.ai-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            updateAlgorithmInfo();
+            updateDisplay();
+        }
+        
+        function updateAlgorithmInfo() {
+            const info = algorithmInfo[game.algorithm];
+            const infoElement = document.getElementById('algorithmInfo');
+            
+            infoElement.innerHTML = `
+                <h4>🤖 ${info.name}</h4>
+                ${info.description.map(desc => `<p>${desc}</p>`).join('')}
+            `;
+        }
+        
+        function generateMaze() {
+            const size = game.size;
+            const density = difficulties[game.difficulty].density;
+            
+            // 初始化迷宫
+            game.maze = [];
+            for (let i = 0; i < size; i++) {
+                game.maze[i] = [];
+                for (let j = 0; j < size; j++) {
+                    game.maze[i][j] = Math.random() < density ? 'wall' : 'path';
+                }
+            }
+            
+            // 设置起点和终点
+            game.startPos = { x: 1, y: 1 };
+            game.endPos = { x: size - 2, y: size - 2 };
+            game.playerPos = { ...game.startPos };
+            
+            game.maze[game.startPos.y][game.startPos.x] = 'start';
+            game.maze[game.endPos.y][game.endPos.x] = 'end';
+            
+            // 确保起点和终点周围有路径
+            clearAroundPoint(game.startPos.x, game.startPos.y);
+            clearAroundPoint(game.endPos.x, game.endPos.y);
+            
+            game.steps = 0;
+            game.statistics.searchedNodes = 0;
+            game.statistics.pathLength = 0;
+            game.statistics.executionTime = 0;
+            
+            renderMaze();
+            updateDisplay();
+        }
+        
+        function clearAroundPoint(x, y) {
+            for (let dx = -1; dx <= 1; dx++) {
+                for (let dy = -1; dy <= 1; dy++) {
+                    const newX = x + dx;
+                    const newY = y + dy;
+                    if (newX >= 0 && newX < game.size && newY >= 0 && newY < game.size) {
+                        if (game.maze[newY][newX] === 'wall') {
+                            game.maze[newY][newX] = 'path';
+                        }
+                    }
+                }
+            }
+        }
+        
+        function renderMaze() {
+            const mazeGrid = document.getElementById('mazeGrid');
+            mazeGrid.innerHTML = '';
+            mazeGrid.style.gridTemplateColumns = `repeat(${game.size}, 1fr)`;
+            
+            for (let i = 0; i < game.size; i++) {
+                for (let j = 0; j < game.size; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'maze-cell';
+                    cell.dataset.x = j;
+                    cell.dataset.y = i;
+                    
+                    const cellType = game.maze[i][j];
+                    
+                    switch(cellType) {
+                        case 'wall':
+                            cell.classList.add('cell-wall');
+                            break;
+                        case 'start':
+                            cell.classList.add('cell-start');
+                            cell.textContent = '🏁';
+                            break;
+                        case 'end':
+                            cell.classList.add('cell-end');
+                            cell.textContent = '🎯';
+                            break;
+                        case 'solution':
+                            cell.classList.add('cell-solution');
+                            cell.textContent = '★';
+                            break;
+                        case 'visited':
+                            cell.classList.add('cell-visited');
+                            break;
+                        case 'hint':
+                            cell.classList.add('cell-hint');
+                            break;
+                        default:
+                            cell.classList.add('cell-path');
+                            break;
+                    }
+                    
+                    // 显示玩家位置
+                    if (game.playerPos.x === j && game.playerPos.y === i) {
+                        cell.classList.add('cell-player');
+                        cell.textContent = '🤖';
+                    }
+                    
+                    mazeGrid.appendChild(cell);
+                }
+            }
+        }
+        
+        async function solveMaze() {
+            if (game.solving) return;
+            
+            game.solving = true;
+            document.getElementById('solveBtn').disabled = true;
+            document.getElementById('status').textContent = '正在求解';
+            
+            const startTime = Date.now();
+            game.statistics.searchedNodes = 0;
+            game.statistics.totalAttempts++;
+            
+            // 清除之前的搜索轨迹
+            clearSearchTraces();
+            
+            let solution = null;
+            
+            switch(game.algorithm) {
+                case 'BFS':
+                    solution = await solveBFS();
+                    break;
+                case 'DFS':
+                    solution = await solveDFS();
+                    break;
+                case 'AStar':
+                    solution = await solveAStar();
+                    break;
+                case 'Dijkstra':
+                    solution = await solveDijkstra();
+                    break;
+            }
+            
+            const endTime = Date.now();
+            game.statistics.executionTime = endTime - startTime;
+            
+            if (solution) {
+                game.statistics.successfulAttempts++;
+                game.statistics.pathLength = solution.length;
+                await animateSolution(solution);
+                showWinModal();
+            } else {
+                document.getElementById('status').textContent = '无解';
+            }
+            
+            game.statistics.successRate = Math.round(
+                (game.statistics.successfulAttempts / game.statistics.totalAttempts) * 100
+            );
+            
+            game.solving = false;
+            document.getElementById('solveBtn').disabled = false;
+            updateDisplay();
+        }
+        
+        async function solveBFS() {
+            const queue = [{ x: game.startPos.x, y: game.startPos.y, path: [] }];
+            const visited = new Set();
+            
+            while (queue.length > 0) {
+                const current = queue.shift();
+                const key = `${current.x},${current.y}`;
+                
+                if (visited.has(key)) continue;
+                visited.add(key);
+                
+                game.statistics.searchedNodes++;
+                
+                // 显示搜索过程
+                if (current.x !== game.startPos.x || current.y !== game.startPos.y) {
+                    if (game.maze[current.y][current.x] === 'path') {
+                        game.maze[current.y][current.x] = 'visited';
+                        renderMaze();
+                        await sleep(game.speed);
+                    }
+                }
+                
+                if (current.x === game.endPos.x && current.y === game.endPos.y) {
+                    return current.path;
+                }
+                
+                const neighbors = getNeighbors(current.x, current.y);
+                for (const neighbor of neighbors) {
+                    const neighborKey = `${neighbor.x},${neighbor.y}`;
+                    if (!visited.has(neighborKey)) {
+                        queue.push({
+                            x: neighbor.x,
+                            y: neighbor.y,
+                            path: [...current.path, { x: current.x, y: current.y }]
+                        });
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        async function solveDFS() {
+            const stack = [{ x: game.startPos.x, y: game.startPos.y, path: [] }];
+            const visited = new Set();
+            
+            while (stack.length > 0) {
+                const current = stack.pop();
+                const key = `${current.x},${current.y}`;
+                
+                if (visited.has(key)) continue;
+                visited.add(key);
+                
+                game.statistics.searchedNodes++;
+                
+                // 显示搜索过程
+                if (current.x !== game.startPos.x || current.y !== game.startPos.y) {
+                    if (game.maze[current.y][current.x] === 'path') {
+                        game.maze[current.y][current.x] = 'visited';
+                        renderMaze();
+                        await sleep(game.speed);
+                    }
+                }
+                
+                if (current.x === game.endPos.x && current.y === game.endPos.y) {
+                    return current.path;
+                }
+                
+                const neighbors = getNeighbors(current.x, current.y);
+                for (const neighbor of neighbors) {
+                    const neighborKey = `${neighbor.x},${neighbor.y}`;
+                    if (!visited.has(neighborKey)) {
+                        stack.push({
+                            x: neighbor.x,
+                            y: neighbor.y,
+                            path: [...current.path, { x: current.x, y: current.y }]
+                        });
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        async function solveAStar() {
+            const openSet = [{ 
+                x: game.startPos.x, 
+                y: game.startPos.y, 
+                path: [], 
+                f: 0, 
+                g: 0, 
+                h: heuristic(game.startPos.x, game.startPos.y) 
+            }];
+            const visited = new Set();
+            
+            while (openSet.length > 0) {
+                // 找到f值最小的节点
+                openSet.sort((a, b) => a.f - b.f);
+                const current = openSet.shift();
+                const key = `${current.x},${current.y}`;
+                
+                if (visited.has(key)) continue;
+                visited.add(key);
+                
+                game.statistics.searchedNodes++;
+                
+                // 显示搜索过程
+                if (current.x !== game.startPos.x || current.y !== game.startPos.y) {
+                    if (game.maze[current.y][current.x] === 'path') {
+                        game.maze[current.y][current.x] = 'visited';
+                        renderMaze();
+                        await sleep(game.speed);
+                    }
+                }
+                
+                if (current.x === game.endPos.x && current.y === game.endPos.y) {
+                    return current.path;
+                }
+                
+                const neighbors = getNeighbors(current.x, current.y);
+                for (const neighbor of neighbors) {
+                    const neighborKey = `${neighbor.x},${neighbor.y}`;
+                    if (!visited.has(neighborKey)) {
+                        const g = current.g + 1;
+                        const h = heuristic(neighbor.x, neighbor.y);
+                        const f = g + h;
+                        
+                        openSet.push({
+                            x: neighbor.x,
+                            y: neighbor.y,
+                            path: [...current.path, { x: current.x, y: current.y }],
+                            f: f,
+                            g: g,
+                            h: h
+                        });
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        async function solveDijkstra() {
+            const distances = {};
+            const previous = {};
+            const unvisited = new Set();
+            
+            // 初始化
+            for (let i = 0; i < game.size; i++) {
+                for (let j = 0; j < game.size; j++) {
+                    if (game.maze[i][j] !== 'wall') {
+                        const key = `${j},${i}`;
+                        distances[key] = Infinity;
+                        unvisited.add(key);
+                    }
+                }
+            }
+            
+            const startKey = `${game.startPos.x},${game.startPos.y}`;
+            distances[startKey] = 0;
+            
+            while (unvisited.size > 0) {
+                // 找到最小距离的节点
+                let current = null;
+                let minDistance = Infinity;
+                
+                for (const node of unvisited) {
+                    if (distances[node] < minDistance) {
+                        minDistance = distances[node];
+                        current = node;
+                    }
+                }
+                
+                if (!current || minDistance === Infinity) break;
+                
+                unvisited.delete(current);
+                const [x, y] = current.split(',').map(Number);
+                
+                game.statistics.searchedNodes++;
+                
+                // 显示搜索过程
+                if (current !== startKey && game.maze[y][x] === 'path') {
+                    game.maze[y][x] = 'visited';
+                    renderMaze();
+                    await sleep(game.speed);
+                }
+                
+                if (x === game.endPos.x && y === game.endPos.y) {
+                    // 重构路径
+                    const path = [];
+                    let curr = current;
+                    while (previous[curr]) {
+                        const [px, py] = previous[curr].split(',').map(Number);
+                        path.unshift({ x: px, y: py });
+                        curr = previous[curr];
+                    }
+                    return path;
+                }
+                
+                const neighbors = getNeighbors(x, y);
+                for (const neighbor of neighbors) {
+                    const neighborKey = `${neighbor.x},${neighbor.y}`;
+                    if (unvisited.has(neighborKey)) {
+                        const alt = distances[current] + 1;
+                        if (alt < distances[neighborKey]) {
+                            distances[neighborKey] = alt;
+                            previous[neighborKey] = current;
+                        }
+                    }
+                }
+            }
+            
+            return null;
+        }
+        
+        function heuristic(x, y) {
+            return Math.abs(x - game.endPos.x) + Math.abs(y - game.endPos.y);
+        }
+        
+        function getNeighbors(x, y) {
+            const neighbors = [];
+            const directions = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+            
+            for (const [dx, dy] of directions) {
+                const newX = x + dx;
+                const newY = y + dy;
+                
+                if (newX >= 0 && newX < game.size && 
+                    newY >= 0 && newY < game.size && 
+                    game.maze[newY][newX] !== 'wall') {
+                    neighbors.push({ x: newX, y: newY });
+                }
+            }
+            
+            return neighbors;
+        }
+        
+        async function animateSolution(path) {
+            for (const point of path) {
+                if (game.maze[point.y][point.x] === 'visited') {
+                    game.maze[point.y][point.x] = 'solution';
+                    renderMaze();
+                    await sleep(100);
+                }
+            }
+        }
+        
+        function clearSearchTraces() {
+            for (let i = 0; i < game.size; i++) {
+                for (let j = 0; j < game.size; j++) {
+                    if (game.maze[i][j] === 'visited' || 
+                        game.maze[i][j] === 'solution' || 
+                        game.maze[i][j] === 'hint') {
+                        game.maze[i][j] = 'path';
+                    }
+                }
+            }
+        }
+        
+        function showSolution() {
+            // 简单的BFS找路径，不显示过程
+            const queue = [{ x: game.startPos.x, y: game.startPos.y, path: [] }];
+            const visited = new Set();
+            
+            while (queue.length > 0) {
+                const current = queue.shift();
+                const key = `${current.x},${current.y}`;
+                
+                if (visited.has(key)) continue;
+                visited.add(key);
+                
+                if (current.x === game.endPos.x && current.y === game.endPos.y) {
+                    // 显示解路径
+                    for (const point of current.path) {
+                        if (game.maze[point.y][point.x] === 'path') {
+                            game.maze[point.y][point.x] = 'solution';
+                        }
+                    }
+                    renderMaze();
+                    return;
+                }
+                
+                const neighbors = getNeighbors(current.x, current.y);
+                for (const neighbor of neighbors) {
+                    const neighborKey = `${neighbor.x},${neighbor.y}`;
+                    if (!visited.has(neighborKey)) {
+                        queue.push({
+                            x: neighbor.x,
+                            y: neighbor.y,
+                            path: [...current.path, { x: current.x, y: current.y }]
+                        });
+                    }
+                }
+            }
+        }
+        
+        function clearPath() {
+            clearSearchTraces();
+            renderMaze();
+            
+            game.statistics.searchedNodes = 0;
+            game.statistics.pathLength = 0;
+            game.statistics.executionTime = 0;
+            updateDisplay();
+        }
+        
+        function resetMaze() {
+            game.playerPos = { ...game.startPos };
+            game.steps = 0;
+            clearPath();
+        }
+        
+        function showWinModal() {
+            const winMessage = document.getElementById('winMessage');
+            winMessage.innerHTML = `
+                <p>算法: ${game.algorithm}</p>
+                <p>搜索节点: ${game.statistics.searchedNodes}</p>
+                <p>路径长度: ${game.statistics.pathLength}</p>
+                <p>执行时间: ${game.statistics.executionTime}ms</p>
+            `;
+            
+            document.getElementById('winModal').style.display = 'block';
+        }
+        
+        function nextLevel() {
+            game.level++;
+            hideWinModal();
+            generateMaze();
+        }
+        
+        function hideWinModal() {
+            document.getElementById('winModal').style.display = 'none';
+        }
+        
+        function updateDisplay() {
+            document.getElementById('level').textContent = game.level;
+            document.getElementById('steps').textContent = game.steps;
+            document.getElementById('currentAlgorithm').textContent = game.algorithm;
+            document.getElementById('searchedNodes').textContent = game.statistics.searchedNodes;
+            document.getElementById('pathLength').textContent = game.statistics.pathLength;
+            document.getElementById('executionTime').textContent = game.statistics.executionTime + 'ms';
+            document.getElementById('successRate').textContent = game.statistics.successRate + '%';
+            
+            if (!game.solving) {
+                document.getElementById('status').textContent = '准备中';
+            }
+        }
+        
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+        
+        // 速度控制
+        document.getElementById('speedSlider').addEventListener('input', (e) => {
+            game.speed = 101 - parseInt(e.target.value); // 反向映射，值越大速度越快
+            document.getElementById('speedValue').textContent = game.speed + 'ms';
+        });
+        
+        // 初始化
+        updateAlgorithmInfo();
+        generateMaze();
+        updateDisplay();
+    </script>
+</body>
+</html>

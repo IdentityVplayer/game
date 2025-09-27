@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深海探险家 - 游戏世界</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background: radial-gradient(ellipse at center, #001f3f 0%, #002b5c 40%, #001a33 80%, #000000 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .game-header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid #0074cc;
+        }
+        .game-title {
+            font-size: 2.5em;
+            color: #00bfff;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(0, 191, 255, 0.6);
+            font-weight: bold;
+        }
+        .game-category {
+            display: inline-block;
+            background: linear-gradient(45deg, #0074cc, #0056b3);
+            color: white;
+            padding: 8px 20px;
+            border-radius: 25px;
+            font-size: 0.9em;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(0, 116, 204, 0.3);
+        }
+        .game-area {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 2px solid #333;
+        }
+        .game-canvas {
+            width: 100%;
+            height: 400px;
+            border: 3px solid #0074cc;
+            border-radius: 15px;
+            background: radial-gradient(ellipse at center, #001f3f 0%, #002b5c 30%, #001a33 70%, #000 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2em;
+            color: #00bfff;
+            text-shadow: 0 0 15px rgba(0, 191, 255, 0.8);
+            position: relative;
+            overflow: hidden;
+            font-weight: bold;
+        }
+        .submarine {
+            width: 80px;
+            height: 40px;
+            background: linear-gradient(45deg, #ffd700, #ffb347);
+            border: 2px solid #ff8c00;
+            border-radius: 20px;
+            position: absolute;
+            left: 100px;
+            top: 180px;
+            animation: submarineMove 8s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+        }
+        .submarine::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #87ceeb, #4682b4);
+            border: 2px solid #1e90ff;
+            border-radius: 50%;
+            top: 8px;
+            left: 20px;
+        }
+        .submarine::after {
+            content: '';
+            position: absolute;
+            width: 25px;
+            height: 8px;
+            background: linear-gradient(45deg, #ff6347, #ff4500);
+            right: -25px;
+            top: 16px;
+            border-radius: 4px;
+        }
+        @keyframes submarineMove {
+            0%, 100% { transform: translateX(0) translateY(0) rotate(0deg); }
+            25% { transform: translateX(200px) translateY(-50px) rotate(10deg); }
+            50% { transform: translateX(400px) translateY(20px) rotate(-5deg); }
+            75% { transform: translateX(150px) translateY(40px) rotate(15deg); }
+        }
+        .deep-fish {
+            width: 40px;
+            height: 25px;
+            background: linear-gradient(45deg, #9370db, #8a2be2);
+            border-radius: 20px 0 20px 0;
+            position: absolute;
+            animation: deepFishSwim 6s ease-in-out infinite;
+            box-shadow: 0 0 15px rgba(147, 112, 219, 0.6);
+        }
+        .deep-fish::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 15px solid #9370db;
+            border-top: 12px solid transparent;
+            border-bottom: 12px solid transparent;
+            right: -12px;
+            top: 0;
+        }
+        .deep-fish::after {
+            content: '';
+            position: absolute;
+            width: 6px;
+            height: 6px;
+            background: #00ff00;
+            border-radius: 50%;
+            top: 6px;
+            left: 8px;
+            box-shadow: 0 0 10px #00ff00;
+        }
+        .deep-fish:nth-child(2) { right: 80px; top: 100px; animation-delay: 0s; }
+        .deep-fish:nth-child(3) { left: 50px; bottom: 120px; animation-delay: 2s; }
+        .deep-fish:nth-child(4) { right: 150px; bottom: 80px; animation-delay: 4s; }
+        @keyframes deepFishSwim {
+            0%, 100% { transform: translateX(0) translateY(0) rotate(0deg); }
+            25% { transform: translateX(-100px) translateY(30px) rotate(10deg); }
+            50% { transform: translateX(80px) translateY(-40px) rotate(-15deg); }
+            75% { transform: translateX(-60px) translateY(20px) rotate(8deg); }
+        }
+        .treasure {
+            width: 30px;
+            height: 25px;
+            background: linear-gradient(45deg, #ffd700, #ffb347);
+            border: 2px solid #ff8c00;
+            border-radius: 8px;
+            position: absolute;
+            animation: treasureGlow 3s ease-in-out infinite;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.8);
+        }
+        .treasure:nth-child(5) { left: 300px; bottom: 50px; }
+        .treasure:nth-child(6) { right: 200px; bottom: 30px; animation-delay: 1.5s; }
+        .treasure::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 15px;
+            background: linear-gradient(45deg, #ff6347, #ff4500);
+            top: -10px;
+            left: 5px;
+            border-radius: 10px 10px 0 0;
+        }
+        @keyframes treasureGlow {
+            0%, 100% { box-shadow: 0 0 20px rgba(255, 215, 0, 0.8); }
+            50% { box-shadow: 0 0 30px rgba(255, 215, 0, 1), 0 0 40px rgba(255, 140, 0, 0.8); }
+        }
+        .coral {
+            width: 25px;
+            height: 50px;
+            background: linear-gradient(to top, #ff69b4, #ff1493, #dc143c);
+            position: absolute;
+            bottom: 0;
+            border-radius: 12px 12px 0 0;
+            animation: coralSway 5s ease-in-out infinite;
+            box-shadow: 0 0 15px rgba(255, 105, 180, 0.5);
+        }
+        .coral:nth-child(7) { left: 80px; }
+        .coral:nth-child(8) { left: 180px; animation-delay: 1s; }
+        .coral:nth-child(9) { right: 120px; animation-delay: 2s; }
+        .coral:nth-child(10) { right: 60px; animation-delay: 3s; }
+        @keyframes coralSway {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(8deg); }
+            75% { transform: rotate(-8deg); }
+        }
+        .bubble {
+            width: 10px;
+            height: 10px;
+            background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.8), rgba(255,255,255,0.2));
+            border: 1px solid rgba(255,255,255,0.4);
+            border-radius: 50%;
+            position: absolute;
+            animation: bubbleRise 5s ease-in-out infinite;
+        }
+        .bubble:nth-child(11) { left: 120px; bottom: 20px; animation-delay: 0s; }
+        .bubble:nth-child(12) { left: 250px; bottom: 40px; animation-delay: 1s; }
+        .bubble:nth-child(13) { right: 180px; bottom: 30px; animation-delay: 2s; }
+        .bubble:nth-child(14) { right: 100px; bottom: 50px; animation-delay: 3s; }
+        @keyframes bubbleRise {
+            0% { transform: translateY(0px) scale(0.5); opacity: 0.3; }
+            50% { transform: translateY(-200px) scale(1); opacity: 1; }
+            100% { transform: translateY(-400px) scale(1.5); opacity: 0; }
+        }
+        .searchlight {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            background: radial-gradient(circle, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.1) 50%, transparent 100%);
+            border-radius: 50%;
+            left: 80px;
+            top: 150px;
+            animation: searchlightSweep 6s ease-in-out infinite;
+            pointer-events: none;
+        }
+        @keyframes searchlightSweep {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(45deg) scale(1.2); }
+        }
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .control-btn {
+            padding: 12px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            color: white;
+            font-weight: bold;
+        }
+        .start-btn {
+            background: linear-gradient(45deg, #0074cc, #0056b3);
+        }
+        .start-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 116, 204, 0.4);
+        }
+        .dive-btn {
+            background: linear-gradient(45deg, #9370db, #8a2be2);
+        }
+        .dive-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(147, 112, 219, 0.4);
+        }
+        .description {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .description h3 {
+            color: #00bfff;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .description p {
+            color: #bdc3c7;
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+        .how-to-play {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .how-to-play h3 {
+            color: #9370db;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        .how-to-play ol {
+            color: #bdc3c7;
+            line-height: 1.6;
+            padding-left: 20px;
+        }
+        .how-to-play li {
+            margin-bottom: 8px;
+        }
+        .back-btn {
+            display: inline-block;
+            background: linear-gradient(45deg, #8e44ad, #9b59b6);
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(142, 68, 173, 0.3);
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .back-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(142, 68, 173, 0.4);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="game-header">
+            <h1 class="game-title">深海探险家</h1>
+            <div class="game-category">#冒险游戏</div>
+        </div>
+
+        <div class="game-area">
+            <div class="game-canvas">
+                <div class="submarine"></div>
+                <div class="deep-fish"></div>
+                <div class="deep-fish"></div>
+                <div class="deep-fish"></div>
+                <div class="treasure"></div>
+                <div class="treasure"></div>
+                <div class="coral"></div>
+                <div class="coral"></div>
+                <div class="coral"></div>
+                <div class="coral"></div>
+                <div class="bubble"></div>
+                <div class="bubble"></div>
+                <div class="bubble"></div>
+                <div class="bubble"></div>
+                <div class="searchlight"></div>
+                深海探险家
+            </div>
+            <div class="controls">
+                <button class="control-btn start-btn">开始探险</button>
+                <button class="control-btn dive-btn">深海下潜</button>
+            </div>
+        </div>
+
+        <div class="description">
+            <h3>游戏介绍</h3>
+            <p>欢迎来到神秘的深海世界！作为一名勇敢的深海探险家，你将驾驶先进的潜水艇，潜入未知的海洋深处，发现隐藏的宝藏和古代文明的遗迹。</p>
+            <p>在这个充满危险和机遇的深海中，你将面对各种挑战：氧气管理、水压控制、深海生物的威胁。同时，你也将收获无数的惊奇：珍贵的宝石、失落的沉船、绝美的深海生物！</p>
+        </div>
+
+        <div class="how-to-play">
+            <h3>游玩方法</h3>
+            <ol>
+                <li>选择你的潜水艇和探险装备，不同装备适合不同深度</li>
+                <li>管理氧气和燃料资源，合理规划探险路线</li>
+                <li>使用声纳和探照灯寻找宝藏和古迹的位置</li>
+                <li>小心应对深海生物，学会规避或驱赶它们</li>
+                <li>收集各种珍贵物品和科学样本，提升你的探险器材</li>
+                <li>解锁更深的海域，发现更大的秘密和宝藏</li>
+            </ol>
+        </div>
+
+        <a href="../index.html" class="back-btn">返回游戏列表</a>
+    </div>
+
+    <script>
+        document.querySelector('.start-btn').addEventListener('click', function() {
+            this.textContent = '探险中...';
+            this.style.background = 'linear-gradient(45deg, #27ae60, #2ecc71)';
+            
+            setTimeout(() => {
+                this.textContent = '开始探险';
+                this.style.background = 'linear-gradient(45deg, #0074cc, #0056b3)';
+            }, 3000);
+        });
+
+        document.querySelector('.dive-btn').addEventListener('click', function() {
+            this.textContent = '下潜中...';
+            setTimeout(() => {
+                this.textContent = '深海下潜';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>

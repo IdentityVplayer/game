@@ -1,0 +1,566 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拼字游戏</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #fd79a8 0%, #fdcb6e 100%);
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+            margin-bottom: 20px;
+        }
+
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(15, 30px);
+            grid-template-rows: repeat(15, 30px);
+            gap: 1px;
+            margin: 20px auto;
+            background: #2d3436;
+            padding: 5px;
+            justify-content: center;
+        }
+
+        .cell {
+            width: 30px;
+            height: 30px;
+            background: #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .cell.premium {
+            background: #fd79a8;
+            color: white;
+        }
+
+        .cell.double-letter {
+            background: #74b9ff;
+            color: white;
+        }
+
+        .cell.triple-letter {
+            background: #0984e3;
+            color: white;
+        }
+
+        .cell.double-word {
+            background: #e17055;
+            color: white;
+        }
+
+        .cell.triple-word {
+            background: #d63031;
+            color: white;
+        }
+
+        .cell.center {
+            background: #fd79a8;
+            color: white;
+        }
+
+        .cell.placed {
+            background: #f8f9fa;
+            border: 2px solid #2d3436;
+        }
+
+        .tile {
+            width: 25px;
+            height: 25px;
+            background: #f1c40f;
+            border: 1px solid #f39c12;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: bold;
+            position: relative;
+        }
+
+        .tile-value {
+            position: absolute;
+            bottom: 1px;
+            right: 2px;
+            font-size: 8px;
+            color: #666;
+        }
+
+        .player-tiles {
+            display: flex;
+            gap: 5px;
+            margin: 20px 0;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .player-tile {
+            width: 40px;
+            height: 40px;
+            background: #f1c40f;
+            border: 2px solid #f39c12;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            position: relative;
+        }
+
+        .player-tile:hover {
+            transform: scale(1.1);
+        }
+
+        .player-tile.selected {
+            border-color: #e74c3c;
+            transform: scale(1.1);
+        }
+
+        .game-info {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 20px;
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+        }
+
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #fd79a8;
+        }
+
+        .controls {
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        button {
+            background: linear-gradient(45deg, #fd79a8, #fdcb6e);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .word-input {
+            margin: 20px 0;
+            text-align: center;
+        }
+
+        .word-input input {
+            padding: 10px 15px;
+            border: 2px solid #ddd;
+            border-radius: 25px;
+            font-size: 16px;
+            margin: 0 10px;
+            outline: none;
+        }
+
+        .word-input input:focus {
+            border-color: #fd79a8;
+        }
+
+        .dictionary {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .played-words {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .played-word {
+            background: #fd79a8;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🇺🇦 拼字游戏</h1>
+    
+    <div class="game-container">
+        <div class="game-info">
+            <div class="info-box">
+                <div>当前得分</div>
+                <div class="score" id="score">0</div>
+            </div>
+            <div class="info-box">
+                <div>剩余字母</div>
+                <div class="score" id="remainingTiles">100</div>
+            </div>
+            <div class="info-box">
+                <div>已组单词</div>
+                <div class="score" id="wordsCount">0</div>
+            </div>
+        </div>
+        
+        <div class="board" id="board"></div>
+        
+        <div class="word-input">
+            <input type="text" id="wordInput" placeholder="输入要组成的单词" maxlength="15">
+            <button onclick="playWord()">提交单词</button>
+        </div>
+        
+        <div class="player-tiles" id="playerTiles"></div>
+        
+        <div class="controls">
+            <button onclick="shuffle()">洗牌</button>
+            <button onclick="exchange()">交换字母</button>
+            <button onclick="pass()">跳过回合</button>
+            <button onclick="newGame()">新游戏</button>
+        </div>
+        
+        <div class="dictionary">
+            <strong>已拼单词:</strong>
+            <div class="played-words" id="playedWords"></div>
+        </div>
+    </div>
+
+    <script>
+        class Scrabble {
+            constructor() {
+                this.board = Array(15).fill(null).map(() => Array(15).fill(null));
+                this.playerTiles = [];
+                this.score = 0;
+                this.playedWords = [];
+                this.remainingTiles = 100;
+                
+                // 字母分数和数量
+                this.letterValues = {
+                    'A': 1, 'B': 3, 'C': 3, 'D': 2, 'E': 1, 'F': 4, 'G': 2, 'H': 4,
+                    'I': 1, 'J': 8, 'K': 5, 'L': 1, 'M': 3, 'N': 1, 'O': 1, 'P': 3,
+                    'Q': 10, 'R': 1, 'S': 1, 'T': 1, 'U': 1, 'V': 4, 'W': 4, 'X': 8,
+                    'Y': 4, 'Z': 10
+                };
+                
+                this.tileBag = this.createTileBag();
+                
+                // 简化的英文单词库
+                this.dictionary = [
+                    'CAT', 'DOG', 'BIRD', 'FISH', 'LOVE', 'GAME', 'PLAY', 'WORD', 'TIME',
+                    'APPLE', 'WATER', 'HOUSE', 'MUSIC', 'LIGHT', 'WORLD', 'PEACE', 'HAPPY',
+                    'COMPUTER', 'RAINBOW', 'MOUNTAIN', 'ELEPHANT', 'BEAUTIFUL', 'WONDERFUL'
+                ];
+                
+                this.initGame();
+            }
+
+            createTileBag() {
+                const distribution = {
+                    'A': 9, 'B': 2, 'C': 2, 'D': 4, 'E': 12, 'F': 2, 'G': 3, 'H': 2,
+                    'I': 9, 'J': 1, 'K': 1, 'L': 4, 'M': 2, 'N': 6, 'O': 8, 'P': 2,
+                    'Q': 1, 'R': 6, 'S': 4, 'T': 6, 'U': 4, 'V': 2, 'W': 2, 'X': 1,
+                    'Y': 2, 'Z': 1
+                };
+                
+                const bag = [];
+                for (let letter in distribution) {
+                    for (let i = 0; i < distribution[letter]; i++) {
+                        bag.push(letter);
+                    }
+                }
+                
+                return this.shuffleArray(bag);
+            }
+
+            shuffleArray(array) {
+                const shuffled = [...array];
+                for (let i = shuffled.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+                }
+                return shuffled;
+            }
+
+            initGame() {
+                this.setupBoard();
+                this.drawTiles();
+                this.updateDisplay();
+            }
+
+            setupBoard() {
+                const boardElement = document.getElementById('board');
+                boardElement.innerHTML = '';
+                
+                // 特殊格子的位置
+                const specialSquares = {
+                    'triple-word': [[0,0], [7,0], [14,0], [0,7], [14,7], [0,14], [7,14], [14,14]],
+                    'double-word': [[1,1], [2,2], [3,3], [4,4], [1,13], [2,12], [3,11], [4,10]],
+                    'triple-letter': [[1,5], [1,9], [5,1], [5,5], [5,9], [5,13], [9,1], [9,5], [9,9], [9,13], [13,5], [13,9]],
+                    'double-letter': [[0,3], [0,11], [2,6], [2,8], [3,0], [3,7], [3,14], [6,2], [6,6], [6,8], [6,12]]
+                };
+                
+                for (let row = 0; row < 15; row++) {
+                    for (let col = 0; col < 15; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'cell';
+                        cell.dataset.row = row;
+                        cell.dataset.col = col;
+                        
+                        // 中心格
+                        if (row === 7 && col === 7) {
+                            cell.classList.add('center');
+                            cell.textContent = '★';
+                        } else {
+                            // 检查特殊格子
+                            for (let type in specialSquares) {
+                                if (specialSquares[type].some(([r, c]) => r === row && c === col)) {
+                                    cell.classList.add(type);
+                                    if (type === 'triple-word') cell.textContent = '3W';
+                                    else if (type === 'double-word') cell.textContent = '2W';
+                                    else if (type === 'triple-letter') cell.textContent = '3L';
+                                    else if (type === 'double-letter') cell.textContent = '2L';
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        boardElement.appendChild(cell);
+                    }
+                }
+            }
+
+            drawTiles() {
+                this.playerTiles = [];
+                for (let i = 0; i < 7 && this.tileBag.length > 0; i++) {
+                    this.playerTiles.push(this.tileBag.pop());
+                }
+                this.remainingTiles = this.tileBag.length;
+            }
+
+            updateDisplay() {
+                // 更新玩家字母
+                const playerTilesElement = document.getElementById('playerTiles');
+                playerTilesElement.innerHTML = '';
+                
+                this.playerTiles.forEach((letter, index) => {
+                    const tile = document.createElement('div');
+                    tile.className = 'player-tile';
+                    tile.textContent = letter;
+                    tile.dataset.index = index;
+                    
+                    const value = document.createElement('div');
+                    value.className = 'tile-value';
+                    value.textContent = this.letterValues[letter];
+                    tile.appendChild(value);
+                    
+                    playerTilesElement.appendChild(tile);
+                });
+                
+                // 更新统计
+                document.getElementById('score').textContent = this.score;
+                document.getElementById('remainingTiles').textContent = this.remainingTiles;
+                document.getElementById('wordsCount').textContent = this.playedWords.length;
+                
+                // 更新已拼单词
+                const playedWordsElement = document.getElementById('playedWords');
+                playedWordsElement.innerHTML = '';
+                this.playedWords.forEach(word => {
+                    const wordElement = document.createElement('div');
+                    wordElement.className = 'played-word';
+                    wordElement.textContent = word;
+                    playedWordsElement.appendChild(wordElement);
+                });
+            }
+
+            playWord() {
+                const word = document.getElementById('wordInput').value.toUpperCase().trim();
+                
+                if (!word) {
+                    alert('请输入一个单词！');
+                    return;
+                }
+                
+                if (word.length < 2) {
+                    alert('单词至少要有2个字母！');
+                    return;
+                }
+                
+                if (!this.isValidWord(word)) {
+                    alert('这不是一个有效的单词！');
+                    return;
+                }
+                
+                if (this.playedWords.includes(word)) {
+                    alert('这个单词已经使用过了！');
+                    return;
+                }
+                
+                if (!this.hasLettersForWord(word)) {
+                    alert('你没有组成这个单词的所有字母！');
+                    return;
+                }
+                
+                this.placeWord(word);
+                document.getElementById('wordInput').value = '';
+            }
+
+            isValidWord(word) {
+                return this.dictionary.includes(word);
+            }
+
+            hasLettersForWord(word) {
+                const availableLetters = [...this.playerTiles];
+                
+                for (let letter of word) {
+                    const index = availableLetters.indexOf(letter);
+                    if (index === -1) {
+                        return false;
+                    }
+                    availableLetters.splice(index, 1);
+                }
+                
+                return true;
+            }
+
+            placeWord(word) {
+                // 简化版本：直接计分和移除字母
+                let wordScore = 0;
+                
+                for (let letter of word) {
+                    wordScore += this.letterValues[letter];
+                    const index = this.playerTiles.indexOf(letter);
+                    if (index !== -1) {
+                        this.playerTiles.splice(index, 1);
+                    }
+                }
+                
+                // 加分奖励
+                if (word.length >= 5) wordScore *= 2;
+                if (word.length >= 7) wordScore *= 3;
+                
+                this.score += wordScore;
+                this.playedWords.push(word);
+                
+                // 补充字母
+                this.refillTiles();
+                this.updateDisplay();
+                
+                alert(`好！“${word}” 得分: ${wordScore}`);
+            }
+
+            refillTiles() {
+                while (this.playerTiles.length < 7 && this.tileBag.length > 0) {
+                    this.playerTiles.push(this.tileBag.pop());
+                }
+                this.remainingTiles = this.tileBag.length;
+            }
+
+            shuffle() {
+                this.playerTiles = this.shuffleArray(this.playerTiles);
+                this.updateDisplay();
+            }
+
+            exchange() {
+                // 简化版本：更换所有字母
+                if (this.tileBag.length >= this.playerTiles.length) {
+                    this.tileBag.push(...this.playerTiles);
+                    this.tileBag = this.shuffleArray(this.tileBag);
+                    this.drawTiles();
+                    this.updateDisplay();
+                    alert('已更换所有字母！');
+                } else {
+                    alert('剩余字母不足，无法更换！');
+                }
+            }
+
+            pass() {
+                alert('跳过了这个回合。');
+            }
+
+            newGame() {
+                this.board = Array(15).fill(null).map(() => Array(15).fill(null));
+                this.playerTiles = [];
+                this.score = 0;
+                this.playedWords = [];
+                this.tileBag = this.createTileBag();
+                this.initGame();
+            }
+        }
+
+        let game;
+
+        function playWord() {
+            game.playWord();
+        }
+
+        function shuffle() {
+            game.shuffle();
+        }
+
+        function exchange() {
+            game.exchange();
+        }
+
+        function pass() {
+            game.pass();
+        }
+
+        function newGame() {
+            game = new Scrabble();
+        }
+
+        // 初始化游戏
+        newGame();
+    </script>
+</body>
+</html>

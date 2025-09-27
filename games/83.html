@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>深海探险</title>
+    <style>
+        body { background: linear-gradient(135deg, #0c2461, #40739e); font-family: 'Arial', sans-serif; margin: 0; color: white; }
+        .game-container { max-width: 800px; margin: 0 auto; padding: 20px; text-align: center; }
+        .game-title { font-size: 3em; margin-bottom: 10px; text-shadow: 3px 3px 6px rgba(0,0,0,0.7); }
+        .game-category { color: #00d2d3; font-size: 1.2em; margin-bottom: 20px; }
+        .game-area { background: rgba(0,0,0,0.3); border-radius: 15px; padding: 30px; margin: 20px 0; }
+        .ocean-field { width: 100%; height: 500px; background: linear-gradient(180deg, #006ba6, #0c2461); border-radius: 10px; position: relative; overflow: hidden; }
+        .submarine { width: 80px; height: 40px; background: #ffa502; border-radius: 20px; position: absolute; left: 50px; top: 50%; transform: translateY(-50%); }
+        .submarine::before { content: ''; width: 20px; height: 10px; background: #ff6348; border-radius: 10px; position: absolute; right: -15px; top: 15px; }
+        .treasure { width: 30px; height: 30px; background: #ffd700; border-radius: 50%; position: absolute; }
+        .fish { width: 40px; height: 25px; background: #ff7675; border-radius: 15px; position: absolute; }
+        .obstacle { width: 60px; height: 80px; background: #2d3436; border-radius: 10px; position: absolute; }
+        .bubble { width: 10px; height: 10px; background: rgba(255,255,255,0.7); border-radius: 50%; position: absolute; animation: bubbleFloat 3s infinite; }
+        .depth-meter { position: absolute; left: 20px; top: 20px; background: rgba(0,0,0,0.5); padding: 15px; border-radius: 10px; }
+        .stats { display: flex; justify-content: space-around; margin-bottom: 20px; font-size: 1.2em; }
+        .controls { margin: 20px 0; }
+        .btn { background: #00d2d3; color: white; border: none; padding: 12px 25px; font-size: 1.1em; border-radius: 8px; cursor: pointer; margin: 5px; }
+        .btn:hover { background: #00a085; }
+        @keyframes bubbleFloat { 0% { bottom: 0; opacity: 0.7; } 100% { bottom: 500px; opacity: 0; } }
+        .how-to-play { background: rgba(0,0,0,0.2); border-radius: 10px; padding: 20px; margin-top: 20px; text-align: left; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1 class="game-title">深海探险</h1>
+        <div class="game-category">#冒险游戏</div>
+        
+        <div class="game-area">
+            <div class="stats">
+                <div>氧气: <span id="oxygen">100</span>%</div>
+                <div>宝物: <span id="treasures">0</span></div>
+                <div>深度: <span id="depth">0</span>m</div>
+            </div>
+            
+            <div class="ocean-field" id="oceanField">
+                <div class="depth-meter">
+                    <div>深度计</div>
+                    <div id="depthDisplay">0m</div>
+                </div>
+                <div class="submarine" id="submarine">🚁</div>
+            </div>
+            
+            <div class="controls">
+                <button class="btn" onclick="startGame()">开始探险</button>
+                <button class="btn" onclick="pauseGame()">暂停</button>
+                <button class="btn" onclick="resetGame()">重新开始</button>
+                <button class="btn" onclick="surfaceUp()">上浮</button>
+            </div>
+        </div>
+        
+        <div class="how-to-play">
+            <h3>游玩方法：</h3>
+            <p>• 使用WASD键或方向键控制潜水艇移动</p>
+            <p>• 收集海底的金色宝物获得分数</p>
+            <p>• 避开游动的鱼类和暗礁</p>
+            <p>• 注意氧气消耗，及时上浮补充</p>
+            <p>• 潜水越深，宝物越珍贵</p>
+            <p>• 成为最优秀的深海探险家！</p>
+        </div>
+    </div>
+    
+    <script>
+        let oxygen = 100;
+        let treasures = 0;
+        let depth = 0;
+        let gameRunning = false;
+        let submarine, field;
+        let gameObjects = [];
+        let keys = {};
+        
+        function initGame() {
+            submarine = document.getElementById('submarine');
+            field = document.getElementById('oceanField');
+            createBubbles();
+        }
+        
+        function createBubbles() {
+            for (let i = 0; i < 20; i++) {
+                setTimeout(() => {
+                    if (gameRunning) {
+                        const bubble = document.createElement('div');
+                        bubble.className = 'bubble';
+                        bubble.style.left = Math.random() * 800 + 'px';
+                        bubble.style.bottom = '0px';
+                        field.appendChild(bubble);
+                        
+                        setTimeout(() => bubble.remove(), 3000);
+                    }
+                    createBubbles();
+                }, Math.random() * 2000 + 1000);
+            }
+        }
+        
+        function startGame() {
+            gameRunning = true;
+            gameLoop();
+            spawnObjects();
+            oxygenConsumption();
+        }
+        
+        function pauseGame() {
+            gameRunning = !gameRunning;
+            if (gameRunning) {
+                gameLoop();
+                oxygenConsumption();
+            }
+        }
+        
+        function resetGame() {
+            gameRunning = false;
+            oxygen = 100;
+            treasures = 0;
+            depth = 0;
+            
+            // Clear objects
+            gameObjects.forEach(obj => obj.element.remove());
+            gameObjects = [];
+            
+            // Reset submarine position
+            submarine.style.left = '50px';
+            submarine.style.top = '50%';
+            
+            updateDisplay();
+        }
+        
+        function surfaceUp() {
+            if (depth > 0) {
+                depth = Math.max(0, depth - 50);
+                oxygen = Math.min(100, oxygen + 30);
+                updateDisplay();
+            }
+        }
+        
+        function spawnObjects() {
+            if (!gameRunning) return;
+            
+            // Spawn treasure
+            if (Math.random() < 0.3) {
+                const treasure = document.createElement('div');
+                treasure.className = 'treasure';
+                treasure.style.left = Math.random() * 770 + 'px';
+                treasure.style.top = Math.random() * 470 + 'px';
+                treasure.textContent = '💰';
+                treasure.style.fontSize = '25px';
+                field.appendChild(treasure);
+                
+                gameObjects.push({
+                    element: treasure,
+                    type: 'treasure',
+                    x: parseInt(treasure.style.left),
+                    y: parseInt(treasure.style.top)
+                });
+            }
+            
+            // Spawn fish
+            if (Math.random() < 0.4) {
+                const fish = document.createElement('div');
+                fish.className = 'fish';
+                fish.style.left = Math.random() * 760 + 'px';
+                fish.style.top = Math.random() * 475 + 'px';
+                fish.textContent = '🐠';
+                fish.style.fontSize = '30px';
+                field.appendChild(fish);
+                
+                gameObjects.push({
+                    element: fish,
+                    type: 'fish',
+                    x: parseInt(fish.style.left),
+                    y: parseInt(fish.style.top),
+                    dx: (Math.random() - 0.5) * 4,
+                    dy: (Math.random() - 0.5) * 2
+                });
+            }
+            
+            // Spawn obstacle
+            if (Math.random() < 0.2) {
+                const obstacle = document.createElement('div');
+                obstacle.className = 'obstacle';
+                obstacle.style.left = Math.random() * 740 + 'px';
+                obstacle.style.top = Math.random() * 420 + 'px';
+                obstacle.textContent = '🪨';
+                obstacle.style.fontSize = '50px';
+                field.appendChild(obstacle);
+                
+                gameObjects.push({
+                    element: obstacle,
+                    type: 'obstacle',
+                    x: parseInt(obstacle.style.left),
+                    y: parseInt(obstacle.style.top)
+                });
+            }
+            
+            setTimeout(spawnObjects, 2000);
+        }
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            // Move submarine
+            const speed = 3;
+            let currentX = parseInt(submarine.style.left) || 50;
+            let currentY = parseInt(submarine.style.top) || 250;
+            
+            if (keys['ArrowLeft'] || keys['a'] || keys['A']) {
+                currentX = Math.max(0, currentX - speed);
+            }
+            if (keys['ArrowRight'] || keys['d'] || keys['D']) {
+                currentX = Math.min(720, currentX + speed);
+            }
+            if (keys['ArrowUp'] || keys['w'] || keys['W']) {
+                currentY = Math.max(0, currentY - speed);
+                depth = Math.max(0, depth - 1);
+            }
+            if (keys['ArrowDown'] || keys['s'] || keys['S']) {
+                currentY = Math.min(460, currentY + speed);
+                depth += 1;
+            }
+            
+            submarine.style.left = currentX + 'px';
+            submarine.style.top = currentY + 'px';
+            
+            // Move fish
+            gameObjects.forEach((obj, index) => {
+                if (obj.type === 'fish') {
+                    obj.x += obj.dx;
+                    obj.y += obj.dy;
+                    
+                    // Bounce off walls
+                    if (obj.x <= 0 || obj.x >= 760) obj.dx *= -1;
+                    if (obj.y <= 0 || obj.y >= 475) obj.dy *= -1;
+                    
+                    obj.element.style.left = obj.x + 'px';
+                    obj.element.style.top = obj.y + 'px';
+                }
+                
+                // Check collisions
+                const distance = Math.sqrt(
+                    Math.pow(currentX - obj.x, 2) + 
+                    Math.pow(currentY - obj.y, 2)
+                );
+                
+                if (distance < 40) {
+                    if (obj.type === 'treasure') {
+                        obj.element.remove();
+                        gameObjects.splice(index, 1);
+                        treasures += Math.floor(depth / 10) + 1;
+                        updateDisplay();
+                    } else if (obj.type === 'fish' || obj.type === 'obstacle') {
+                        oxygen -= 10;
+                        obj.element.remove();
+                        gameObjects.splice(index, 1);
+                        updateDisplay();
+                        
+                        if (oxygen <= 0) {
+                            alert('氧气耗尽！游戏结束！获得宝物: ' + treasures);
+                            resetGame();
+                            return;
+                        }
+                    }
+                }
+            });
+            
+            updateDisplay();
+            setTimeout(gameLoop, 50);
+        }
+        
+        function oxygenConsumption() {
+            if (!gameRunning) return;
+            
+            oxygen -= 0.5;
+            if (oxygen <= 0) {
+                alert('氧气耗尽！游戏结束！获得宝物: ' + treasures);
+                resetGame();
+                return;
+            }
+            
+            updateDisplay();
+            setTimeout(oxygenConsumption, 1000);
+        }
+        
+        function updateDisplay() {
+            document.getElementById('oxygen').textContent = Math.max(0, Math.floor(oxygen));
+            document.getElementById('treasures').textContent = treasures;
+            document.getElementById('depth').textContent = Math.floor(depth);
+            document.getElementById('depthDisplay').textContent = Math.floor(depth) + 'm';
+        }
+        
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            keys[e.key] = true;
+        });
+        
+        document.addEventListener('keyup', (e) => {
+            keys[e.key] = false;
+        });
+        
+        initGame();
+    </script>
+</body>
+</html>

@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数字停车场 - 数字拼图游戏</title>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #ff9a9e 0%, #fecfef 50%, #fecfef 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.9);
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        h1 {
+            text-align: center;
+            color: #e74c3c;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .game-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+        }
+        .stat {
+            text-align: center;
+            font-size: 1.1em;
+        }
+        .puzzle-board {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            max-width: 400px;
+            margin: 30px auto;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+        }
+        .tile {
+            aspect-ratio: 1;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.8em;
+            font-weight: bold;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+            text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
+        }
+        .tile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+        .tile.empty {
+            background: rgba(255, 255, 255, 0.2);
+            cursor: default;
+            box-shadow: inset 0 3px 10px rgba(0, 0, 0, 0.2);
+        }
+        .tile.empty:hover {
+            transform: none;
+        }
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+        }
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            margin: 5px;
+            border-radius: 25px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        .difficulty {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .difficulty label {
+            margin: 0 10px;
+            cursor: pointer;
+            padding: 8px 15px;
+            background: rgba(255, 255, 255, 0.7);
+            border-radius: 20px;
+            transition: all 0.3s ease;
+        }
+        .difficulty input[type="radio"] {
+            margin-right: 5px;
+        }
+        .difficulty label:hover {
+            background: rgba(255, 255, 255, 0.9);
+        }
+        .instruction {
+            background: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 15px;
+            margin: 20px 0;
+            line-height: 1.6;
+            border-left: 5px solid #e74c3c;
+        }
+        .win-animation {
+            animation: celebration 0.8s ease-in-out;
+        }
+        @keyframes celebration {
+            0%, 100% { transform: scale(1); }
+            25% { transform: scale(1.05) rotate(2deg); }
+            75% { transform: scale(1.05) rotate(-2deg); }
+        }
+        .timer {
+            font-size: 1.2em;
+            color: #e74c3c;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚗 数字停车场</h1>
+        
+        <div class="game-info">
+            <div class="stat">
+                <div>移动次数</div>
+                <div id="moves">0</div>
+            </div>
+            <div class="stat">
+                <div>用时</div>
+                <div class="timer" id="timer">00:00</div>
+            </div>
+            <div class="stat">
+                <div>最佳记录</div>
+                <div id="bestScore">无</div>
+            </div>
+        </div>
+        
+        <div class="difficulty">
+            <label><input type="radio" name="size" value="3" checked> 3x3 (简单)</label>
+            <label><input type="radio" name="size" value="4"> 4x4 (中等)</label>
+            <label><input type="radio" name="size" value="5"> 5x5 (困难)</label>
+        </div>
+        
+        <div class="puzzle-board" id="puzzleBoard"></div>
+        
+        <div class="controls">
+            <button onclick="startNewGame()">新游戏</button>
+            <button onclick="shuffleBoard()">打乱</button>
+            <button onclick="solveStep()">提示</button>
+            <button onclick="resetGame()">重置</button>
+        </div>
+        
+        <div class="instruction">
+            <h3>🎮 游玩方法：</h3>
+            <p><strong>游戏目标：</strong>将数字按顺序排列，空格放在右下角</p>
+            <p><strong>操作方式：</strong></p>
+            <ul>
+                <li>点击与空格相邻的数字方块</li>
+                <li>数字方块会移动到空格位置</li>
+                <li>通过不断移动，整理出正确的数字顺序</li>
+                <li>目标是用最少的步数完成排列</li>
+            </ul>
+            <p><strong>游戏特色：</strong></p>
+            <ul>
+                <li>多种难度选择：3x3、4x4、5x5</li>
+                <li>记录最佳成绩和用时</li>
+                <li>提供提示功能帮助解题</li>
+                <li>打乱功能重新开始</li>
+            </ul>
+            <p><strong>小贴士：</strong>先解决角落和边缘，再处理中间部分！</p>
+        </div>
+    </div>
+
+    <script>
+        let gameState = {
+            board: [],
+            size: 3,
+            moves: 0,
+            startTime: null,
+            timer: null,
+            isPlaying: false,
+            emptyPos: { row: 0, col: 0 }
+        };
+        
+        function getSelectedSize() {
+            return parseInt(document.querySelector('input[name="size"]:checked').value);
+        }
+        
+        function startNewGame() {
+            gameState.size = getSelectedSize();
+            gameState.moves = 0;
+            gameState.startTime = Date.now();
+            gameState.isPlaying = true;
+            
+            initializeBoard();
+            shuffleBoard();
+            updateDisplay();
+            
+            if (gameState.timer) {
+                clearInterval(gameState.timer);
+            }
+            gameState.timer = setInterval(updateTimer, 1000);
+        }
+        
+        function initializeBoard() {
+            const size = gameState.size;
+            gameState.board = [];
+            
+            // 创建有序数组
+            for (let i = 0; i < size; i++) {
+                gameState.board[i] = [];
+                for (let j = 0; j < size; j++) {
+                    if (i === size - 1 && j === size - 1) {
+                        gameState.board[i][j] = 0; // 空格
+                        gameState.emptyPos = { row: i, col: j };
+                    } else {
+                        gameState.board[i][j] = i * size + j + 1;
+                    }
+                }
+            }
+            
+            renderBoard();
+        }
+        
+        function renderBoard() {
+            const board = document.getElementById('puzzleBoard');
+            const size = gameState.size;
+            
+            board.style.gridTemplateColumns = `repeat(${size}, 1fr)`;
+            board.innerHTML = '';
+            
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    const tile = document.createElement('div');
+                    tile.className = 'tile';
+                    tile.dataset.row = i;
+                    tile.dataset.col = j;
+                    
+                    if (gameState.board[i][j] === 0) {
+                        tile.classList.add('empty');
+                        tile.textContent = '';
+                    } else {
+                        tile.textContent = gameState.board[i][j];
+                        tile.addEventListener('click', () => moveTile(i, j));
+                    }
+                    
+                    board.appendChild(tile);
+                }
+            }
+        }
+        
+        function moveTile(row, col) {
+            if (!gameState.isPlaying) return;
+            
+            const emptyRow = gameState.emptyPos.row;
+            const emptyCol = gameState.emptyPos.col;
+            
+            // 检查是否相邻
+            const isAdjacent = 
+                (Math.abs(row - emptyRow) === 1 && col === emptyCol) ||
+                (Math.abs(col - emptyCol) === 1 && row === emptyRow);
+            
+            if (isAdjacent) {
+                // 交换位置
+                gameState.board[emptyRow][emptyCol] = gameState.board[row][col];
+                gameState.board[row][col] = 0;
+                gameState.emptyPos = { row, col };
+                
+                gameState.moves++;
+                
+                renderBoard();
+                updateDisplay();
+                
+                // 检查是否完成
+                if (checkWin()) {
+                    gameWon();
+                }
+            }
+        }
+        
+        function checkWin() {
+            const size = gameState.size;
+            
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    if (i === size - 1 && j === size - 1) {
+                        // 最后一个位置应该是空格
+                        if (gameState.board[i][j] !== 0) return false;
+                    } else {
+                        // 其他位置应该是正确的数字
+                        if (gameState.board[i][j] !== i * size + j + 1) return false;
+                    }
+                }
+            }
+            
+            return true;
+        }
+        
+        function shuffleBoard() {
+            // 随机移动多次来打乱棋盘
+            const shuffleMoves = gameState.size * gameState.size * 100;
+            
+            for (let i = 0; i < shuffleMoves; i++) {
+                const possibleMoves = getPossibleMoves();
+                if (possibleMoves.length > 0) {
+                    const randomMove = possibleMoves[Math.floor(Math.random() * possibleMoves.length)];
+                    moveTileQuiet(randomMove.row, randomMove.col);
+                }
+            }
+            
+            gameState.moves = 0;
+            renderBoard();
+            updateDisplay();
+        }
+        
+        function moveTileQuiet(row, col) {
+            const emptyRow = gameState.emptyPos.row;
+            const emptyCol = gameState.emptyPos.col;
+            
+            gameState.board[emptyRow][emptyCol] = gameState.board[row][col];
+            gameState.board[row][col] = 0;
+            gameState.emptyPos = { row, col };
+        }
+        
+        function getPossibleMoves() {
+            const moves = [];
+            const emptyRow = gameState.emptyPos.row;
+            const emptyCol = gameState.emptyPos.col;
+            const size = gameState.size;
+            
+            // 上
+            if (emptyRow > 0) moves.push({ row: emptyRow - 1, col: emptyCol });
+            // 下
+            if (emptyRow < size - 1) moves.push({ row: emptyRow + 1, col: emptyCol });
+            // 左
+            if (emptyCol > 0) moves.push({ row: emptyRow, col: emptyCol - 1 });
+            // 右
+            if (emptyCol < size - 1) moves.push({ row: emptyRow, col: emptyCol + 1 });
+            
+            return moves;
+        }
+        
+        function solveStep() {
+            if (!gameState.isPlaying) return;
+            
+            // 简单的提示：显示下一步可能的移动
+            const possibleMoves = getPossibleMoves();
+            
+            if (possibleMoves.length > 0) {
+                // 高亮显示可移动的方块
+                possibleMoves.forEach(move => {
+                    const tile = document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`);
+                    tile.style.border = '3px solid #f39c12';
+                    tile.style.animation = 'pulse 1s ease-in-out 3';
+                });
+                
+                // 3秒后恢复
+                setTimeout(() => {
+                    possibleMoves.forEach(move => {
+                        const tile = document.querySelector(`[data-row="${move.row}"][data-col="${move.col}"]`);
+                        if (tile) {
+                            tile.style.border = '';
+                            tile.style.animation = '';
+                        }
+                    });
+                }, 3000);
+            }
+        }
+        
+        function resetGame() {
+            if (gameState.timer) {
+                clearInterval(gameState.timer);
+            }
+            
+            gameState.isPlaying = false;
+            gameState.moves = 0;
+            gameState.startTime = null;
+            
+            initializeBoard();
+            updateDisplay();
+        }
+        
+        function gameWon() {
+            gameState.isPlaying = false;
+            clearInterval(gameState.timer);
+            
+            const timeUsed = Math.floor((Date.now() - gameState.startTime) / 1000);
+            const score = `${gameState.moves}步/${formatTime(timeUsed)}`;
+            
+            // 更新最佳记录
+            const bestKey = `best_${gameState.size}x${gameState.size}`;
+            const currentBest = localStorage.getItem(bestKey);
+            
+            if (!currentBest || gameState.moves < parseInt(currentBest.split('步')[0])) {
+                localStorage.setItem(bestKey, score);
+                updateBestScore();
+            }
+            
+            // 庆祝动画
+            document.getElementById('puzzleBoard').classList.add('win-animation');
+            
+            setTimeout(() => {
+                alert(`恭喜完成！\n用时：${formatTime(timeUsed)}\n步数：${gameState.moves}\n\n检查一下你的最佳记录！`);
+                document.getElementById('puzzleBoard').classList.remove('win-animation');
+            }, 800);
+        }
+        
+        function updateTimer() {
+            if (!gameState.startTime) return;
+            
+            const elapsed = Date.now() - gameState.startTime;
+            document.getElementById('timer').textContent = formatTime(Math.floor(elapsed / 1000));
+        }
+        
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function updateDisplay() {
+            document.getElementById('moves').textContent = gameState.moves;
+            updateBestScore();
+        }
+        
+        function updateBestScore() {
+            const bestKey = `best_${gameState.size}x${gameState.size}`;
+            const best = localStorage.getItem(bestKey) || '无';
+            document.getElementById('bestScore').textContent = best;
+        }
+        
+        // 添加CSS动画
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes pulse {
+                0%, 100% { transform: scale(1); }
+                50% { transform: scale(1.1); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // 初始化
+        initializeBoard();
+        updateDisplay();
+    </script>
+</body>
+</html>

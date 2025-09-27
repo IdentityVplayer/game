@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>太空探索 - Space Explorer</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(45deg, #000428, #004e92);
+            color: white;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .game-area {
+            background: rgba(0, 20, 40, 0.8);
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px 0;
+            position: relative;
+            overflow: hidden;
+        }
+        #gameCanvas {
+            border: 2px solid #00ffff;
+            background: #000015;
+        }
+        .controls {
+            margin: 20px 0;
+        }
+        .btn {
+            background: linear-gradient(45deg, #00ffff, #0080ff);
+            color: #000;
+            border: none;
+            padding: 10px 20px;
+            margin: 5px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        .score {
+            font-size: 24px;
+            margin: 10px 0;
+        }
+        .star {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            animation: twinkle 2s infinite;
+        }
+        @keyframes twinkle {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 太空探索 Space Explorer</h1>
+        <div class="score">分数: <span id="score">0</span></div>
+        <div class="game-area">
+            <canvas id="gameCanvas" width="600" height="400"></canvas>
+            <div class="controls">
+                <button class="btn" onclick="startGame()">开始探索</button>
+                <button class="btn" onclick="pauseGame()">暂停</button>
+                <button class="btn" onclick="resetGame()">重新开始</button>
+            </div>
+        </div>
+        
+        <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-top: 20px;">
+            <h3>🎮 游玩方法:</h3>
+            <p>• 使用方向键控制太空船移动</p>
+            <p>• 收集星星获得分数</p>
+            <p>• 避开小行星和障碍物</p>
+            <p>• 探索无尽的太空获得更高分数</p>
+        </div>
+        
+        <a href="../index.html" style="color: #00ffff; text-decoration: none; margin-top: 20px; display: inline-block;">← 返回游戏列表</a>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let game = {
+            player: { x: 300, y: 200, size: 20, speed: 5 },
+            stars: [],
+            asteroids: [],
+            score: 0,
+            gameRunning: false,
+            gameLoop: null
+        };
+        
+        // 创建星星背景
+        function createStars() {
+            for (let i = 0; i < 50; i++) {
+                game.stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 2 + 1,
+                    speed: Math.random() * 2 + 1
+                });
+            }
+        }
+        
+        // 创建小行星
+        function createAsteroid() {
+            game.asteroids.push({
+                x: canvas.width,
+                y: Math.random() * canvas.height,
+                size: Math.random() * 30 + 20,
+                speed: Math.random() * 3 + 2
+            });
+        }
+        
+        function drawPlayer() {
+            ctx.fillStyle = '#00ffff';
+            ctx.fillRect(game.player.x - game.player.size/2, game.player.y - game.player.size/2, game.player.size, game.player.size);
+            
+            // 画推进器效果
+            ctx.fillStyle = '#ff6600';
+            ctx.fillRect(game.player.x - game.player.size/2 - 10, game.player.y - 5, 8, 10);
+        }
+        
+        function drawStars() {
+            game.stars.forEach(star => {
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(star.x, star.y, star.size, star.size);
+                star.x -= star.speed;
+                if (star.x < 0) {
+                    star.x = canvas.width;
+                    star.y = Math.random() * canvas.height;
+                }
+            });
+        }
+        
+        function drawAsteroids() {
+            game.asteroids.forEach((asteroid, index) => {
+                ctx.fillStyle = '#8B4513';
+                ctx.fillRect(asteroid.x - asteroid.size/2, asteroid.y - asteroid.size/2, asteroid.size, asteroid.size);
+                asteroid.x -= asteroid.speed;
+                
+                // 检查碰撞
+                if (Math.abs(game.player.x - asteroid.x) < asteroid.size/2 + game.player.size/2 &&
+                    Math.abs(game.player.y - asteroid.y) < asteroid.size/2 + game.player.size/2) {
+                    gameOver();
+                }
+                
+                if (asteroid.x < -asteroid.size) {
+                    game.asteroids.splice(index, 1);
+                    game.score += 10;
+                    updateScore();
+                }
+            });
+        }
+        
+        function update() {
+            if (!game.gameRunning) return;
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            drawStars();
+            drawPlayer();
+            drawAsteroids();
+            
+            // 随机生成小行星
+            if (Math.random() < 0.02) {
+                createAsteroid();
+            }
+        }
+        
+        function startGame() {
+            game.gameRunning = true;
+            game.asteroids = [];
+            createStars();
+            game.gameLoop = setInterval(update, 16);
+        }
+        
+        function pauseGame() {
+            game.gameRunning = !game.gameRunning;
+        }
+        
+        function resetGame() {
+            game.gameRunning = false;
+            clearInterval(game.gameLoop);
+            game.score = 0;
+            game.player.x = 300;
+            game.player.y = 200;
+            game.asteroids = [];
+            updateScore();
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        function gameOver() {
+            game.gameRunning = false;
+            clearInterval(game.gameLoop);
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.7)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = 'white';
+            ctx.font = '48px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('游戏结束!', canvas.width/2, canvas.height/2);
+            ctx.font = '24px Arial';
+            ctx.fillText('最终分数: ' + game.score, canvas.width/2, canvas.height/2 + 50);
+        }
+        
+        function updateScore() {
+            document.getElementById('score').textContent = game.score;
+        }
+        
+        // 键盘控制
+        document.addEventListener('keydown', (e) => {
+            if (!game.gameRunning) return;
+            
+            switch(e.key) {
+                case 'ArrowUp':
+                    if (game.player.y > game.player.size/2) game.player.y -= game.player.speed;
+                    break;
+                case 'ArrowDown':
+                    if (game.player.y < canvas.height - game.player.size/2) game.player.y += game.player.speed;
+                    break;
+                case 'ArrowLeft':
+                    if (game.player.x > game.player.size/2) game.player.x -= game.player.speed;
+                    break;
+                case 'ArrowRight':
+                    if (game.player.x < canvas.width - game.player.size/2) game.player.x += game.player.speed;
+                    break;
+            }
+        });
+        
+        // 添加星星动画到背景
+        function addBackgroundStars() {
+            for (let i = 0; i < 20; i++) {
+                const star = document.createElement('div');
+                star.className = 'star';
+                star.style.left = Math.random() * 100 + '%';
+                star.style.top = Math.random() * 100 + '%';
+                star.style.width = Math.random() * 3 + 1 + 'px';
+                star.style.height = star.style.width;
+                star.style.animationDelay = Math.random() * 2 + 's';
+                document.querySelector('.game-area').appendChild(star);
+            }
+        }
+        
+        addBackgroundStars();
+    </script>
+</body>
+</html>
