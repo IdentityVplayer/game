@@ -519,37 +519,51 @@
             border-radius: 5px;
         }
 
-        @media (max-width: 768px) {
+        /* 响应式设计 */
+        @media (max-width: 900px) {
             .game-iframe {
-                width: 350px;
-                height: 400px;
+                width: 100%;
+                height: 60vh;
+                min-height: 400px;
+            }
+            
+            .game-modal-content {
+                padding: 10px;
+                margin: 10px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .save-manager {
+                top: 70px;
+                right: 5px;
             }
             
             .theme-switcher {
-                top: 10px;
-                right: 10px;
+                top: 70px;
+                left: 5px;
                 flex-direction: column;
                 gap: 5px;
             }
             
-            .save-manager {
-                top: 10px;
-                left: 10px;
+            .theme-btn {
+                padding: 6px 10px;
+                font-size: 0.8rem;
             }
             
-            .theme-btn,
             .save-btn {
                 padding: 6px 10px;
                 font-size: 0.8rem;
             }
-
-            .save-menu {
-                min-width: 120px;
-            }
-
+            
             .save-menu button {
                 font-size: 0.7rem;
                 padding: 6px 8px;
+            }
+            
+            .game-iframe {
+                height: 50vh;
+                min-height: 300px;
             }
         }
     </style>
@@ -648,6 +662,17 @@
             <p>&copy; 2025 游戏中心 - 享受游戏的乐趣</p>
         </div>
     </footer>
+
+    <!-- 游戏模态框 -->
+    <div class="game-modal" id="gameModal">
+        <div class="game-modal-content">
+            <div class="game-modal-header">
+                <h3 id="modalGameTitle">游戏</h3>
+                <button class="close-btn" onclick="closeGameModal()">&times;</button>
+            </div>
+            <iframe id="gameIframe" class="game-iframe" src=""></iframe>
+        </div>
+    </div>
 
     <script>
         // 游戏数据
@@ -894,20 +919,7 @@
         }
     </script>
 
-    <!-- 游戏模态框 -->
-    <div class="game-modal" id="gameModal">
-        <div class="game-modal-content">
-            <div class="game-modal-header">
-                <h3 id="modalGameTitle">游戏</h3>
-                <button class="close-btn" onclick="closeGameModal()">&times;</button>
-            </div>
-            <iframe id="gameIframe" class="game-iframe" src=""></iframe>
-        </div>
-    </div>
-
     <script>
-        // 页面加载完成后初始化
-        document.addEventListener('DOMContentLoaded', init);
 
         // 主题切换功能
         function setTheme(theme) {
