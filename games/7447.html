@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>巨星问答 7447</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #85C1E9, #DDA0DD);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #4ECDC4, #45B7D1);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #333;
+        }
+        
+        
+        #gameArea {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        
+        #questionArea {
+            background: #f0f0f0;
+            padding: 30px;
+            border-radius: 15px;
+            margin: 20px 0;
+            min-height: 100px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        #questionNumber {
+            font-size: 16px;
+            color: #666;
+            margin-bottom: 15px;
+        }
+        
+        #question {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            text-align: center;
+        }
+        
+        #answers {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 20px 0;
+        }
+        
+        .answer-btn {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+            color: white;
+            border: none;
+            padding: 20px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .answer-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .answer-btn.correct {
+            background: linear-gradient(45deg, #4CAF50, #45a049);
+        }
+        
+        .answer-btn.incorrect {
+            background: linear-gradient(45deg, #f44336, #da190b);
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>巨星问答 7447</h1>
+        
+        <div id="gameArea">
+            <div id="questionArea">
+                <div id="questionNumber">问题 1/10</div>
+                <div id="question">点击开始游戏</div>
+            </div>
+            <div id="answers"></div>
+            <div class="score">得分: <span id="score">0</span></div>
+            <div class="score">时间: <span id="timer">30</span>秒</div>
+            <button class="btn" onclick="startQuiz()">开始问答</button>
+        </div>
+        
+    </div>
+    
+    <script>
+        
+        const questions = [
+            {
+                question: "中国的首都是哪里？",
+                answers: ["北京", "上海", "广州", "深圳"],
+                correct: 0
+            },
+            {
+                question: "1 + 1 等于多少？",
+                answers: ["1", "2", "3", "4"],
+                correct: 1
+            },
+            {
+                question: "地球有几个月亮？",
+                answers: ["0个", "1个", "2个", "3个"],
+                correct: 1
+            },
+            {
+                question: "一年有多少天？",
+                answers: ["364天", "365天", "366天", "367天"],
+                correct: 1
+            },
+            {
+                question: "太阳从哪个方向升起？",
+                answers: ["东方", "西方", "南方", "北方"],
+                correct: 0
+            },
+            {
+                question: "水的化学符号是什么？",
+                answers: ["H2O", "CO2", "O2", "N2"],
+                correct: 0
+            },
+            {
+                question: "中国最长的河流是什么？",
+                answers: ["黄河", "长江", "珠江", "淮河"],
+                correct: 1
+            },
+            {
+                question: "一个小时有多少分钟？",
+                answers: ["50分钟", "60分钟", "70分钟", "80分钟"],
+                correct: 1
+            },
+            {
+                question: "彩虹有几种颜色？",
+                answers: ["5种", "6种", "7种", "8种"],
+                correct: 2
+            },
+            {
+                question: "人体最大的器官是什么？",
+                answers: ["心脏", "肝脏", "肺", "皮肤"],
+                correct: 3
+            }
+        ];
+        
+        let currentQuestionIndex = 0;
+        let score = 0;
+        let timeLeft = 30;
+        let timer = null;
+        let gameActive = false;
+        
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+        
+        function startQuiz() {
+            if (gameActive) return;
+            
+            currentQuestionIndex = 0;
+            score = 0;
+            timeLeft = 30;
+            gameActive = true;
+            
+            // 随机排列问题
+            shuffleArray(questions);
+            
+            updateDisplay();
+            showQuestion();
+            startTimer();
+        }
+        
+        function showQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                endQuiz();
+                return;
+            }
+            
+            const question = questions[currentQuestionIndex];
+            
+            document.getElementById('questionNumber').textContent = 
+                `问题 ${currentQuestionIndex + 1}/${questions.length}`;
+            document.getElementById('question').textContent = question.question;
+            
+            const answersDiv = document.getElementById('answers');
+            answersDiv.innerHTML = '';
+            
+            question.answers.forEach((answer, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'answer-btn';
+                btn.textContent = answer;
+                btn.onclick = () => selectAnswer(index);
+                answersDiv.appendChild(btn);
+            });
+        }
+        
+        function selectAnswer(selectedIndex) {
+            if (!gameActive) return;
+            
+            const question = questions[currentQuestionIndex];
+            const buttons = document.querySelectorAll('.answer-btn');
+            
+            buttons.forEach((btn, index) => {
+                btn.onclick = null;
+                if (index === question.correct) {
+                    btn.classList.add('correct');
+                } else if (index === selectedIndex) {
+                    btn.classList.add('incorrect');
+                }
+            });
+            
+            if (selectedIndex === question.correct) {
+                score += 10;
+            }
+            
+            updateDisplay();
+            
+            setTimeout(() => {
+                currentQuestionIndex++;
+                showQuestion();
+            }, 1500);
+        }
+        
+        function startTimer() {
+            timer = setInterval(() => {
+                timeLeft--;
+                document.getElementById('timer').textContent = timeLeft;
+                
+                if (timeLeft <= 0) {
+                    endQuiz();
+                }
+            }, 1000);
+        }
+        
+        function stopTimer() {
+            if (timer) {
+                clearInterval(timer);
+                timer = null;
+            }
+        }
+        
+        function endQuiz() {
+            gameActive = false;
+            stopTimer();
+            
+            document.getElementById('question').textContent = 
+                `游戏结束！最终得分: ${score}/${questions.length * 10}`;
+            document.getElementById('answers').innerHTML = '';
+            
+            let message = '游戏结束！\n';
+            message += `得分: ${score}/${questions.length * 10}\n`;
+            message += `正确率: ${Math.round(score / (questions.length * 10) * 100)}%`;
+            
+            alert(message);
+        }
+        
+        function updateDisplay() {
+            document.getElementById('score').textContent = score;
+        }
+        
+        updateDisplay();
+        
+    </script>
+</body>
+</html>

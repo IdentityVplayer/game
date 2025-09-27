@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>英雄跳跃 7442</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #BB8FCE, #96CEB4);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .game-container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            max-width: 800px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .btn {
+            background: linear-gradient(45deg, #FF6B6B, #FFEAA7);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 18px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: transform 0.3s;
+        }
+        
+        .btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            margin: 20px 0;
+            color: #333;
+        }
+        
+        
+        #gameCanvas {
+            border: 3px solid #333;
+            background: linear-gradient(to bottom, #87CEEB, #98FB98);
+            margin: 20px 0;
+        }
+        
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <h1>英雄跳跃 7442</h1>
+        
+        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        <div class="score">得分: <span id="score">0</span></div>
+        <div class="score">生命: <span id="lives">3</span></div>
+        <button class="btn" onclick="startGame()">开始游戏</button>
+        <div style="margin-top: 10px; font-size: 14px;">
+            使用方向键移动和跳跃
+        </div>
+        
+    </div>
+    
+    <script>
+        
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        
+        let player = {
+            x: 50,
+            y: 300,
+            width: 30,
+            height: 30,
+            vx: 0,
+            vy: 0,
+            onGround: false,
+            color: '#98D8C8'
+        };
+        
+        let platforms = [
+            {x: 0, y: 350, width: 200, height: 50},
+            {x: 300, y: 300, width: 150, height: 20},
+            {x: 550, y: 250, width: 150, height: 20},
+            {x: 200, y: 200, width: 100, height: 20},
+            {x: 400, y: 150, width: 200, height: 20},
+            {x: 700, y: 100, width: 100, height: 20}
+        ];
+        
+        let coins = [
+            {x: 350, y: 270, collected: false},
+            {x: 600, y: 220, collected: false},
+            {x: 230, y: 170, collected: false},
+            {x: 500, y: 120, collected: false},
+            {x: 750, y: 70, collected: false}
+        ];
+        
+        let enemies = [
+            {x: 320, y: 280, vx: 1, color: '#ff4444'},
+            {x: 570, y: 230, vx: -1, color: '#ff4444'}
+        ];
+        
+        let score = 0;
+        let lives = 3;
+        let gameRunning = false;
+        let keys = {};
+        
+        function gameLoop() {
+            if (!gameRunning) return;
+            
+            update();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+        
+        function update() {
+            // Player movement
+            if (keys['ArrowLeft']) {
+                player.vx = -5;
+            } else if (keys['ArrowRight']) {
+                player.vx = 5;
+            } else {
+                player.vx *= 0.8; // Friction
+            }
+            
+            if (keys['ArrowUp'] && player.onGround) {
+                player.vy = -15;
+                player.onGround = false;
+            }
+            
+            // Gravity
+            player.vy += 0.8;
+            
+            // Update position
+            player.x += player.vx;
+            player.y += player.vy;
+            
+            // Platform collision
+            player.onGround = false;
+            for (let platform of platforms) {
+                if (player.x < platform.x + platform.width &&
+                    player.x + player.width > platform.x &&
+                    player.y < platform.y + platform.height &&
+                    player.y + player.height > platform.y) {
+                    
+                    if (player.vy > 0) { // Falling
+                        player.y = platform.y - player.height;
+                        player.vy = 0;
+                        player.onGround = true;
+                    }
+                }
+            }
+            
+            // Boundaries
+            if (player.x < 0) player.x = 0;
+            if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
+            
+            // Fall off screen
+            if (player.y > canvas.height) {
+                lives--;
+                if (lives <= 0) {
+                    gameOver();
+                } else {
+                    resetPlayer();
+                }
+            }
+            
+            // Coin collection
+            for (let coin of coins) {
+                if (!coin.collected &&
+                    player.x < coin.x + 20 &&
+                    player.x + player.width > coin.x &&
+                    player.y < coin.y + 20 &&
+                    player.y + player.height > coin.y) {
+                    
+                    coin.collected = true;
+                    score += 100;
+                }
+            }
+            
+            // Enemy movement and collision
+            for (let enemy of enemies) {
+                enemy.x += enemy.vx;
+                
+                // Enemy platform collision
+                let onPlatform = false;
+                for (let platform of platforms) {
+                    if (enemy.x + 15 > platform.x && 
+                        enemy.x + 15 < platform.x + platform.width &&
+                        enemy.y + 15 >= platform.y) {
+                        onPlatform = true;
+                        break;
+                    }
+                }
+                
+                if (!onPlatform) {
+                    enemy.vx *= -1; // Turn around at edge
+                }
+                
+                // Player-enemy collision
+                if (player.x < enemy.x + 15 &&
+                    player.x + player.width > enemy.x &&
+                    player.y < enemy.y + 15 &&
+                    player.y + player.height > enemy.y) {
+                    
+                    lives--;
+                    if (lives <= 0) {
+                        gameOver();
+                    } else {
+                        resetPlayer();
+                    }
+                }
+            }
+            
+            updateUI();
+        }
+        
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw platforms
+            ctx.fillStyle = '#8B4513';
+            for (let platform of platforms) {
+                ctx.fillRect(platform.x, platform.y, platform.width, platform.height);
+            }
+            
+            // Draw player
+            ctx.fillStyle = player.color;
+            ctx.fillRect(player.x, player.y, player.width, player.height);
+            
+            // Draw coins
+            ctx.fillStyle = '#FFD700';
+            for (let coin of coins) {
+                if (!coin.collected) {
+                    ctx.beginPath();
+                    ctx.arc(coin.x + 10, coin.y + 10, 10, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            }
+            
+            // Draw enemies
+            for (let enemy of enemies) {
+                ctx.fillStyle = enemy.color;
+                ctx.fillRect(enemy.x, enemy.y, 15, 15);
+            }
+        }
+        
+        function resetPlayer() {
+            player.x = 50;
+            player.y = 300;
+            player.vx = 0;
+            player.vy = 0;
+        }
+        
+        function updateUI() {
+            document.getElementById('score').textContent = score;
+            document.getElementById('lives').textContent = lives;
+        }
+        
+        function gameOver() {
+            gameRunning = false;
+            alert('游戏结束！得分: ' + score);
+        }
+        
+        function startGame() {
+            // Reset game state
+            score = 0;
+            lives = 3;
+            gameRunning = true;
+            
+            // Reset coins
+            for (let coin of coins) {
+                coin.collected = false;
+            }
+            
+            resetPlayer();
+            updateUI();
+            gameLoop();
+        }
+        
+        // Keyboard event listeners
+        document.addEventListener('keydown', function(e) {
+            keys[e.code] = true;
+        });
+        
+        document.addEventListener('keyup', function(e) {
+            keys[e.code] = false;
+        });
+        
+        updateUI();
+        
+    </script>
+</body>
+</html>
